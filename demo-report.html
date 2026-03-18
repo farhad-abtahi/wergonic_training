@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Data Analysis Report - Wergonic</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* ─── Page-level overrides ─── */
+        .demo-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .demo-header a {
+            font-size: 0.85rem;
+            color: var(--md-sys-color-primary);
+            text-decoration: none;
+            opacity: 0.8;
+        }
+        .demo-header a:hover { opacity: 1; text-decoration: underline; }
+
+        /* File picker panel */
+        .file-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .demo-file-card {
+            border: 2px solid var(--md-sys-color-outline-variant);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all .2s;
+            background: var(--md-sys-color-surface-container-low);
+            text-align: center;
+        }
+        .demo-file-card:hover {
+            border-color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-primary-container);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26,95,180,.15);
+        }
+        .demo-file-card.active {
+            border-color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-primary-container);
+        }
+        .demo-file-icon { font-size: 2rem; margin-bottom: 6px; }
+        .demo-file-name { font-weight: 600; font-size: 1rem; }
+        .demo-file-meta { font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; }
+
+        .upload-card {
+            border: 2px dashed var(--md-sys-color-outline);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all .2s;
+            background: var(--md-sys-color-surface-container-low);
+        }
+        .upload-card:hover {
+            border-color: var(--md-sys-color-secondary);
+            background: var(--md-sys-color-secondary-container);
+        }
+        .upload-card input[type="file"] { display: none; }
+
+        /* Report area */
+        #reportArea { display: none; }
+        #reportArea.visible { display: block; }
+
+        .report-title-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .report-filename {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface);
+        }
+        .report-filename span {
+            color: var(--md-sys-color-primary);
+        }
+
+        /* Summary chips */
+        .zone-summary {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .zone-chip {
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .zone-chip.green  { background: #e8f5e9; color: #2e7d32; border: 1.5px solid #81c784; }
+        .zone-chip.yellow { background: #fff8e1; color: #f57f17; border: 1.5px solid #ffd54f; }
+        .zone-chip.red    { background: #ffebee; color: #c62828; border: 1.5px solid #e57373; }
+        .zone-chip .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .zone-chip.green  .dot { background: #4caf50; }
+        .zone-chip.yellow .dot { background: #ffc107; }
+        .zone-chip.red    .dot { background: #f44336; }
+
+        /* Charts */
+        .chart-wrapper {
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .chart-wrapper h3 {
+            margin: 0 0 12px;
+            font-size: 1rem;
+            color: var(--md-sys-color-on-surface-variant);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+        /* Time range controls */
+        .range-controls {
+            background: var(--md-sys-color-surface-container);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+        }
+        .range-controls h3 {
+            margin: 0 0 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface-variant);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 4px;
+        }
+        .dual-slider-container { position: relative; flex: 1; min-width: 200px; }
+        .range-slider {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            accent-color: var(--md-sys-color-primary);
+        }
+        .range-slider.range-start { position: absolute; top: 0; }
+        .range-slider.range-end   { position: absolute; top: 0; }
+        .range-info {
+            font-size: 0.85rem;
+            color: var(--md-sys-color-on-surface-variant);
+            white-space: nowrap;
+        }
+
+        /* Stats grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+
+        /* Histogram stats */
+        .histogram-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 10px; }
+        .hist-stat-card {
+            background: var(--md-sys-color-surface-container-low);
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            text-align: center;
+        }
+        .hist-stat-card.primary {
+            background: var(--md-sys-color-primary-container);
+            border-color: var(--md-sys-color-primary);
+        }
+        .hist-stat-label { font-size: 0.72rem; color: var(--md-sys-color-on-surface-variant); text-transform: uppercase; letter-spacing: .04em; }
+        .hist-stat-value { font-size: 1.1rem; font-weight: 700; margin-top: 4px; color: var(--md-sys-color-on-surface); }
+        .skewness-interpretation {
+            font-size: 0.85rem;
+            color: var(--md-sys-color-on-surface-variant);
+            padding: 8px;
+            background: var(--md-sys-color-surface-container-low);
+            border-radius: 8px;
+        }
+
+        /* Achievements */
+        .achievements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+
+        /* Error / loading states */
+        .loading-indicator {
+            text-align: center;
+            padding: 40px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        .error-msg {
+            background: var(--md-sys-color-error-container);
+            color: var(--md-sys-color-on-error-container);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.9rem;
+        }
+
+        /* Threshold inputs */
+        .threshold-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 10px;
+            padding: 12px;
+            background: var(--md-sys-color-surface-container-low);
+            border-radius: 10px;
+        }
+        .threshold-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        .threshold-group label { color: var(--md-sys-color-on-surface-variant); font-weight: 500; }
+        .threshold-input {
+            width: 70px;
+            padding: 5px 8px;
+            border: 1.5px solid var(--md-sys-color-outline);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: var(--md-sys-color-surface);
+        }
+        .threshold-input:focus { outline: none; border-color: var(--md-sys-color-primary); }
+
+        /* section gaps */
+        .report-section { margin-bottom: 28px; }
+        .report-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--md-sys-color-on-surface-variant);
+            border-bottom: 2px solid var(--md-sys-color-outline-variant);
+            padding-bottom: 6px;
+            margin-bottom: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <header>
+        <div class="demo-header">
+            <h1>Data Analysis Report</h1>
+            <a href="index.html">← Back to Home</a>
+            <a href="posture-viewer.html">🧍 Posture Viewer</a>
+        </div>
+    </header>
+
+    <!-- ── File Picker ────────────────────────────────────────── -->
+    <section class="panel" id="pickerPanel">
+        <h2>Select Data File</h2>
+        <p style="color:var(--md-sys-color-on-surface-variant);font-size:.9rem;margin-bottom:4px;">
+            Click a demo file below, or upload your own CSV file for analysis.
+        </p>
+
+        <!-- Threshold configuration -->
+        <div class="threshold-row">
+            <span style="font-weight:600;font-size:.9rem;">Zone Threshold Configuration:</span>
+            <div class="threshold-group">
+                <label for="yellowThresholdInput">⚠️ Yellow Threshold</label>
+                <input type="number" id="yellowThresholdInput" class="threshold-input" value="30" min="1" max="180"> °
+            </div>
+            <div class="threshold-group">
+                <label for="redThresholdInput">🚨 Red Threshold</label>
+                <input type="number" id="redThresholdInput" class="threshold-input" value="60" min="1" max="180"> °
+            </div>
+            <small style="color:var(--md-sys-color-on-surface-variant);font-size:.78rem;">
+                (If CSV already has a zone column, it takes priority)
+            </small>
+        </div>
+
+        <div class="file-picker-grid" id="demoFileGrid">
+            <!-- Demo files injected by JS -->
+        </div>
+    </section>
+
+    <!-- ── Report Area ────────────────────────────────────────── -->
+    <div id="reportArea">
+
+        <!-- Title bar -->
+        <div class="report-title-bar">
+            <div class="report-filename">Analysis Report: <span id="reportFilename">—</span></div>
+            <button class="btn btn-secondary btn-small" onclick="closeReport()">✕ Close Report</button>
+        </div>
+
+        <!-- Zone summary chips -->
+        <div class="zone-summary" id="zoneSummary"></div>
+
+        <!-- Time range selector -->
+        <div class="range-controls">
+            <h3>Time Range Filter</h3>
+            <div class="range-labels">
+                <span>Start: <strong id="rangeStartLabel">0.0s</strong></span>
+                <span id="rangeDuration">Full Recording</span>
+                <span>End: <strong id="rangeEndLabel">0.0s</strong></span>
+            </div>
+            <div class="range-row">
+                <div class="dual-slider-container">
+                    <input type="range" id="rangeStart" min="0" max="100" value="0"  step="0.1" class="range-slider range-start">
+                    <input type="range" id="rangeEnd"   min="0" max="100" value="100" step="0.1" class="range-slider range-end">
+                </div>
+                <button class="btn btn-small btn-secondary" id="resetRangeBtn">Reset</button>
+                <button class="btn btn-small btn-primary"   id="applyRangeBtn">Apply</button>
+            </div>
+        </div>
+
+        <!-- Angle chart -->
+        <div class="report-section">
+            <div class="report-section-title">Angle Over Time</div>
+            <div class="chart-wrapper">
+                <canvas id="reportChart" style="max-height:320px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Histogram -->
+        <div class="report-section">
+            <div class="report-section-title">Angle Distribution</div>
+            <div class="chart-wrapper">
+                <canvas id="reportHistogram" style="max-height:280px;"></canvas>
+            </div>
+            <div id="histogramStats"></div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="report-section">
+            <div class="report-section-title">Statistics</div>
+            <div class="stats-grid" id="reportStats"></div>
+        </div>
+
+        <!-- Achievements -->
+        <div class="report-section">
+            <div class="report-section-title">Achievements</div>
+            <div class="achievements-grid" id="reportAchievements"></div>
+        </div>
+
+    </div><!-- /reportArea -->
+
+</div><!-- /container -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  DEMO FILES  –  add more entries here to extend the list
+// ═══════════════════════════════════════════════════════════════
+const DEMO_FILES = [
+    { name: 'S10.CSV', path: 'demo-data/S10.CSV', label: 'Session 10', desc: '~647 data points · 85s' },
+    { name: 'S11.CSV', path: 'demo-data/S11.CSV', label: 'Session 11', desc: '~840 data points · 108s' }
+];
+
+// ─── Shared state ───────────────────────────────────────────────
+const reportState = {
+    fullData: [],
+    currentData: [],
+    timeRange: { start: 0, end: 100 },
+    filename: ''
+};
+
+let chartInstance = null;
+let histogramInstance = null;
+
+// ─── Render demo file cards ────────────────────────────────────
+function renderFileGrid() {
+    const grid = document.getElementById('demoFileGrid');
+    grid.innerHTML = '';
+
+    // Demo file cards
+    DEMO_FILES.forEach(file => {
+        const card = document.createElement('div');
+        card.className = 'demo-file-card';
+        card.id = 'card_' + file.name;
+        card.innerHTML = `
+            <div class="demo-file-icon">📄</div>
+            <div class="demo-file-name">${file.label}</div>
+            <div class="demo-file-meta">${file.name}</div>
+            <div class="demo-file-meta">${file.desc}</div>
+        `;
+        card.addEventListener('click', () => loadDemoFile(file));
+        grid.appendChild(card);
+    });
+
+    // Upload card
+    const uploadCard = document.createElement('label');
+    uploadCard.className = 'upload-card';
+    uploadCard.innerHTML = `
+        <div class="demo-file-icon">⬆️</div>
+        <div class="demo-file-name">Upload CSV</div>
+        <div class="demo-file-meta">Select a local CSV file</div>
+        <input type="file" id="csvUploadInput" accept=".csv,.CSV,.txt">
+    `;
+    grid.appendChild(uploadCard);
+
+    document.getElementById('csvUploadInput').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => processCSV(ev.target.result, file.name);
+        reader.readAsText(file);
+        // Clear active state
+        document.querySelectorAll('.demo-file-card.active').forEach(c => c.classList.remove('active'));
+    });
+}
+
+// ─── Load a demo file via fetch ────────────────────────────────
+async function loadDemoFile(file) {
+    // Visual feedback
+    document.querySelectorAll('.demo-file-card.active').forEach(c => c.classList.remove('active'));
+    const card = document.getElementById('card_' + file.name);
+    if (card) card.classList.add('active');
+
+    try {
+        const resp = await fetch(file.path);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const text = await resp.text();
+        processCSV(text, file.name);
+    } catch (err) {
+        showError(`Failed to load "${file.path}": ${err.message}. Please serve via HTTP server or upload the file directly.`);
+    }
+}
+
+// ─── Process CSV ───────────────────────────────────────────────
+function processCSV(csvText, filename) {
+    hideError();
+    const data = parseCSVData(csvText);
+    if (data.length === 0) {
+        showError('No valid data found in CSV. Please check the format (header row required with columns: elapsed_ms, timestamp, angle, feedback, zone).');
+        return;
+    }
+
+    reportState.fullData = data;
+    reportState.currentData = data;
+    reportState.timeRange = { start: 0, end: 100 };
+    reportState.filename = filename;
+
+    document.getElementById('reportFilename').textContent = filename;
+    document.getElementById('reportArea').classList.add('visible');
+    document.getElementById('reportArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    initTimeRangeControls(data);
+    renderAll();
+}
+
+function closeReport() {
+    document.getElementById('reportArea').classList.remove('visible');
+    document.querySelectorAll('.demo-file-card.active').forEach(c => c.classList.remove('active'));
+}
+
+// ─── CSV parser (same logic as app.js) ────────────────────────
+function parseCSVData(csvText) {
+    if (!csvText) return [];
+    const lines = csvText.trim().split('\n');
+    const data = [];
+    let timeOffset = 0;
+    let previousElapsed = 0;
+    let sequenceCount = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const parts = line.split(',');
+        if (parts.length < 5) continue;
+        try {
+            const elapsed_ms = parseInt(parts[0]);
+            if (i > 1 && elapsed_ms < previousElapsed) {
+                timeOffset += previousElapsed;
+                sequenceCount++;
+            }
+            data.push({
+                elapsed_ms,
+                adjusted_elapsed_ms: elapsed_ms + timeOffset,
+                timestamp: parts[1],
+                angle: parseFloat(parts[2]),
+                feedback: parseInt(parts[3]),
+                zone: parts[4].trim().toLowerCase(),
+                sequence: sequenceCount
+            });
+            previousElapsed = elapsed_ms;
+        } catch (_) {}
+    }
+    return data;
+}
+
+// ─── Time range controls ───────────────────────────────────────
+function initTimeRangeControls(data) {
+    const totalTime = (data[data.length - 1].adjusted_elapsed_ms - data[0].adjusted_elapsed_ms) / 1000;
+    const startSlider = document.getElementById('rangeStart');
+    const endSlider   = document.getElementById('rangeEnd');
+
+    startSlider.value = 0;
+    endSlider.value   = 100;
+    reportState.timeRange = { start: 0, end: 100 };
+
+    function updateLabels() {
+        const s = parseFloat(startSlider.value);
+        const e = parseFloat(endSlider.value);
+        document.getElementById('rangeStartLabel').textContent = (totalTime * s / 100).toFixed(1) + 's';
+        document.getElementById('rangeEndLabel').textContent   = (totalTime * e / 100).toFixed(1) + 's';
+        if (s === 0 && e === 100) {
+            document.getElementById('rangeDuration').textContent = 'Full recording';
+        } else {
+            const dur = ((totalTime * e / 100) - (totalTime * s / 100)).toFixed(1);
+            document.getElementById('rangeDuration').textContent = `Selected: ${dur}s`;
+        }
+    }
+
+    // Remove old listeners by cloning
+    const newStart = startSlider.cloneNode(true);
+    const newEnd   = endSlider.cloneNode(true);
+    startSlider.parentNode.replaceChild(newStart, startSlider);
+    endSlider.parentNode.replaceChild(newEnd, endSlider);
+
+    newStart.addEventListener('input', () => {
+        if (parseFloat(newStart.value) >= parseFloat(newEnd.value))
+            newStart.value = parseFloat(newEnd.value) - 0.1;
+        updateLabels();
+    });
+    newEnd.addEventListener('input', () => {
+        if (parseFloat(newEnd.value) <= parseFloat(newStart.value))
+            newEnd.value = parseFloat(newStart.value) + 0.1;
+        updateLabels();
+    });
+
+    document.getElementById('resetRangeBtn').onclick = () => {
+        newStart.value = 0;
+        newEnd.value   = 100;
+        reportState.timeRange = { start: 0, end: 100 };
+        updateLabels();
+        applyTimeRange();
+    };
+    document.getElementById('applyRangeBtn').onclick = () => {
+        reportState.timeRange = { start: parseFloat(newStart.value), end: parseFloat(newEnd.value) };
+        applyTimeRange();
+    };
+
+    updateLabels();
+}
+
+function applyTimeRange() {
+    const { start, end } = reportState.timeRange;
+    const full = reportState.fullData;
+    const totalMs = full[full.length - 1].adjusted_elapsed_ms - full[0].adjusted_elapsed_ms;
+    const startMs = full[0].adjusted_elapsed_ms + totalMs * start / 100;
+    const endMs   = full[0].adjusted_elapsed_ms + totalMs * end   / 100;
+    reportState.currentData = full.filter(p => p.adjusted_elapsed_ms >= startMs && p.adjusted_elapsed_ms <= endMs);
+    renderAll();
+}
+
+// ─── Render everything ────────────────────────────────────────
+function renderAll() {
+    const data = reportState.currentData;
+    if (!data || data.length === 0) return;
+
+    const yellow = parseInt(document.getElementById('yellowThresholdInput').value) || 30;
+    const red    = parseInt(document.getElementById('redThresholdInput').value)    || 60;
+
+    renderZoneSummary(data);
+    renderChart(data, yellow, red);
+    renderHistogram(data);
+    const stats = calculateStats(data, yellow, red);
+    renderStats(stats);
+    renderAchievements(evaluateAchievements(data, stats));
+}
+
+// ─── Zone summary chips ────────────────────────────────────────
+function renderZoneSummary(data) {
+    const counts = { green: 0, yellow: 0, red: 0 };
+    data.forEach(d => { if (counts[d.zone] !== undefined) counts[d.zone]++; });
+    const total = data.length || 1;
+    const totalSec = ((data[data.length - 1].adjusted_elapsed_ms - data[0].adjusted_elapsed_ms) / 1000).toFixed(1);
+
+    document.getElementById('zoneSummary').innerHTML = `
+        <div class="zone-chip green"><div class="dot"></div> Green ${(counts.green / total * 100).toFixed(1)}%</div>
+        <div class="zone-chip yellow"><div class="dot"></div> Yellow ${(counts.yellow / total * 100).toFixed(1)}%</div>
+        <div class="zone-chip red"><div class="dot"></div> Red ${(counts.red / total * 100).toFixed(1)}%</div>
+        <div class="zone-chip" style="background:var(--md-sys-color-surface-container);border:1.5px solid var(--md-sys-color-outline-variant);color:var(--md-sys-color-on-surface);">
+            ⏱ ${totalSec}s &nbsp;·&nbsp; ${data.length} pts
+        </div>
+    `;
+}
+
+// ─── Angle chart ───────────────────────────────────────────────
+function renderChart(data, yellowThreshold, redThreshold) {
+    const ctx = document.getElementById('reportChart');
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+    const startMs = data[0].adjusted_elapsed_ms;
+    const labels  = data.map(d => ((d.adjusted_elapsed_ms - startMs) / 1000).toFixed(1));
+    const angles  = data.map(d => d.angle);
+    const zones   = data.map(d => d.zone);
+    const feedbacks = data.map(d => d.feedback);
+
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Angle (°)',
+                data: angles,
+                borderColor: 'rgb(33,150,243)',
+                backgroundColor: 'rgba(33,150,243,0.08)',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.15
+            }, {
+                label: `Yellow Threshold (${yellowThreshold}°)`,
+                data: Array(data.length).fill(yellowThreshold),
+                borderColor: 'rgba(255,193,7,0.7)',
+                borderWidth: 1.5,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false
+            }, {
+                label: `Red Threshold (${redThreshold}°)`,
+                data: Array(data.length).fill(redThreshold),
+                borderColor: 'rgba(244,67,54,0.7)',
+                borderWidth: 1.5,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 3,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { display: true, position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        afterBody(items) {
+                            const i = items[0]?.dataIndex;
+                            if (i == null) return [];
+                            return [`Zone: ${zones[i]}`, `Feedback: ${feedbacks[i] > 0 ? 'ON' : 'OFF'}`];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Time (s)' }, ticks: { maxTicksLimit: 20 } },
+                y: { title: { display: true, text: 'Angle (°)' }, beginAtZero: true,
+                     suggestedMax: Math.max(redThreshold + 10, Math.max(...angles) + 5) }
+            }
+        },
+        plugins: [{
+            id: 'zoneBg',
+            beforeDatasetsDraw(chart) {
+                const { ctx: c, chartArea } = chart;
+                const meta = chart.getDatasetMeta(0);
+                for (let i = 0; i < data.length - 1; i++) {
+                    const p  = meta.data[i];
+                    const p2 = meta.data[i + 1];
+                    if (!p || !p2) continue;
+                    const z = zones[i];
+                    c.fillStyle = z === 'green'  ? 'rgba(76,175,80,0.09)'
+                                : z === 'yellow' ? 'rgba(255,193,7,0.15)'
+                                : z === 'red'    ? 'rgba(244,67,54,0.15)'
+                                :                   'rgba(200,200,200,0.07)';
+                    c.fillRect(p.x, chartArea.top, p2.x - p.x, chartArea.bottom - chartArea.top);
+                    // Feedback stripe
+                    if (feedbacks[i] > 0) {
+                        c.fillStyle = 'rgba(156,39,176,0.25)';
+                        c.fillRect(p.x, chartArea.top, p2.x - p.x, chartArea.bottom - chartArea.top);
+                    }
+                }
+            }
+        }]
+    });
+}
+
+// ─── Histogram ─────────────────────────────────────────────────
+function renderHistogram(data) {
+    const ctx = document.getElementById('reportHistogram');
+    if (histogramInstance) { histogramInstance.destroy(); histogramInstance = null; }
+
+    const angles = data.map(d => d.angle);
+    const stats  = calcAdvancedStats(angles);
+
+    const minA = Math.floor(Math.min(...angles));
+    const maxA = Math.ceil(Math.max(...angles));
+    const binCount = Math.min(Math.ceil(maxA - minA) + 1, 90);
+    const binSize  = (maxA - minA) / binCount || 1;
+    const bins     = Array(binCount).fill(0);
+    const labels   = [];
+    for (let i = 0; i < binCount; i++) labels.push((minA + i * binSize).toFixed(1));
+    angles.forEach(a => {
+        const idx = Math.min(Math.floor((a - minA) / binSize), binCount - 1);
+        if (idx >= 0) bins[idx]++;
+    });
+
+    histogramInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Frequency',
+                data: bins,
+                backgroundColor: 'rgba(33,150,243,0.55)',
+                borderColor: 'rgb(33,150,243)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 3,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label(ctx2) {
+                            const pct = (ctx2.parsed.y / angles.length * 100).toFixed(1);
+                            return `Count: ${ctx2.parsed.y}  (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Angle (°)' }, ticks: { maxTicksLimit: 20 } },
+                y: { title: { display: true, text: 'Frequency (count)' }, beginAtZero: true }
+            }
+        }
+    });
+
+    // Display histogram stats
+    const skew = parseFloat(stats.skewness);
+    const skewDesc = skew > 0.5 ? 'Positive skew: more time at low angles'
+                   : skew < -0.5 ? 'Negative skew: more time at high angles'
+                   : 'Approximately symmetric distribution';
+
+    document.getElementById('histogramStats').innerHTML = `
+        <div class="histogram-stats-grid">
+            <div class="hist-stat-card primary"><div class="hist-stat-label">Mean</div><div class="hist-stat-value">${stats.mean}°</div></div>
+            <div class="hist-stat-card primary"><div class="hist-stat-label">Variance</div><div class="hist-stat-value">${stats.variance}°²</div></div>
+            <div class="hist-stat-card primary"><div class="hist-stat-label">Skewness</div><div class="hist-stat-value">${stats.skewness}</div></div>
+            <div class="hist-stat-card"><div class="hist-stat-label">Median</div><div class="hist-stat-value">${stats.median}°</div></div>
+            <div class="hist-stat-card"><div class="hist-stat-label">Std Dev</div><div class="hist-stat-value">${stats.stdDev}°</div></div>
+            <div class="hist-stat-card"><div class="hist-stat-label">Mode</div><div class="hist-stat-value">${stats.mode}°</div></div>
+            <div class="hist-stat-card"><div class="hist-stat-label">Range</div><div class="hist-stat-value">${stats.min}° – ${stats.max}°</div></div>
+            <div class="hist-stat-card"><div class="hist-stat-label">25th Percentile</div><div class="hist-stat-value">${stats.p25}°</div></div>
+            <div class="hist-stat-card"><div class="hist-stat-label">75th Percentile</div><div class="hist-stat-value">${stats.p75}°</div></div>
+            <div class="hist-stat-card"><div class="hist-stat-label">90th Percentile</div><div class="hist-stat-value">${stats.p90}°</div></div>
+        </div>
+        <div class="skewness-interpretation"><strong>Distribution:</strong> ${skewDesc}</div>
+    `;
+}
+
+// ─── Advanced angle statistics ─────────────────────────────────
+function calcAdvancedStats(angles) {
+    const n = angles.length;
+    const mean = angles.reduce((s, v) => s + v, 0) / n;
+    const variance = angles.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / n;
+    const stdDev   = Math.sqrt(variance);
+    const skewness = stdDev === 0 ? 0
+        : (angles.reduce((s, v) => s + Math.pow(v - mean, 3), 0) / n) / Math.pow(stdDev, 3);
+    const sorted = [...angles].sort((a, b) => a - b);
+    const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+    const freq = {};
+    let maxF = 0, mode = null;
+    angles.forEach(a => { const r = Math.round(a); freq[r] = (freq[r] || 0) + 1; if (freq[r] > maxF) { maxF = freq[r]; mode = r; } });
+    return {
+        mean: mean.toFixed(2), median: median.toFixed(2), mode,
+        variance: variance.toFixed(2), stdDev: stdDev.toFixed(2),
+        skewness: skewness.toFixed(3),
+        min: Math.min(...angles).toFixed(2), max: Math.max(...angles).toFixed(2),
+        p25: sorted[Math.floor(n * 0.25)].toFixed(2),
+        p75: sorted[Math.floor(n * 0.75)].toFixed(2),
+        p90: sorted[Math.floor(n * 0.90)].toFixed(2),
+        count: n
+    };
+}
+
+// ─── Statistics ────────────────────────────────────────────────
+function calculateStats(data, yellowThreshold, redThreshold) {
+    let tGreen = 0, tYellow = 0, tRed = 0;
+    let greenA = [], yellowA = [], redA = [];
+    let recoveries = [];
+    let badStart = null, badZone = null;
+    let greenStreaks = [], curGreen = 0;
+
+    for (let i = 0; i < data.length; i++) {
+        const p = data[i];
+        const prev = i > 0 ? data[i - 1] : null;
+        const dt = prev ? (p.adjusted_elapsed_ms - prev.adjusted_elapsed_ms) / 1000 : 0;
+
+        if (p.zone === 'green') {
+            tGreen += dt; greenA.push(p.angle); curGreen += dt;
+            if (prev && (prev.zone === 'yellow' || prev.zone === 'red') && badStart !== null) {
+                recoveries.push({ fromZone: badZone, t: (p.adjusted_elapsed_ms - badStart) / 1000 });
+                badStart = null; badZone = null;
+            }
+        } else {
+            if (curGreen > 0) { greenStreaks.push(curGreen); curGreen = 0; }
+            if (p.zone === 'yellow') {
+                tYellow += dt; yellowA.push(p.angle);
+                if (prev && prev.zone === 'green') { badStart = p.adjusted_elapsed_ms; badZone = 'yellow'; }
+            } else if (p.zone === 'red') {
+                tRed += dt; redA.push(p.angle);
+                if (prev && prev.zone === 'green') { badStart = p.adjusted_elapsed_ms; badZone = 'red'; }
+                else if (badZone === 'yellow') badZone = 'red';
+            }
+        }
+    }
+    if (curGreen > 0) greenStreaks.push(curGreen);
+
+    const totalTime = (data[data.length - 1].adjusted_elapsed_ms - data[0].adjusted_elapsed_ms) / 1000;
+    const half = Math.floor(data.length / 2);
+    const avgFirst  = data.slice(0, half).reduce((s, d) => s + d.angle, 0) / half;
+    const avgSecond = data.slice(half).reduce((s, d) => s + d.angle, 0) / (data.length - half);
+
+    return {
+        totalTime,
+        tGreen, tYellow, tRed,
+        greenPct:  (tGreen  / totalTime * 100).toFixed(1),
+        yellowPct: (tYellow / totalTime * 100).toFixed(1),
+        redPct:    (tRed    / totalTime * 100).toFixed(1),
+        avgAngle: (data.reduce((s, d) => s + d.angle, 0) / data.length).toFixed(2),
+        avgGreen:  greenA.length  ? (greenA.reduce((a,b)=>a+b,0)  / greenA.length).toFixed(2)  : 'N/A',
+        avgYellow: yellowA.length ? (yellowA.reduce((a,b)=>a+b,0) / yellowA.length).toFixed(2) : 'N/A',
+        avgRed:    redA.length    ? (redA.reduce((a,b)=>a+b,0)    / redA.length).toFixed(2)    : 'N/A',
+        recoveryCount: recoveries.length,
+        fastestRecovery: recoveries.length ? Math.min(...recoveries.map(r=>r.t)).toFixed(1) : 'N/A',
+        longestGreenStreak: greenStreaks.length ? Math.max(...greenStreaks).toFixed(1) : 0,
+        avgFirst: avgFirst.toFixed(2),
+        avgSecond: avgSecond.toFixed(2),
+        improvement: avgFirst > avgSecond
+    };
+}
+
+function renderStats(s) {
+    document.getElementById('reportStats').innerHTML = `
+        <div class="stat-card"><div class="stat-label">Total Time</div><div class="stat-value">${s.totalTime.toFixed(1)}s</div></div>
+        <div class="stat-card green-stat"><div class="stat-label">Green Zone</div><div class="stat-value">${s.tGreen.toFixed(1)}s (${s.greenPct}%)</div></div>
+        <div class="stat-card yellow-stat"><div class="stat-label">Yellow Zone</div><div class="stat-value">${s.tYellow.toFixed(1)}s (${s.yellowPct}%)</div></div>
+        <div class="stat-card red-stat"><div class="stat-label">Red Zone</div><div class="stat-value">${s.tRed.toFixed(1)}s (${s.redPct}%)</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Angle</div><div class="stat-value">${s.avgAngle}°</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Angle (Green)</div><div class="stat-value">${s.avgGreen}°</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Angle (Yellow)</div><div class="stat-value">${s.avgYellow}°</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Angle (Red)</div><div class="stat-value">${s.avgRed}°</div></div>
+        <div class="stat-card"><div class="stat-label">Recoveries</div><div class="stat-value">${s.recoveryCount}</div></div>
+        <div class="stat-card"><div class="stat-label">Fastest Recovery</div><div class="stat-value">${s.fastestRecovery}s</div></div>
+        <div class="stat-card"><div class="stat-label">Longest Green Streak</div><div class="stat-value">${s.longestGreenStreak}s</div></div>
+        <div class="stat-card"><div class="stat-label">First Half Avg</div><div class="stat-value">${s.avgFirst}°</div></div>
+        <div class="stat-card"><div class="stat-label">Second Half Avg</div><div class="stat-value">${s.avgSecond}°</div></div>
+        <div class="stat-card ${s.improvement ? 'improvement' : ''}">
+            <div class="stat-label">Trend</div>
+            <div class="stat-value">${s.improvement ? '↑ Improving' : '→ Stable'}</div>
+        </div>
+    `;
+}
+
+// ─── Achievements ──────────────────────────────────────────────
+function evaluateAchievements(data, s) {
+    const ach = [];
+
+    if (s.longestGreenStreak >= 60)
+        ach.push({ icon:'🏆', title:'Green Zone Master', desc:`Maintained green zone for ${s.longestGreenStreak}s`, tier:'gold' });
+    else if (s.longestGreenStreak >= 30)
+        ach.push({ icon:'🥈', title:'Green Zone Guardian', desc:`Maintained green zone for ${s.longestGreenStreak}s`, tier:'silver' });
+    else if (s.longestGreenStreak >= 10)
+        ach.push({ icon:'🥉', title:'Green Zone Beginner', desc:`Maintained green zone for ${s.longestGreenStreak}s`, tier:'bronze' });
+
+    const gp = parseFloat(s.greenPct);
+    if (gp >= 90)       ach.push({ icon:'🌟', title:'Near Perfect', desc:`${s.greenPct}% time in green zone`, tier:'gold' });
+    else if (gp >= 75)  ach.push({ icon:'⭐', title:'Excellent Control', desc:`${s.greenPct}% time in green zone`, tier:'silver' });
+    else if (gp >= 50)  ach.push({ icon:'✨', title:'Good Effort', desc:`${s.greenPct}% time in green zone`, tier:'bronze' });
+
+    if (s.fastestRecovery !== 'N/A' && parseFloat(s.fastestRecovery) <= 2)
+        ach.push({ icon:'⚡', title:'Lightning Recovery', desc:`Fastest recovery: ${s.fastestRecovery}s`, tier:'gold' });
+    else if (s.fastestRecovery !== 'N/A' && parseFloat(s.fastestRecovery) <= 5)
+        ach.push({ icon:'🔄', title:'Quick Recovery', desc:`Quick recovery: ${s.fastestRecovery}s`, tier:'silver' });
+
+    if (s.improvement) {
+        const imp = ((s.avgFirst - s.avgSecond) / s.avgFirst * 100).toFixed(1);
+        ach.push({ icon:'📈', title:'Continuous Improvement', desc:`${imp}% improvement in second half`, tier:'gold' });
+    }
+    if (s.recoveryCount >= 10)
+        ach.push({ icon:'💪', title:'Resilient', desc:`Completed ${s.recoveryCount} recoveries`, tier:'silver' });
+    if (s.avgGreen !== 'N/A' && parseFloat(s.avgGreen) <= 10)
+        ach.push({ icon:'🎯', title:'Precise Control', desc:`Green zone avg angle only ${s.avgGreen}°`, tier:'gold' });
+    if (s.totalTime >= 300)
+        ach.push({ icon:'⏱️', title:'Endurance Training', desc:`Completed ${(s.totalTime/60).toFixed(1)} min session`, tier:'silver' });
+
+    return ach;
+}
+
+function renderAchievements(achievements) {
+    const el = document.getElementById('reportAchievements');
+    if (achievements.length === 0) {
+        el.innerHTML = '<p style="color:var(--md-sys-color-on-surface-variant)">Keep practicing to unlock achievements!</p>';
+        return;
+    }
+    el.innerHTML = achievements.map(a => `
+        <div class="achievement-card ${a.tier}">
+            <div class="achievement-icon">${a.icon}</div>
+            <div class="achievement-content">
+                <div class="achievement-title">${a.title}</div>
+                <div class="achievement-description">${a.desc}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ─── Error helpers ─────────────────────────────────────────────
+function showError(msg) {
+    let el = document.getElementById('errorMsg');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'errorMsg';
+        el.className = 'error-msg';
+        document.getElementById('pickerPanel').appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+function hideError() {
+    const el = document.getElementById('errorMsg');
+    if (el) el.style.display = 'none';
+}
+
+// ─── Init ──────────────────────────────────────────────────────
+renderFileGrid();
+</script>
+</body>
+</html>

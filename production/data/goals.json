@@ -1,0 +1,13 @@
+{
+  "goals": [
+    {
+      "id": "mmsz9mu6019b0s",
+      "groupId": "mmsz7h9fhi6amu",
+      "type": "reduce_risk",
+      "target": 2,
+      "description": "",
+      "createdAt": "2026-03-16T09:25:10.494Z",
+      "seasonNumber": 6
+    }
+  ]
+}

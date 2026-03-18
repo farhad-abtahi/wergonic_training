@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Report Button Test</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Report Button Test</h1>
+        <div class="file-list">
+            <div class="file-item">
+                <div class="file-info">
+                    <span class="file-name">test_session.csv</span>
+                    <span class="file-size">1.2 KB</span>
+                </div>
+                <div class="file-actions-inline">
+                    <button class="btn btn-small btn-info" onclick="alert('Meta button works')">Meta</button>
+<button class="btn btn-small btn-success" onclick="alert('Report button works!')">Report</button>
+                    <button class="btn btn-small btn-primary" onclick="alert('Download button works')">Download</button>
+                </div>
+            </div>
+        </div>
+        
+        <h2>Dynamic Test</h2>
+        <div id="dynamicFileList"></div>
+        
+        <script>
+            // Test dynamic rendering
+            const testFiles = [
+                { name: 'session1.csv', size: 1234 },
+                { name: 'metadata.txt', size: 567 }
+            ];
+            
+            const html = testFiles.map(file => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${file.size} B</span>
+                    </div>
+                    <div class="file-actions-inline">
+                        ${file.name.endsWith('.csv') ? `
+                            <button class="btn btn-small btn-info">Meta</button>
+                            <button class="btn btn-small btn-success">Report</button>
+                        ` : ''}
+                        <button class="btn btn-small btn-primary">Download</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('dynamicFileList').innerHTML = html;
+            console.log('Test page loaded');
+        </script>
+    </div>
+</body>
+</html>

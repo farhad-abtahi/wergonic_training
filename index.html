@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#1a5fb4">
+    <title>Wergonic Device Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="gamification.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="binary-parser.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Wergonic Device Manager</h1>
+            <div class="header-controls">
+                <button id="openProgressProfileBtn" class="btn btn-small btn-secondary" title="My Training Profile">📊 My Progress</button>
+                <label class="mode-toggle">
+                    <input type="checkbox" id="debugModeToggle">
+                    <span class="toggle-label">Debug Mode</span>
+                </label>
+            </div>
+        </header>
+
+        <!-- Mission Card Modal (top overlay) -->
+        <div id="missionCardModal" class="hidden"></div>
+
+        <!-- User Identity Bar -->
+        <div id="userIdentityBar" class="user-identity-bar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--md-sys-color-primary-container);border-radius:var(--md-sys-shape-corner-medium);margin-bottom:12px;"></div>
+
+        <!-- Multi-Device Connection Panel -->
+        <section class="panel" id="connectionPanel">
+            <h2>Device Connections</h2>
+
+            <!-- Dual Device Grid -->
+            <div class="device-connection-grid">
+                <!-- ARM Device -->
+                <div class="device-card" id="armDeviceCard">
+                    <div class="device-card-header">
+                        <span class="device-type-label arm-label">ARM</span>
+                        <span class="device-status-dot disconnected" id="armStatusDot"></span>
+                    </div>
+                    <div class="device-card-body">
+                        <p class="device-name" id="armDeviceName">Not connected</p>
+                        <p class="device-firmware" id="armFirmware"></p>
+                    </div>
+                    <div class="device-card-actions">
+                        <button id="connectArmBtn" class="btn btn-small btn-primary">Connect ARM</button>
+                        <button id="disconnectArmBtn" class="btn btn-small btn-secondary" disabled>Disconnect</button>
+                    </div>
+                </div>
+
+                <!-- TRUNK Device -->
+                <div class="device-card" id="trunkDeviceCard">
+                    <div class="device-card-header">
+                        <span class="device-type-label trunk-label">TRUNK</span>
+                        <span class="device-status-dot disconnected" id="trunkStatusDot"></span>
+                    </div>
+                    <div class="device-card-body">
+                        <p class="device-name" id="trunkDeviceName">Not connected</p>
+                        <p class="device-firmware" id="trunkFirmware"></p>
+                    </div>
+                    <div class="device-card-actions">
+                        <button id="connectTrunkBtn" class="btn btn-small btn-primary">Connect TRUNK</button>
+                        <button id="disconnectTrunkBtn" class="btn btn-small btn-secondary" disabled>Disconnect</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="both-devices-actions">
+                <button id="calibrateConnectedBtn" class="btn btn-warning" disabled>
+                    Calibrate Connected Devices
+                </button>
+                <button id="disconnectAllBtn" class="btn btn-secondary" disabled>
+                    Disconnect All
+                </button>
+            </div>
+        </section>
+
+        <!-- Device Configuration Panel -->
+        <section class="panel" id="configPanel">
+            <h2>Device Configuration</h2>
+
+            <!-- Target Device Selector -->
+            <div class="config-target-selector">
+                <label>Apply settings to:</label>
+                <div class="button-group" id="targetDeviceButtons">
+                    <button class="btn btn-small active" data-target="both">Both Devices</button>
+                    <button class="btn btn-small" data-target="arm">ARM Only</button>
+                    <button class="btn btn-small" data-target="trunk">TRUNK Only</button>
+                </div>
+            </div>
+
+            <div class="config-grid">
+                <!-- Calibration -->
+                <div class="config-item">
+                    <label>Calibration</label>
+                    <button class="btn btn-small btn-warning" data-cmd="C">Calibrate</button>
+                </div>
+
+                <!-- Feedback -->
+                <div class="config-item">
+                    <label>Feedback <span class="current-value" id="currentFeedback"></span></label>
+                    <div class="button-group" id="feedbackButtons">
+                        <button class="btn btn-small btn-success" data-cmd="F" data-feedback="on">Enable</button>
+                        <button class="btn btn-small btn-danger" data-cmd="N" data-feedback="off">Disable</button>
+                    </div>
+                </div>
+
+                <!-- Filter -->
+                <div class="config-item">
+                    <label>Complementary Filter <span class="current-value" id="currentFilter"></span></label>
+                    <div class="button-group" id="filterButtons">
+                        <button class="btn btn-small btn-success" data-cmd="X" data-filter="on">Enable</button>
+                        <button class="btn btn-small btn-danger" data-cmd="Z" data-filter="off">Disable</button>
+                    </div>
+                </div>
+
+                <!-- Vibration Intensity (can be changed during session!) -->
+                <div class="config-item">
+                    <label>Vibration Intensity <span class="current-value" id="currentIntensity"></span></label>
+                    <div class="button-group" id="intensityButtons">
+                        <button class="btn btn-small" data-cmd="W" data-intensity="weak">Weak</button>
+                        <button class="btn btn-small" data-cmd="M" data-intensity="medium">Medium</button>
+                        <button class="btn btn-small" data-cmd="S" data-intensity="strong">Strong</button>
+                    </div>
+                    <p class="config-hint">Can be changed during session without recalibration</p>
+                </div>
+
+                <!-- ARM Threshold Settings -->
+                <div class="config-item threshold-device-section" id="armThresholdSection">
+                    <label class="threshold-device-label arm-label">ARM Thresholds</label>
+                    <div class="threshold-controls">
+                        <div class="threshold-input-group">
+                            <label class="threshold-input-label yellow-label">Yellow Warning</label>
+                            <div class="threshold-slider-container">
+                                <input type="range" id="armYellowSlider" min="10" max="80" value="30" class="threshold-slider yellow-slider">
+                                <span class="threshold-input-value" id="armYellowValue">30°</span>
+                            </div>
+                        </div>
+                        <div class="threshold-input-group">
+                            <label class="threshold-input-label red-label">Red Alert</label>
+                            <div class="threshold-slider-container">
+                                <input type="range" id="armRedSlider" min="20" max="90" value="60" class="threshold-slider red-slider">
+                                <span class="threshold-input-value" id="armRedValue">60°</span>
+                            </div>
+                        </div>
+                        <button id="applyArmThresholdsBtn" class="btn btn-primary btn-small">Apply to ARM</button>
+                    </div>
+                    <p class="threshold-hint">Default: Yellow 30°, Red 60°</p>
+                </div>
+
+                <!-- TRUNK Threshold Settings -->
+                <div class="config-item threshold-device-section" id="trunkThresholdSection">
+                    <label class="threshold-device-label trunk-label">TRUNK Thresholds</label>
+                    <div class="threshold-controls">
+                        <div class="threshold-input-group">
+                            <label class="threshold-input-label yellow-label">Yellow Warning</label>
+                            <div class="threshold-slider-container">
+                                <input type="range" id="trunkYellowSlider" min="10" max="80" value="20" class="threshold-slider yellow-slider">
+                                <span class="threshold-input-value" id="trunkYellowValue">20°</span>
+                            </div>
+                        </div>
+                        <div class="threshold-input-group">
+                            <label class="threshold-input-label red-label">Red Alert</label>
+                            <div class="threshold-slider-container">
+                                <input type="range" id="trunkRedSlider" min="20" max="90" value="45" class="threshold-slider red-slider">
+                                <span class="threshold-input-value" id="trunkRedValue">45°</span>
+                            </div>
+                        </div>
+                        <button id="applyTrunkThresholdsBtn" class="btn btn-primary btn-small">Apply to TRUNK</button>
+                    </div>
+                    <p class="threshold-hint">Default: Yellow 20°, Red 45°</p>
+                </div>
+            </div>
+
+            <!-- DateTime Setting (requires firmware v4.0+) -->
+            <div class="config-section requires-v4">
+                <h3>Set Date/Time <span class="feature-badge">v4.0+</span></h3>
+                <div class="datetime-input">
+                    <input type="datetime-local" id="datetimeInput">
+                    <button id="setDatetimeBtn" class="btn btn-small">Set from Input</button>
+                    <button id="setCurrentDatetimeBtn" class="btn btn-small btn-primary">Set Current Time</button>
+                </div>
+            </div>
+
+            <!-- Session Name (requires firmware v4.0+) -->
+            <div class="config-section requires-v4">
+                <h3>Session Subject <span class="feature-badge">v4.0+</span></h3>
+                <div class="session-input">
+                    <input type="text" id="sessionNameInput" maxlength="16" placeholder="Subject name (max 16 chars)">
+                    <button id="setSessionNameBtn" class="btn btn-small btn-primary">Set Name</button>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="config-section">
+                <button id="getStatusBtn" class="btn btn-info" data-cmd="?">Get Device Status</button>
+                <button id="newSessionBtn" class="btn btn-success" data-cmd="E">New Recording Session</button>
+                <button id="stopSessionBtn" class="btn btn-danger" data-cmd="K">Stop & Save Session</button>
+            </div>
+        </section>
+
+        <!-- Live Data Panel - Dual Display -->
+        <section class="panel" id="liveDataPanel">
+            <h2>Live Data</h2>
+            <div class="dual-live-data">
+                <!-- ARM Live Data -->
+                <div class="live-data-device" id="armLiveData">
+                    <h3 class="device-data-label arm-label">ARM</h3>
+                    <div class="live-data-grid">
+                        <div class="data-card">
+                            <label>Angle</label>
+                            <span class="data-value" id="armAngleValue">--</span>
+                            <span class="data-unit">°</span>
+                        </div>
+                        <div class="data-card">
+                            <label>Zone</label>
+                            <span class="data-value zone-indicator" id="armZoneValue">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TRUNK Live Data -->
+                <div class="live-data-device" id="trunkLiveData">
+                    <h3 class="device-data-label trunk-label">TRUNK</h3>
+                    <div class="live-data-grid">
+                        <div class="data-card">
+                            <label>Angle</label>
+                            <span class="data-value" id="trunkAngleValue">--</span>
+                            <span class="data-unit">°</span>
+                        </div>
+                        <div class="data-card">
+                            <label>Zone</label>
+                            <span class="data-value zone-indicator" id="trunkZoneValue">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- File Manager Panel (requires firmware v4.0+) -->
+        <section class="panel requires-v4" id="filePanel">
+            <h2>Session Files <span class="feature-badge">v4.0+</span></h2>
+
+            <!-- Device selector for file operations -->
+            <div class="file-device-selector">
+                <label>Select device:</label>
+                <div class="button-group">
+                    <button class="btn btn-small active" data-file-device="arm" id="fileDeviceArm">ARM</button>
+                    <button class="btn btn-small" data-file-device="trunk" id="fileDeviceTrunk">TRUNK</button>
+                </div>
+            </div>
+
+            <div class="file-actions">
+                <button id="listFilesBtn" class="btn btn-primary">
+                    <span class="icon">&#x1F4C2;</span> List Files
+                </button>
+                <button id="refreshFilesBtn" class="btn btn-secondary">
+                    <span class="icon">&#x21BB;</span> Refresh
+                </button>
+            </div>
+            <div id="fileList" class="file-list">
+                <p class="placeholder">Click "List Files" to see available sessions</p>
+            </div>
+            <div id="downloadProgress" class="download-progress hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span id="progressText">Downloading...</span>
+            </div>
+        </section>
+
+        <!-- Group Panel (requires production server) -->
+        <section class="panel" id="groupPanel">
+            <h2>Group & Season</h2>
+            <div id="groupPanelContent">
+                <div class="gam-loading">
+                    <div class="gam-loading-spinner"></div> Loading...
+                </div>
+            </div>
+        </section>
+
+        <!-- Console Panel (Debug Mode Only) -->
+        <section class="panel debug-only" id="consolePanel">
+            <h2>Console</h2>
+            <div class="console-actions">
+                <select id="consoleDeviceSelect">
+                    <option value="both">Both</option>
+                    <option value="arm">ARM</option>
+                    <option value="trunk">TRUNK</option>
+                </select>
+                <input type="text" id="commandInput" placeholder="Enter command...">
+                <button id="sendCommandBtn" class="btn btn-small">Send</button>
+                <button id="clearConsoleBtn" class="btn btn-small btn-secondary">Clear</button>
+            </div>
+            <div id="consoleOutput" class="console-output"></div>
+        </section>
+
+        <!-- File Preview Modal -->
+        <div id="fileModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">File Preview</h3>
+                    <button class="modal-close" id="modalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <pre id="fileContent"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button id="downloadFileBtn" class="btn btn-primary">Download</button>
+                    <button id="closeModalBtn" class="btn btn-secondary">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Modal -->
+        <div id="reportModal" class="modal hidden">
+            <div class="modal-content modal-wide">
+                <div class="modal-header">
+                    <h3 id="reportTitle">Session Report</h3>
+                    <button class="modal-close" id="reportModalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="reportContent" class="report-container">
+                        <div class="report-section">
+                            <h4>Session Information</h4>
+                            <div id="reportMetadata" class="metadata-grid"></div>
+                        </div>
+                        
+                        <div class="report-section">
+                            <h4>Time Range Selection</h4>
+                            <div class="time-range-controls">
+                                <div class="range-slider-container">
+                                    <div class="range-labels">
+                                        <span id="rangeStartLabel">0.0s</span>
+                                        <span class="range-duration" id="rangeDuration">Full session</span>
+                                        <span id="rangeEndLabel">0.0s</span>
+                                    </div>
+                                    <div class="dual-range-wrapper">
+                                        <input type="range" id="rangeStart" min="0" max="100" value="0" step="0.1" class="range-slider range-start">
+                                        <input type="range" id="rangeEnd" min="0" max="100" value="100" step="0.1" class="range-slider range-end">
+                                    </div>
+                                </div>
+                                <div class="range-buttons">
+                                    <button id="resetRangeBtn" class="btn btn-small btn-secondary">Reset to Full</button>
+                                    <button id="applyRangeBtn" class="btn btn-small btn-primary">Apply Range</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="report-section">
+                            <h4>Angle Over Time</h4>
+                            <div id="reportChartWrapper" class="report-chart-wrapper">
+                                <canvas id="reportChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="report-section">
+                            <h4>Angle Distribution (Histogram)</h4>
+                            <canvas id="reportHistogram"></canvas>
+                            <div id="histogramStats" class="histogram-stats"></div>
+                        </div>
+                        
+                        <div class="report-section">
+                            <h4>Statistics</h4>
+                            <div id="reportStats" class="stats-grid"></div>
+                        </div>
+                        
+                        <div class="report-section">
+                            <h4>Achievements</h4>
+                            <div id="reportAchievements" class="achievements-grid"></div>
+                        </div>
+
+                        <!-- ── Gamification: Risk Score ── -->
+                        <div class="report-section-new">
+                            <div class="collapsible-header">
+                                <h4>🎯 Posture Risk Score</h4>
+                                <span class="collapsible-toggle open">▲</span>
+                            </div>
+                            <div class="collapsible-body">
+                                <div id="reportRiskGauge"></div>
+                            </div>
+                        </div>
+
+                        <!-- ── Gamification: Segment Comparison ── -->
+                        <div class="report-section-new">
+                            <div class="collapsible-header">
+                                <h4>📊 Segment Comparison</h4>
+                                <span class="collapsible-toggle open">▲</span>
+                            </div>
+                            <div class="collapsible-body">
+                                <div id="reportSegmentComparison"></div>
+                            </div>
+                        </div>
+
+                        <!-- ── Gamification: Longitudinal Comparison ── -->
+                        <div class="report-section-new">
+                            <div class="collapsible-header">
+                                <h4>📈 Historical Comparison</h4>
+                                <span class="collapsible-toggle open">▲</span>
+                            </div>
+                            <div class="collapsible-body">
+                                <div id="reportLongitudinal">
+                                    <div class="no-history-state">
+                                        <div class="nh-icon">📈</div>
+                                        <p>Complete more training sessions to see your progress comparison here.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── Gamification: Body Heatmap ── -->
+                        <div class="report-section-new">
+                            <div class="collapsible-header">
+                                <h4>🔥 Body Risk Heatmap</h4>
+                                <span class="collapsible-toggle open">▲</span>
+                            </div>
+                            <div class="collapsible-body">
+                                <div id="reportBodyHeatmap"></div>
+                            </div>
+                        </div>
+
+                        <!-- ── Gamification: Anthropomorphic Feedback ── -->
+                        <div class="report-section-new">
+                            <div class="collapsible-header">
+                                <h4>🗣️ Body Feedback</h4>
+                                <span class="collapsible-toggle open">▲</span>
+                            </div>
+                            <div class="collapsible-body">
+                                <div id="reportAnthroFeedback"></div>
+                            </div>
+                        </div>
+
+                        <!-- ── Gamification: Teacher Analysis ── -->
+                        <div class="report-section-new">
+                            <div class="collapsible-header">
+                                <h4>🎓 Instructor Segment Analysis</h4>
+                                <span class="collapsible-toggle open">▲</span>
+                            </div>
+                            <div class="collapsible-body teacher-analysis-section">
+                                <div class="drag-select-hint">
+                                    Drag on the angle chart above to select analysis segments (A/B range)
+                                </div>
+                                <div class="teacher-region-buttons">
+                                    <button class="region-btn region-a active" id="teacherRegionBtnA">Select Segment A</button>
+                                    <button class="region-btn region-b" id="teacherRegionBtnB">Select Segment B</button>
+                                </div>
+                                <div id="teacherAbTable">
+                                    <div class="gam-placeholder">Drag on the chart above to select segments A and B</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="exportReportBtn" class="btn btn-primary">Export Report</button>
+                    <button id="openAvatarReplayBtn" class="btn btn-secondary">🤸 Motion Replay</button>
+                    <button id="closeReportBtn" class="btn btn-secondary">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+
+        <!-- Progress Profile Modal -->
+        <div id="progressProfileModal" class="modal hidden">
+            <div class="modal-content modal-wide">
+                <div class="modal-header">
+                    <h3>📊 My Training Profile</h3>
+                    <button class="modal-close" id="progressProfileModalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="progressProfileContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="progressProfileCloseBtn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avatar Replay Modal -->
+        <div id="avatarReplayModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🤸 Motion Replay</h3>
+                    <button class="modal-close" id="avatarReplayModalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="avatar-replay-container">
+                        <div class="avatar-stage" id="avatarStage">
+                            <div class="avatar-zone-indicator" id="avatarZoneIndicator" style="background:#4caf50;"></div>
+                            <svg id="avatarSvg" class="avatar-svg" viewBox="0 0 140 225" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Initial figure drawn by JS -->
+                            </svg>
+                        </div>
+                        <div class="avatar-timeline">
+                            <input type="range" id="avatarTimeline" min="0" max="100" value="0">
+                            <div class="avatar-time-labels">
+                                <span>0s</span>
+                                <span id="avatarCurrentTime">0s</span>
+                                <span id="avatarTimeEnd">--</span>
+                            </div>
+                        </div>
+                        <div class="avatar-controls">
+                            <button class="avatar-play-btn" id="avatarPlayPauseBtn">▶</button>
+                            <button class="avatar-speed-btn active" data-speed="1">1×</button>
+                            <button class="avatar-speed-btn" data-speed="2">2×</button>
+                            <button class="avatar-speed-btn" data-speed="4">4×</button>
+                            <button class="avatar-view-btn active" data-view="front">Front</button>
+                            <button class="avatar-view-btn" data-view="side">Side</button>
+                        </div>
+                        <div class="avatar-current-angle" id="avatarCurrentAngle">
+                            Current Angle: <strong>--</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="avatarReplayCloseFooterBtn">Close</button>
+                </div>
+            </div>
+        </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="mission-cards-data.js"></script>
+    <script src="gamification.js"></script>
+</body>
+</html>

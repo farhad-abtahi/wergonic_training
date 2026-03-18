@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posture Session Demo — Wergonic</title>
+    <link rel="stylesheet" href="gamification.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --surface: #f5f7fa;
+            --card:    #ffffff;
+            --border:  #e0e4ea;
+            --text:    #1a1a2e;
+            --muted:   #6b7280;
+            --accent:  #3b82f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--surface);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ──────────────────────────────────────── */
+        .demo-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 36px 24px 28px;
+            text-align: center;
+        }
+        .demo-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+        .demo-header p  { opacity: 0.75; font-size: 1rem; }
+        .demo-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            padding: 4px 16px;
+            font-size: 0.8rem;
+            margin-top: 14px;
+        }
+
+        /* ── Layout ──────────────────────────────────────── */
+        .demo-container {
+            max-width: 1300px;
+            margin: 32px auto;
+            padding: 0 16px 48px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 900px) { .demo-container { grid-template-columns: 1fr; } }
+
+        /* ── Session Card ─────────────────────────────────── */
+        .session-card {
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+        .session-card-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .session-card-header h2 { font-size: 1.15rem; font-weight: 700; }
+        .file-badge {
+            font-size: 0.75rem;
+            font-family: monospace;
+            background: #f0f4ff;
+            color: #4f46e5;
+            border-radius: 6px;
+            padding: 3px 10px;
+        }
+        .session-card-body { padding: 20px 24px 24px; }
+
+        /* ── Stats Grid ───────────────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stat-cell {
+            background: var(--surface);
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        .stat-cell .stat-val   { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+        .stat-cell .stat-label { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+        .c-green  { color: #2e7d32; }
+        .c-yellow { color: #e65100; }
+        .c-red    { color: #b71c1c; }
+        .c-muted  { color: var(--muted); font-size: 0.85rem !important; }
+
+        /* ── RULA badge ───────────────────────────────────── */
+        .rula-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .rula-badge .rula-icon { font-size: 1.5rem; }
+
+        /* ── Section labels ───────────────────────────────── */
+        .section-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 22px 0 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+
+        /* ── Replay Button ────────────────────────────────── */
+        .replay-full-btn {
+            width: 100%;
+            margin-top: 24px;
+            padding: 13px;
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--accent);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.18s, color 0.18s;
+        }
+        .replay-full-btn:hover { background: var(--accent); color: white; }
+
+        /* ── Loading ──────────────────────────────────────── */
+        .loading-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--muted);
+        }
+        .spinner {
+            width: 44px; height: 44px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Modal override (supplement gamification.css) ─── */
+        .modal.hidden   { display: none !important; }
+        .modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal .modal-content { max-height: 90vh; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<header class="demo-header">
+    <h1>🏃 Posture Session Demo</h1>
+    <p>Visual comparison of two real training sessions</p>
+    <div class="demo-badge">No device pairing required &nbsp;·&nbsp; Data from demo-data/</div>
+    <div class="demo-badge">Posture Viewer Renderer Enabled</div>
+</header>
+
+<!-- Session cards rendered here by JS -->
+<div class="demo-container" id="demoContainer">
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading demo sessions…</p>
+    </div>
+</div>
+
+<!-- ── Shared Avatar Replay Modal (identical structure to index.html) ──────── -->
+<div id="avatarReplayModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🤸 Motion Replay (Posture Viewer)</h3>
+            <button class="modal-close" id="avatarReplayModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="avatar-replay-container">
+                <div class="avatar-stage" id="avatarStage">
+                    <div class="avatar-zone-indicator" id="avatarZoneIndicator" style="background:#4caf50;"></div>
+                    <svg id="avatarSvg" class="avatar-svg" viewBox="0 0 140 225" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+                <div class="avatar-timeline">
+                    <input type="range" id="avatarTimeline" min="0" max="100" value="0">
+                    <div class="avatar-time-labels">
+                        <span>0s</span>
+                        <span id="avatarCurrentTime">0s</span>
+                        <span id="avatarTimeEnd">--</span>
+                    </div>
+                </div>
+                <div class="avatar-controls">
+                    <button class="avatar-play-btn" id="avatarPlayPauseBtn">▶</button>
+                    <button class="avatar-speed-btn active" data-speed="1">1×</button>
+                    <button class="avatar-speed-btn" data-speed="2">2×</button>
+                    <button class="avatar-speed-btn" data-speed="4">4×</button>
+                    <button class="avatar-view-btn active" data-view="front">Front</button>
+                    <button class="avatar-view-btn" data-view="side">Side</button>
+                </div>
+                <div class="avatar-current-angle" id="avatarCurrentAngle">
+                    Current Angle: <strong>--</strong>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="avatarReplayCloseFooterBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="mission-cards-data.js?v=20260318"></script>
+<script src="gamification.js?v=20260318"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  Inline helpers — extracted from app.js, no BLE/DOM dependencies
+// ═══════════════════════════════════════════════════════════════════
+
+function parseCSVData(csvText) {
+    if (!csvText) return [];
+    const lines = csvText.trim().split('\n');
+    const data = [];
+    let timeOffset = 0, previousElapsed = 0, sequenceCount = 0;
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const parts = line.split(',');
+        if (parts.length >= 5) {
+            try {
+                const elapsed_ms = parseInt(parts[0]);
+                if (i > 1 && elapsed_ms < previousElapsed) {
+                    timeOffset += previousElapsed;
+                    sequenceCount++;
+                }
+                data.push({
+                    elapsed_ms,
+                    adjusted_elapsed_ms: elapsed_ms + timeOffset,
+                    timestamp:  parts[1],
+                    angle:      parseFloat(parts[2]),
+                    feedback:   parseInt(parts[3]),
+                    zone:       parts[4].trim(),
+                    sequence:   sequenceCount
+                });
+                previousElapsed = elapsed_ms;
+            } catch (_e) {}
+        }
+    }
+    return data;
+}
+
+function calculateStatistics(data, metadata) {
+    const yellowThreshold = parseFloat(metadata.threshold_yellow) || 30;
+    const redThreshold    = parseFloat(metadata.threshold_red)    || 60;
+    let totalGreenTime = 0, totalYellowTime = 0, totalRedTime = 0;
+    let recoveryEvents = [], currentBadZoneStart = null, currentBadZone = null;
+    let greenStreaks = [], currentGreenStreak = 0;
+
+    for (let i = 0; i < data.length; i++) {
+        const point    = data[i];
+        const prevPoint = i > 0 ? data[i - 1] : null;
+        const timeStep = prevPoint
+            ? (point.adjusted_elapsed_ms - prevPoint.adjusted_elapsed_ms) / 1000
+            : 0;
+
+        if (point.zone === 'green') {
+            totalGreenTime += timeStep;
+            currentGreenStreak += timeStep;
+            if (prevPoint && (prevPoint.zone === 'yellow' || prevPoint.zone === 'red') && currentBadZoneStart !== null) {
+                recoveryEvents.push({
+                    fromZone: currentBadZone,
+                    recoveryTime: (point.adjusted_elapsed_ms - currentBadZoneStart) / 1000
+                });
+                currentBadZoneStart = null; currentBadZone = null;
+            }
+        } else {
+            if (currentGreenStreak > 0) { greenStreaks.push(currentGreenStreak); currentGreenStreak = 0; }
+            if (point.zone === 'yellow') {
+                totalYellowTime += timeStep;
+                if (prevPoint && prevPoint.zone === 'green') { currentBadZoneStart = point.adjusted_elapsed_ms; currentBadZone = 'yellow'; }
+            } else if (point.zone === 'red') {
+                totalYellowTime += timeStep;
+                totalRedTime += timeStep;
+                if (prevPoint && prevPoint.zone === 'green') { currentBadZoneStart = point.adjusted_elapsed_ms; currentBadZone = 'red'; }
+                else if (currentBadZone === 'yellow') { currentBadZone = 'red'; }
+            }
+        }
+    }
+    if (currentGreenStreak > 0) greenStreaks.push(currentGreenStreak);
+
+    const totalTime  = (data[data.length - 1].adjusted_elapsed_ms - data[0].adjusted_elapsed_ms) / 1000;
+    const halfIdx    = Math.floor(data.length / 2);
+    const avgFirst   = data.slice(0, halfIdx).reduce((s, d) => s + d.angle, 0) / halfIdx;
+    const avgSecond  = data.slice(halfIdx).reduce((s, d) => s + d.angle, 0) / (data.length - halfIdx);
+    const fastestRec = recoveryEvents.length > 0 ? Math.min(...recoveryEvents.map(e => e.recoveryTime)) : null;
+
+    return {
+        totalTime, totalGreenTime, totalYellowTime, totalRedTime,
+        greenPercentage:  (totalGreenTime  / totalTime * 100).toFixed(1),
+        yellowPercentage: (totalYellowTime / totalTime * 100).toFixed(1),
+        redPercentage:    (totalRedTime    / totalTime * 100).toFixed(1),
+        averageAngle:     (data.reduce((s, d) => s + d.angle, 0) / data.length).toFixed(2),
+        recoveryCount:    recoveryEvents.length,
+        fastestRecovery:  fastestRec ? fastestRec.toFixed(1) : 'N/A',
+        greenStreaks,
+        longestGreenStreak: greenStreaks.length > 0 ? Math.max(...greenStreaks).toFixed(1) : 0,
+        avgFirst:   avgFirst.toFixed(2),
+        avgSecond:  avgSecond.toFixed(2),
+        improvement: avgFirst > avgSecond
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Demo-specific rendering helpers
+// ═══════════════════════════════════════════════════════════════════
+
+/** Session registry — keyed by sessionKey, holds data + deviceType */
+const _sessions = {};
+
+/**
+ * After renderAvatarGrid() creates .avatar-jump-btn elements, their
+ * onclick reads window._gamCurrentData. Re-bind them here so each
+ * button loads the correct session's data before opening the modal.
+ */
+function _bindReplayButtons(containerId, sessionKey) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.querySelectorAll('.avatar-jump-btn').forEach(btn => {
+        // Extract the ms argument from the existing onclick string
+        const match = (btn.getAttribute('onclick') || '').match(/[\d.]+/);
+        const ms = match ? parseFloat(match[0]) : 0;
+        btn.removeAttribute('onclick');
+        btn.addEventListener('click', () => {
+            const s = _sessions[sessionKey];
+            window._gamCurrentData       = s.data;
+            window._gamCurrentDeviceType = s.deviceType;
+            showAvatarReplayModal(s.data, s.deviceType);
+            requestAnimationFrame(() => AvatarReplay.seekToMs(ms));
+        });
+    });
+}
+
+/** Open the full-session replay for a given sessionKey */
+function openFullReplay(sessionKey) {
+    const s = _sessions[sessionKey];
+    window._gamCurrentData       = s.data;
+    window._gamCurrentDeviceType = s.deviceType;
+    showAvatarReplayModal(s.data, s.deviceType);
+}
+
+function renderSessionCard(sessionKey, label, filename, summary) {
+    const rl      = GAM.RISK_LEVELS[summary.riskLevel] || GAM.RISK_LEVELS.moderate;
+    const dur     = Math.round(summary.sessionDuration);
+    const impText = summary.improvement ? '📈 Improving' : '📉 Declining';
+
+    return `
+    <div class="session-card">
+        <div class="session-card-header">
+            <h2>${label}</h2>
+            <span class="file-badge">${filename}</span>
+        </div>
+        <div class="session-card-body">
+
+            <div class="stats-grid">
+                <div class="stat-cell">
+                    <div class="stat-val c-red">${summary.redPct}%</div>
+                    <div class="stat-label">Red</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-val c-yellow">${summary.yellowPct}%</div>
+                    <div class="stat-label">Yellow</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-val c-green">${summary.greenPct}%</div>
+                    <div class="stat-label">Green</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-val">${dur}s</div>
+                    <div class="stat-label">Duration</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-val">${summary.vibrationCount}</div>
+                    <div class="stat-label">Alerts</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-val c-muted">${impText}</div>
+                    <div class="stat-label">Trend</div>
+                </div>
+            </div>
+
+            <div class="rula-badge" style="background:${rl.bg};color:${rl.color};">
+                <span class="rula-icon">⚡</span>
+                <span>RULA Score: <strong>${summary.rulaScore.toFixed(2)}</strong> &nbsp;·&nbsp; ${rl.label}</span>
+            </div>
+
+            <div class="section-title">Body Heatmap</div>
+            <div id="heatmap-${sessionKey}"></div>
+
+            <div class="section-title">Posture Snapshots &amp; Feedback</div>
+            <div id="anthro-${sessionKey}"></div>
+
+            <button class="replay-full-btn" onclick="openFullReplay('${sessionKey}')">
+                ▶&nbsp;&nbsp;Play Full Session Replay
+            </button>
+        </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Modal wiring (mirrors GamificationSystem.init() in gamification.js)
+// ═══════════════════════════════════════════════════════════════════
+function wireAvatarModal() {
+    const modal         = document.getElementById('avatarReplayModal');
+    const closeBtn      = document.getElementById('avatarReplayModalClose');
+    const closeFooter   = document.getElementById('avatarReplayCloseFooterBtn');
+    const playPauseBtn  = document.getElementById('avatarPlayPauseBtn');
+    const timeline      = document.getElementById('avatarTimeline');
+
+    const closeModal = () => {
+        AvatarReplay.pause();
+        modal.classList.add('hidden');
+        playPauseBtn.textContent = '▶';
+    };
+
+    closeBtn.onclick = closeFooter.onclick = closeModal;
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    playPauseBtn.onclick = function () {
+        if (AvatarReplay.isPlaying) {
+            AvatarReplay.pause();
+            this.textContent = '▶';
+        } else {
+            AvatarReplay.play();
+            this.textContent = '⏸';
+        }
+    };
+
+    timeline.oninput = function () {
+        AvatarReplay.pause();
+        playPauseBtn.textContent = '▶';
+        AvatarReplay.seekTo(parseInt(this.value));
+    };
+
+    document.querySelectorAll('.avatar-speed-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            AvatarReplay.speed = parseFloat(this.dataset.speed);
+            document.querySelectorAll('.avatar-speed-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    document.querySelectorAll('.avatar-view-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            window._avatarViewMode = (this.dataset.view || 'front').toLowerCase() === 'side' ? 'side' : 'front';
+            if (typeof AvatarReplay !== 'undefined') {
+                AvatarReplay.viewMode = window._avatarViewMode;
+                AvatarReplay._drawFigure(document.getElementById('avatarStage'));
+            }
+            document.querySelectorAll('.avatar-view-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Entry point
+// ═══════════════════════════════════════════════════════════════════
+const DEMO_META = { device_type: 'trunk', threshold_yellow: '30', threshold_red: '60' };
+
+const DEMO_SESSIONS = [
+    { key: 's10', filename: 'S10.CSV', label: '🔴 Challenging Session (S10)', path: 'demo-data/S10.CSV'  },
+    { key: 's11', filename: 'S11.CSV', label: '🟢 Good Posture Session (S11)', path: 'demo-data/S11.CSV' }
+];
+
+async function initDemo() {
+    const csvTexts = await Promise.all(
+        DEMO_SESSIONS.map(s => fetch(s.path).then(r => {
+            if (!r.ok) throw new Error(`Cannot fetch ${s.path} (${r.status})`);
+            return r.text();
+        }))
+    );
+
+    // Parse data and build session summaries
+    const built = DEMO_SESSIONS.map((s, i) => {
+        const data    = parseCSVData(csvTexts[i]);
+        const stats   = calculateStatistics(data, DEMO_META);
+        const summary = buildSessionSummary(data, DEMO_META, stats, s.filename);
+        _sessions[s.key] = { data, deviceType: 'trunk', summary };
+        return { ...s, data, summary };
+    });
+
+    // Inject session cards
+    const container = document.getElementById('demoContainer');
+    container.innerHTML = built.map(s =>
+        renderSessionCard(s.key, s.label, s.filename, s.summary)
+    ).join('');
+
+    // Render gamification widgets and fix up replay button context per session
+    built.forEach(s => {
+        renderBodyHeatmap(`heatmap-${s.key}`, s.summary);
+        renderAnthropomorphicFeedback(`anthro-${s.key}`, s.summary);
+        _bindReplayButtons(`anthro-${s.key}`, s.key);
+    });
+
+    wireAvatarModal();
+}
+
+initDemo().catch(err => {
+    document.getElementById('demoContainer').innerHTML = `
+        <div class="loading-state" style="color:#c62828;">
+            <p style="font-size:1.5rem;margin-bottom:12px;">❌</p>
+            <p><strong>Failed to load demo data:</strong> ${err.message}</p>
+            <p style="font-size:0.85rem;color:#6b7280;margin-top:10px;">
+                Serve this page from an HTTP server so the CSV files can be fetched.<br>
+                Example: <code>python3 -m http.server 8000</code> then open
+                <code>http://localhost:8000/demo.html</code>
+            </p>
+        </div>`;
+});
+</script>
+</body>
+</html>

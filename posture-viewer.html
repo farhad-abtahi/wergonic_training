@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posture Viewer - Wergonic</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+    </script>
+    <style>
+        .pv-header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .pv-header a { font-size:.85rem; color:var(--md-sys-color-primary); text-decoration:none; opacity:.8; }
+        .pv-header a:hover { opacity:1; text-decoration:underline; }
+
+        .source-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 14px 0;
+        }
+        @media (max-width:600px) { .source-grid { grid-template-columns:1fr; } }
+
+        .source-card {
+            border: 1.5px solid var(--md-sys-color-outline-variant);
+            border-radius: 12px;
+            padding: 14px;
+            background: var(--md-sys-color-surface-container-low);
+            transition: border-color .2s, background .2s;
+        }
+        .source-card.loaded {
+            border-color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-primary-container);
+        }
+        .source-card h3 { margin:0 0 10px; font-size:.95rem; }
+        .file-chips { display:flex; flex-wrap:wrap; gap:8px; }
+        .file-chip {
+            padding: 5px 13px; border-radius:20px; font-size:.82rem; font-weight:600;
+            border: 1.5px solid var(--md-sys-color-outline);
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            cursor:pointer; transition:all .15s;
+        }
+        .file-chip:hover { border-color:var(--md-sys-color-primary); background:var(--md-sys-color-primary-container); }
+        .file-chip.active { border-color:var(--md-sys-color-primary); background:var(--md-sys-color-primary); color:#fff; }
+        .upload-label {
+            display:inline-block; padding:5px 13px; border-radius:20px; font-size:.82rem; font-weight:600;
+            border:1.5px dashed var(--md-sys-color-outline);
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface-variant);
+            cursor:pointer; transition:all .15s;
+        }
+        .upload-label:hover { border-color:var(--md-sys-color-secondary); background:var(--md-sys-color-secondary-container); }
+        .upload-label input { display:none; }
+        .source-status { font-size:.78rem; color:var(--md-sys-color-on-surface-variant); margin-top:8px; min-height:16px; }
+
+        #launchBtn:disabled { opacity:.4; cursor:not-allowed; }
+
+        /* ── Viewer ── */
+        #viewerArea { display:none; }
+
+        .viewer-layout {
+            display: grid;
+            grid-template-columns: 1fr 210px;
+            gap: 16px;
+            margin-bottom: 14px;
+            align-items: start;
+        }
+        @media (max-width:680px) { .viewer-layout { grid-template-columns:1fr; } }
+
+        #canvasWrap {
+            position:relative; border-radius:14px; overflow:hidden;
+            background:#dce3ea; aspect-ratio:4/3;
+            box-shadow: 0 2px 12px rgba(0,0,0,.12);
+        }
+        #mannequinCanvas { width:100%; height:100%; display:block; }
+
+        #zoneOverlay {
+            position:absolute; inset:0; border-radius:14px;
+            pointer-events:none; opacity:0;
+            transition: opacity .5s, background-color .5s;
+        }
+        #zoneOverlay.on-green  { opacity:.10; background:#4caf50; }
+        #zoneOverlay.on-yellow { opacity:.14; background:#ffc107; }
+        #zoneOverlay.on-red    { opacity:.18; background:#f44336; }
+
+        /* Angle badge overlays on canvas */
+        .canvas-badge {
+            position:absolute; bottom:12px; border-radius:8px;
+            padding:6px 10px; font-size:.82rem; font-weight:700;
+            background:rgba(0,0,0,.52); color:#fff; pointer-events:none;
+            backdrop-filter:blur(4px);
+        }
+        #armBadge   { left:12px; display:none; }
+        #trunkBadge { left:130px; display:none; }
+
+        /* Right info panel */
+        .info-panel { display:flex; flex-direction:column; gap:12px; }
+        .readout-card {
+            background: var(--md-sys-color-surface);
+            border: 1.5px solid var(--md-sys-color-outline-variant);
+            border-radius:12px; padding:12px 14px;
+        }
+        .readout-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--md-sys-color-on-surface-variant); }
+        .readout-value { font-size:2.2rem; font-weight:800; line-height:1.1; margin:2px 0; }
+        .readout-zone  { font-size:.8rem; font-weight:600; }
+        .z-green  { color:#2e7d32; }
+        .z-yellow { color:#e65100; }
+        .z-red    { color:#c62828; }
+
+        .ctrl-card {
+            background: var(--md-sys-color-surface);
+            border:1.5px solid var(--md-sys-color-outline-variant);
+            border-radius:12px; padding:12px 14px;
+        }
+        .ctrl-card-label { font-size:.78rem; font-weight:600; color:var(--md-sys-color-on-surface-variant); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em; }
+        .speed-row { display:flex; gap:6px; flex-wrap:wrap; }
+        .spd-btn {
+            padding:4px 11px; border-radius:8px; font-size:.82rem; font-weight:600;
+            border:1.5px solid var(--md-sys-color-outline);
+            background: var(--md-sys-color-surface); cursor:pointer; transition:all .15s;
+        }
+        .spd-btn.active { background:var(--md-sys-color-primary); color:#fff; border-color:var(--md-sys-color-primary); }
+        .spd-btn:hover:not(.active) { border-color:var(--md-sys-color-primary); }
+
+        /* Timeline */
+        #timelineSection {
+            background: var(--md-sys-color-surface-container);
+            border-radius:12px; padding:12px 16px;
+        }
+        .tl-row { display:flex; align-items:center; gap:10px; }
+        #playBtn {
+            width:38px; height:38px; border-radius:50%; border:none; flex-shrink:0;
+            background:var(--md-sys-color-primary); color:#fff;
+            font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+        }
+        #playBtn:hover { filter:brightness(1.1); }
+        #timeSlider { flex:1; accent-color:var(--md-sys-color-primary); cursor:pointer; height:4px; }
+        .tl-labels { display:flex; justify-content:space-between; font-size:.78rem; color:var(--md-sys-color-on-surface-variant); margin-top:2px; }
+
+        .hint-card {
+            background:var(--md-sys-color-surface);
+            border:1.5px solid var(--md-sys-color-outline-variant);
+            border-radius:12px; padding:10px 14px;
+            font-size:.78rem; color:var(--md-sys-color-on-surface-variant); line-height:1.6;
+        }
+
+        .picker-error {
+            background:var(--md-sys-color-error-container); color:var(--md-sys-color-on-error-container);
+            border-radius:8px; padding:10px 14px; font-size:.88rem; display:none; margin-top:8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header -->
+    <header>
+        <div class="pv-header">
+            <h1>Posture Viewer</h1>
+            <a href="demo-report.html">← Data Report</a>
+            <a href="index.html">Home</a>
+        </div>
+    </header>
+
+    <!-- ── Picker Panel ── -->
+    <section class="panel" id="pickerPanel">
+        <h2>Select Data Source</h2>
+        <p style="color:var(--md-sys-color-on-surface-variant);font-size:.9rem;margin:0 0 4px;">
+            Select CSV data files for the arm and/or trunk (at least one). The same file can be used for both channels.
+        </p>
+
+        <div class="source-grid">
+            <div class="source-card" id="armCard">
+                <h3>💪 Arm (ARM)</h3>
+                <div class="file-chips" id="armChips"></div>
+                <div class="source-status" id="armStatus">Not selected</div>
+            </div>
+            <div class="source-card" id="trunkCard">
+                <h3>🧍 Trunk (TRUNK)</h3>
+                <div class="file-chips" id="trunkChips"></div>
+                <div class="source-status" id="trunkStatus">Not selected</div>
+            </div>
+        </div>
+
+        <div class="picker-error" id="pickerError"></div>
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-primary" id="launchBtn" disabled>🚀 Launch Viewer</button>
+            <button class="btn btn-secondary" id="backBtn" style="display:none;">↺ Reselect</button>
+        </div>
+    </section>
+
+    <!-- ── Viewer Area ── -->
+    <div id="viewerArea">
+        <div class="viewer-layout">
+            <!-- 3D canvas -->
+            <div id="canvasWrap">
+                <canvas id="mannequinCanvas"></canvas>
+                <div id="zoneOverlay"></div>
+                <div class="canvas-badge" id="armBadge">💪 <span id="armBadgeVal">—</span>°</div>
+                <div class="canvas-badge" id="trunkBadge">🧍 <span id="trunkBadgeVal">—</span>°</div>
+            </div>
+
+            <!-- Info panel -->
+            <div class="info-panel">
+                <div class="readout-card" id="armReadout" style="display:none;">
+                    <div class="readout-label">💪 Arm Angle</div>
+                    <div class="readout-value"><span id="armVal">—</span>°</div>
+                    <div class="readout-zone" id="armZone">—</div>
+                </div>
+                <div class="readout-card" id="trunkReadout" style="display:none;">
+                    <div class="readout-label">🧍 Trunk Angle</div>
+                    <div class="readout-value"><span id="trunkVal">—</span>°</div>
+                    <div class="readout-zone" id="trunkZone">—</div>
+                </div>
+                <div class="ctrl-card">
+                    <div class="ctrl-card-label">Playback Speed</div>
+                    <div class="speed-row">
+                        <button class="spd-btn" data-spd="0.5">0.5×</button>
+                        <button class="spd-btn active" data-spd="1">1×</button>
+                        <button class="spd-btn" data-spd="2">2×</button>
+                        <button class="spd-btn" data-spd="5">5×</button>
+                    </div>
+                </div>
+                <div class="hint-card">
+                    <strong>Camera Controls</strong><br>
+                    Left drag to rotate<br>
+                    Scroll to zoom<br>
+                    Right drag to pan
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timelineSection">
+            <div class="tl-row">
+                <button id="playBtn">▶</button>
+                <input type="range" id="timeSlider" min="0" max="1000" value="0" step="1">
+            </div>
+            <div class="tl-labels">
+                <span id="curTime">0.0s</span>
+                <span id="totTime">0.0s</span>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ══════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════
+const DEMO_FILES = [
+    { name:'S10.CSV', path:'demo-data/S10.CSV', label:'Session 10' },
+    { name:'S11.CSV', path:'demo-data/S11.CSV', label:'Session 11' }
+];
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+const state = {
+    channels: { arm: null, trunk: null },
+    pb: { playing:false, speed:1, ms:0, totalMs:0, lastT:null, rafId:null }
+};
+let scene, camera, renderer, orbitCtrl, mannequin;
+
+// ══════════════════════════════════════════
+//  CSV PARSER
+// ══════════════════════════════════════════
+function parseCSV(text) {
+    if (!text) return [];
+    const lines = text.trim().split('\n');
+    const out = [];
+    let offset = 0, prev = 0, seq = 0;
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const p = line.split(',');
+        if (p.length < 5) continue;
+        try {
+            const ms = parseInt(p[0]);
+            if (i > 1 && ms < prev) { offset += prev; seq++; }
+            out.push({ t: ms + offset, angle: parseFloat(p[2]), zone: p[4].trim().toLowerCase() });
+            prev = ms;
+        } catch(_) {}
+    }
+    return out;
+}
+
+function interpolate(data, ms) {
+    if (!data || !data.length) return null;
+    if (ms <= data[0].t) return data[0];
+    if (ms >= data[data.length-1].t) return data[data.length-1];
+    let lo = 0, hi = data.length - 1;
+    while (lo < hi - 1) {
+        const mid = (lo + hi) >> 1;
+        if (data[mid].t <= ms) lo = mid; else hi = mid;
+    }
+    const a = data[lo], b = data[hi];
+    const frac = (ms - a.t) / (b.t - a.t);
+    return { angle: a.angle + (b.angle - a.angle) * frac, zone: frac < 0.5 ? a.zone : b.zone };
+}
+
+// ══════════════════════════════════════════
+//  MANNEQUIN
+// ══════════════════════════════════════════
+class Mannequin {
+    constructor(scene) {
+        this.root = new THREE.Group();
+        scene.add(this.root);
+        this._mats();
+        this._build();
+    }
+
+    _mats() {
+        const toon = hex => new THREE.MeshToonMaterial({ color: hex });
+        this.M = {
+            skin:     toon(0xf5c5a3),
+            clothing: toon(0x546e7a),
+            joint:    toon(0x78909c),
+            pelvis:   toon(0x455a64),
+            eye:      toon(0x2a2a3a),
+        };
+    }
+
+    _add(geo, mat, parent, px=0, py=0, pz=0, sx=1, sy=1, sz=1) {
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set(px, py, pz);
+        m.scale.set(sx, sy, sz);
+        m.castShadow = true;
+        parent.add(m);
+        return m;
+    }
+
+    _build() {
+        const { skin, clothing, joint, pelvis, eye } = this.M;
+
+        // Pelvis (fixed, doesn't lean)
+        this._add(new THREE.CylinderGeometry(0.15, 0.13, 0.22, 18), pelvis, this.root, 0, 0.11, 0);
+
+        // Spine pivot — everything above here leans with TRUNK angle
+        this.spinePivot = new THREE.Group();
+        this.spinePivot.position.set(0, 0.22, 0);
+        this.root.add(this.spinePivot);
+
+        // Torso
+        this.torsoMesh = this._add(new THREE.CylinderGeometry(0.185, 0.155, 0.6, 18), clothing, this.spinePivot, 0, 0.30, 0);
+
+        // Chest group (pivot at top of torso)
+        this.chestGroup = new THREE.Group();
+        this.chestGroup.position.set(0, 0.62, 0);
+        this.spinePivot.add(this.chestGroup);
+
+        // Neck
+        this._add(new THREE.CylinderGeometry(0.065, 0.085, 0.2, 12), skin, this.chestGroup, 0, 0.10, 0);
+        // Head
+        this._add(new THREE.SphereGeometry(0.155, 22, 16), skin, this.chestGroup, 0, 0.37, 0);
+        // Eyes
+        this._add(new THREE.SphereGeometry(0.025, 8, 6), eye, this.chestGroup, -0.054, 0.39, 0.142);
+        this._add(new THREE.SphereGeometry(0.025, 8, 6), eye, this.chestGroup,  0.054, 0.39, 0.142);
+        // Ears
+        const earM = new THREE.MeshToonMaterial({ color: 0xedac8a });
+        this._add(new THREE.SphereGeometry(0.032, 8, 6), earM, this.chestGroup, -0.15, 0.37, 0, 0.7, 1, 0.5);
+        this._add(new THREE.SphereGeometry(0.032, 8, 6), earM, this.chestGroup,  0.15, 0.37, 0, 0.7, 1, 0.5);
+
+        // Arms
+        this._buildArm('left');
+        this._buildArm('right');
+    }
+
+    _buildArm(side) {
+        const s = side === 'left' ? -1 : 1;
+        const { skin, clothing, joint } = this.M;
+
+        // Shoulder group at top of chestGroup
+        const sg = new THREE.Group();
+        sg.position.set(s * 0.37, -0.04, 0);
+        this.chestGroup.add(sg);
+
+        // Shoulder cap
+        this._add(new THREE.SphereGeometry(0.10, 14, 10), joint, sg);
+
+        // Upper arm pivot (rotates with ARM angle)
+        const uap = new THREE.Group();
+        sg.add(uap);
+        if (side === 'left') this.lArmP = uap; else this.rArmP = uap;
+
+        // Upper arm flesh + sleeve
+        this._add(new THREE.CylinderGeometry(0.072, 0.060, 0.30, 14), skin,     uap, 0, -0.15, 0);
+        this._add(new THREE.CylinderGeometry(0.082, 0.068, 0.20, 14), clothing, uap, 0, -0.08, 0);
+
+        // Elbow
+        this._add(new THREE.SphereGeometry(0.066, 12, 8), joint, uap, 0, -0.30, 0);
+
+        // Forearm pivot at elbow
+        const fap = new THREE.Group();
+        fap.position.set(0, -0.30, 0);
+        fap.rotation.x = THREE.MathUtils.degToRad(-12); // natural slight bend forward
+        uap.add(fap);
+
+        // Forearm
+        this._add(new THREE.CylinderGeometry(0.060, 0.046, 0.28, 14), skin, fap, 0, -0.14, 0);
+        // Wrist
+        this._add(new THREE.SphereGeometry(0.050, 10, 8), joint, fap, 0, -0.28, 0);
+        // Hand
+        this._add(new THREE.SphereGeometry(0.060, 12, 10), skin, fap, 0, -0.35, 0, 0.9, 0.8, 0.7);
+    }
+
+    // ── Pose setters ──────────────────────────────────────
+    setTrunkAngle(deg) {
+        this.spinePivot.rotation.x = THREE.MathUtils.degToRad(Math.max(0, deg));
+    }
+
+    // trunkDeg: current trunk angle (world-space compensation so arm angle is absolute from vertical)
+    setArmAngle(deg, trunkDeg = 0) {
+        // arm pivot is a child of spinePivot, so:
+        //   world_arm_x = trunk_rad + local_arm_x
+        // We want world_arm_x = -arm_rad (arm_rad from vertical, forward = negative X)
+        // → local_arm_x = -arm_rad - trunk_rad
+        const rad = -THREE.MathUtils.degToRad(Math.max(0, deg))
+                    - THREE.MathUtils.degToRad(trunkDeg);
+        this.lArmP.rotation.x = rad;
+        this.rArmP.rotation.x = rad;
+    }
+
+    setTrunkZone(zone) {
+        const c = zone==='red' ? 0xe53935 : zone==='yellow' ? 0xfb8c00 : 0x546e7a;
+        this.M.clothing.color.setHex(c);
+        this.M.pelvis.color.setHex(zone==='red' ? 0xb71c1c : zone==='yellow' ? 0xe65100 : 0x455a64);
+    }
+
+    setArmZone(zone) {
+        const c = zone==='red' ? 0xef5350 : zone==='yellow' ? 0xffa726 : 0x78909c;
+        this.M.joint.color.setHex(c);
+    }
+
+    reset() {
+        this.spinePivot.rotation.x = 0;
+        this.lArmP.rotation.x = 0;
+        this.rArmP.rotation.x = 0;
+        this.M.clothing.color.setHex(0x546e7a);
+        this.M.pelvis.color.setHex(0x455a64);
+        this.M.joint.color.setHex(0x78909c);
+    }
+}
+
+// ══════════════════════════════════════════
+//  THREE.JS INIT
+// ══════════════════════════════════════════
+function initThree() {
+    const canvas = document.getElementById('mannequinCanvas');
+    const wrap   = document.getElementById('canvasWrap');
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xe4eaef);
+    scene.fog = new THREE.FogExp2(0xe4eaef, 0.08);
+
+    const w = wrap.clientWidth || 600, h = wrap.clientHeight || 450;
+    camera = new THREE.PerspectiveCamera(42, w / h, 0.05, 40);
+    camera.position.set(1.3, 1.5, 3.4);
+    camera.lookAt(0, 0.75, 0);
+
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(w, h);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.60));
+    const sun = new THREE.DirectionalLight(0xfff8ee, 0.95);
+    sun.position.set(2, 5, 3);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 18;
+    scene.add(sun);
+    const fill = new THREE.DirectionalLight(0x8898cc, 0.35);
+    fill.position.set(-2, 2, -1);
+    scene.add(fill);
+
+    // Ground
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, 8),
+        new THREE.MeshLambertMaterial({ color: 0xd0d8e0 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.15;
+    ground.receiveShadow = true;
+    scene.add(ground);
+    const grid = new THREE.GridHelper(5, 20, 0xb0b8c0, 0xc4cdd4);
+    grid.position.y = -0.148;
+    scene.add(grid);
+
+    // Orbit controls
+    orbitCtrl = new OrbitControls(camera, renderer.domElement);
+    orbitCtrl.target.set(0, 0.75, 0);
+    orbitCtrl.enableDamping = true;
+    orbitCtrl.dampingFactor = 0.07;
+    orbitCtrl.minDistance = 1.2;
+    orbitCtrl.maxDistance = 8;
+    orbitCtrl.maxPolarAngle = Math.PI * 0.88;
+    orbitCtrl.update();
+
+    mannequin = new Mannequin(scene);
+
+    new ResizeObserver(() => {
+        const nw = wrap.clientWidth, nh = wrap.clientHeight;
+        renderer.setSize(nw, nh);
+        camera.aspect = nw / nh;
+        camera.updateProjectionMatrix();
+    }).observe(wrap);
+
+    (function loop() {
+        requestAnimationFrame(loop);
+        orbitCtrl.update();
+        renderer.render(scene, camera);
+    })();
+}
+
+// ══════════════════════════════════════════
+//  PLAYBACK
+// ══════════════════════════════════════════
+function startPlay() {
+    const pb = state.pb;
+    if (pb.playing) return;
+    if (pb.ms >= pb.totalMs) pb.ms = 0; // restart if at end
+    pb.playing = true;
+    pb.lastT = null;
+    document.getElementById('playBtn').textContent = '⏸';
+    pb.rafId = requestAnimationFrame(tick);
+}
+
+function pausePlay() {
+    const pb = state.pb;
+    pb.playing = false;
+    if (pb.rafId) cancelAnimationFrame(pb.rafId);
+    document.getElementById('playBtn').textContent = '▶';
+}
+
+function tick(ts) {
+    const pb = state.pb;
+    if (!pb.playing) return;
+    if (pb.lastT !== null) {
+        pb.ms += (ts - pb.lastT) * pb.speed;
+        if (pb.ms >= pb.totalMs) { pb.ms = pb.totalMs; pausePlay(); }
+    }
+    pb.lastT = ts;
+    updatePose(pb.ms);
+    updateTLui();
+    if (pb.playing) pb.rafId = requestAnimationFrame(tick);
+}
+
+function seekTo(ms) {
+    state.pb.ms = Math.max(0, Math.min(ms, state.pb.totalMs));
+    updatePose(state.pb.ms);
+    updateTLui();
+}
+
+function updatePose(ms) {
+    const { arm, trunk } = state.channels;
+    let az = null, tz = null;
+    let currentTrunkDeg = 0; // used to compensate arm pivot (child of spinePivot)
+
+    // Process trunk first so we have the trunk angle for arm compensation
+    if (trunk) {
+        const pt = interpolate(trunk.data, ms + trunk.data[0].t);
+        if (pt) {
+            currentTrunkDeg = pt.angle;
+            mannequin.setTrunkAngle(pt.angle);
+            mannequin.setTrunkZone(pt.zone);
+            tz = pt.zone;
+            document.getElementById('trunkVal').textContent = pt.angle.toFixed(1);
+            document.getElementById('trunkBadgeVal').textContent = pt.angle.toFixed(1);
+            setZoneLabel('trunkZone', pt.zone);
+        }
+    }
+    if (arm) {
+        const pt = interpolate(arm.data, ms + arm.data[0].t);
+        if (pt) {
+            // Pass trunk angle so arm world-space rotation = arm_angle from vertical.
+            // When arm_angle == trunk_angle the arm appears flush against the trunk.
+            mannequin.setArmAngle(pt.angle, currentTrunkDeg);
+            mannequin.setArmZone(pt.zone);
+            az = pt.zone;
+            document.getElementById('armVal').textContent = pt.angle.toFixed(1);
+            document.getElementById('armBadgeVal').textContent = pt.angle.toFixed(1);
+            setZoneLabel('armZone', pt.zone);
+        }
+    }
+
+    // Zone overlay
+    const worst = (az==='red'||tz==='red') ? 'red'
+                : (az==='yellow'||tz==='yellow') ? 'yellow'
+                : (az==='green'||tz==='green') ? 'green' : null;
+    const ov = document.getElementById('zoneOverlay');
+    ov.className = worst ? `on-${worst}` : '';
+}
+
+function setZoneLabel(id, zone) {
+    const el = document.getElementById(id);
+    const labels = { green:'✅ Green — Safe', yellow:'⚠️ Yellow — Warning', red:'🚨 Red — Danger' };
+    const cls    = { green:'z-green', yellow:'z-yellow', red:'z-red' };
+    el.textContent = labels[zone] || zone;
+    el.className = `readout-zone ${cls[zone]||''}`;
+}
+
+function updateTLui() {
+    const pb = state.pb;
+    document.getElementById('timeSlider').value = pb.totalMs > 0 ? (pb.ms / pb.totalMs * 1000) : 0;
+    document.getElementById('curTime').textContent = (pb.ms / 1000).toFixed(1) + 's';
+}
+
+// ══════════════════════════════════════════
+//  LAUNCH
+// ══════════════════════════════════════════
+function launch() {
+    const { arm, trunk } = state.channels;
+    if (!arm && !trunk) return;
+
+    let totalMs = 0;
+    if (arm)   totalMs = Math.max(totalMs, arm.data[arm.data.length-1].t   - arm.data[0].t);
+    if (trunk) totalMs = Math.max(totalMs, trunk.data[trunk.data.length-1].t - trunk.data[0].t);
+
+    state.pb.totalMs = totalMs;
+    state.pb.ms = 0;
+
+    document.getElementById('totTime').textContent = (totalMs / 1000).toFixed(1) + 's';
+    document.getElementById('timeSlider').value = 0;
+
+    if (arm)   { document.getElementById('armReadout').style.display = '';   document.getElementById('armBadge').style.display = ''; }
+    if (trunk) { document.getElementById('trunkReadout').style.display = ''; document.getElementById('trunkBadge').style.display = ''; }
+
+    document.getElementById('pickerPanel').style.display = 'none';
+    document.getElementById('viewerArea').style.display = 'block';
+    document.getElementById('backBtn').style.display = '';
+
+    setTimeout(() => {
+        if (!renderer) initThree();
+        else mannequin.reset();
+        updatePose(0);
+        updateTLui();
+    }, 40);
+}
+
+// ══════════════════════════════════════════
+//  FILE LOADING
+// ══════════════════════════════════════════
+function setChannel(ch, data, name) {
+    if (!data || !data.length) { showErr('No valid data in CSV. Please check the format (requires columns: elapsed_ms, timestamp, angle, feedback, zone).'); return; }
+    state.channels[ch] = { data, name };
+    document.getElementById(ch + 'Status').textContent = `✓ ${name} (${data.length} rows)`;
+    document.getElementById(ch + 'Card').classList.add('loaded');
+    hideErr();
+    document.getElementById('launchBtn').disabled = !(state.channels.arm || state.channels.trunk);
+}
+
+function clearChannel(ch) {
+    state.channels[ch] = null;
+    document.getElementById(ch + 'Status').textContent = 'Not selected';
+    document.getElementById(ch + 'Card').classList.remove('loaded');
+    document.getElementById('launchBtn').disabled = !(state.channels.arm || state.channels.trunk);
+}
+
+async function loadDemo(file, ch, chipEl) {
+    const chips = document.querySelectorAll(`#${ch}Chips .file-chip`);
+    const wasActive = chipEl.classList.contains('active');
+    chips.forEach(c => c.classList.remove('active'));
+    if (wasActive) { clearChannel(ch); return; }
+
+    chipEl.classList.add('active');
+    document.getElementById(ch + 'Status').textContent = 'Loading…';
+    try {
+        const r = await fetch(file.path);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        setChannel(ch, parseCSV(await r.text()), file.name);
+    } catch(e) {
+        showErr(`Failed to load "${file.name}": ${e.message}. Please serve via HTTP server or upload the file directly.`);
+        chipEl.classList.remove('active');
+        document.getElementById(ch + 'Status').textContent = 'Load failed';
+    }
+}
+
+function showErr(msg) { const e = document.getElementById('pickerError'); e.textContent = msg; e.style.display = 'block'; }
+function hideErr()    { document.getElementById('pickerError').style.display = 'none'; }
+
+// ══════════════════════════════════════════
+//  BUILD PICKER UI
+// ══════════════════════════════════════════
+function buildPicker() {
+    ['arm', 'trunk'].forEach(ch => {
+        const chips = document.getElementById(ch + 'Chips');
+        chips.innerHTML = '';
+        DEMO_FILES.forEach(f => {
+            const btn = document.createElement('button');
+            btn.className = 'file-chip';
+            btn.textContent = f.label;
+            btn.title = f.name;
+            btn.addEventListener('click', () => loadDemo(f, ch, btn));
+            chips.appendChild(btn);
+        });
+        const lbl = document.createElement('label');
+        lbl.className = 'upload-label';
+        lbl.innerHTML = '⬆ Upload<input type="file" accept=".csv,.CSV,.txt">';
+        lbl.querySelector('input').addEventListener('change', e => {
+            const f = e.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                document.querySelectorAll(`#${ch}Chips .file-chip`).forEach(c => c.classList.remove('active'));
+                setChannel(ch, parseCSV(ev.target.result), f.name);
+            };
+            reader.readAsText(f);
+        });
+        chips.appendChild(lbl);
+    });
+}
+
+// ══════════════════════════════════════════
+//  EVENT BINDINGS
+// ══════════════════════════════════════════
+document.getElementById('launchBtn').addEventListener('click', launch);
+
+document.getElementById('backBtn').addEventListener('click', () => {
+    pausePlay();
+    state.channels.arm = null;
+    state.channels.trunk = null;
+    document.getElementById('viewerArea').style.display = 'none';
+    document.getElementById('pickerPanel').style.display = '';
+    document.getElementById('backBtn').style.display = 'none';
+    document.getElementById('launchBtn').disabled = true;
+    document.querySelectorAll('.file-chip.active').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.source-card').forEach(c => c.classList.remove('loaded'));
+    document.getElementById('armStatus').textContent = 'Not selected';
+    document.getElementById('trunkStatus').textContent = 'Not selected';
+    document.getElementById('armReadout').style.display = 'none';
+    document.getElementById('trunkReadout').style.display = 'none';
+    document.getElementById('armBadge').style.display = 'none';
+    document.getElementById('trunkBadge').style.display = 'none';
+    if (mannequin) mannequin.reset();
+});
+
+document.getElementById('playBtn').addEventListener('click', () => {
+    if (state.pb.playing) pausePlay(); else startPlay();
+});
+
+document.getElementById('timeSlider').addEventListener('input', e => {
+    pausePlay();
+    seekTo(parseInt(e.target.value) / 1000 * state.pb.totalMs);
+});
+
+document.querySelectorAll('.spd-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('.spd-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        state.pb.speed = parseFloat(b.dataset.spd);
+    });
+});
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+buildPicker();
+</script>
+</body>
+</html>

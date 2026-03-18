@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            background: white;
+        }
+        .error {
+            border-left-color: #dc3545;
+            color: #dc3545;
+        }
+        .success {
+            border-left-color: #28a745;
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <h1>Wergonic Button Test</h1>
+    <p>This page tests if buttons work correctly.</p>
+    
+    <div>
+        <button id="testBtn">Test Button</button>
+        <button id="connectArmBtn">Connect ARM (Simulated)</button>
+    </div>
+    
+    <div class="log" id="log"></div>
+    
+    <script>
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        addLog('Page loaded successfully', 'success');
+        
+        // Test button
+        const testBtn = document.getElementById('testBtn');
+        if (testBtn) {
+            addLog('Test button found', 'success');
+            testBtn.addEventListener('click', () => {
+                addLog('Test button clicked!', 'success');
+                alert('Test button works!');
+            });
+        } else {
+            addLog('ERROR: Test button not found', 'error');
+        }
+        
+        // Connect ARM button (simulated)
+        const connectArmBtn = document.getElementById('connectArmBtn');
+        if (connectArmBtn) {
+            addLog('Connect ARM button found', 'success');
+            connectArmBtn.addEventListener('click', async () => {
+                addLog('Connect ARM button clicked!', 'success');
+                
+                // Check Web Bluetooth support
+                if (!navigator.bluetooth) {
+                    addLog('ERROR: Web Bluetooth not supported', 'error');
+                    alert('Web Bluetooth is not supported in this browser. Please use Chrome or Edge.');
+                    return;
+                }
+                
+                addLog('Web Bluetooth API available', 'success');
+                
+                try {
+                    addLog('Requesting Bluetooth device...', 'info');
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [{ services: ['34802252-7185-4d5d-b431-630e7050e8f0'] }]
+                    });
+                    addLog(`Device selected: ${device.name}`, 'success');
+                } catch (error) {
+                    addLog(`Error: ${error.message}`, 'error');
+                }
+            });
+        } else {
+            addLog('ERROR: Connect ARM button not found', 'error');
+        }
+        
+        addLog('Event listeners attached', 'success');
+        addLog('Ready! Click buttons to test.', 'success');
+    </script>
+</body>
+</html>

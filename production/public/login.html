@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a5fb4">
+    <title>Login - Wergonic Device Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&display=swap" rel="stylesheet">
+    <style>
+        /* Material Design 3 Expressive - Login Page */
+        :root {
+            /* M3 Color Tokens */
+            --md-sys-color-primary: #1a5fb4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #d4e3ff;
+            --md-sys-color-on-primary-container: #001c3a;
+            --md-sys-color-secondary-container: #6ff7f1;
+            --md-sys-color-error: #ba1a1a;
+            --md-sys-color-error-container: #ffdad6;
+            --md-sys-color-on-error-container: #410002;
+            --md-sys-color-surface: #fdfcff;
+            --md-sys-color-on-surface: #1a1c1e;
+            --md-sys-color-surface-variant: #e0e2ec;
+            --md-sys-color-on-surface-variant: #43474e;
+            --md-sys-color-surface-container: #eeedf2;
+            --md-sys-color-surface-container-high: #e8e7ec;
+            --md-sys-color-surface-container-highest: #e2e2e6;
+            --md-sys-color-outline: #73777f;
+            --md-sys-color-outline-variant: #c3c6cf;
+
+            /* M3 Elevation */
+            --md-sys-elevation-2: 0 2px 6px 2px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.3);
+            --md-sys-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.3);
+
+            /* M3 Shape - Expressive */
+            --md-sys-shape-corner-small: 12px;
+            --md-sys-shape-corner-medium: 16px;
+            --md-sys-shape-corner-large: 24px;
+            --md-sys-shape-corner-extra-large: 32px;
+            --md-sys-shape-corner-full: 9999px;
+
+            font-size: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1a5fb4 0%, #3584e4 50%, #62a0ea 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .login-container {
+            background: var(--md-sys-color-surface);
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            box-shadow: var(--md-sys-elevation-3);
+            padding: 48px;
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-icon {
+            width: 72px;
+            height: 72px;
+            background: var(--md-sys-color-primary-container);
+            border-radius: var(--md-sys-shape-corner-large);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem;
+        }
+
+        .logo h1 {
+            color: var(--md-sys-color-primary);
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo p {
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 12px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 18px 20px;
+            font-size: 1.15rem;
+            font-family: inherit;
+            border: none;
+            border-radius: var(--md-sys-shape-corner-small);
+            outline: none;
+            background: var(--md-sys-color-surface-container-highest);
+            color: var(--md-sys-color-on-surface);
+            min-height: 60px;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus {
+            background: var(--md-sys-color-surface-container);
+            box-shadow: inset 0 -3px 0 0 var(--md-sys-color-primary);
+        }
+
+        .form-group input::placeholder {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px 32px;
+            font-size: 1.15rem;
+            font-weight: 600;
+            font-family: inherit;
+            letter-spacing: 0.1px;
+            color: var(--md-sys-color-on-primary);
+            background-color: var(--md-sys-color-primary);
+            border: none;
+            border-radius: var(--md-sys-shape-corner-full);
+            cursor: pointer;
+            min-height: 60px;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1), transform 0.1s;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: white;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            box-shadow: var(--md-sys-elevation-2);
+        }
+
+        .btn:hover::before {
+            opacity: 0.08;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:active::before {
+            opacity: 0.12;
+        }
+
+        .btn:disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+        }
+
+        .btn:disabled::before {
+            display: none;
+        }
+
+        .error-message {
+            background: var(--md-sys-color-error-container);
+            color: var(--md-sys-color-on-error-container);
+            padding: 16px 20px;
+            border-radius: var(--md-sys-shape-corner-medium);
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 32px;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 0.95rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            :root {
+                font-size: 16px;
+            }
+
+            body {
+                padding: 16px;
+            }
+
+            .login-container {
+                padding: 32px 24px;
+                border-radius: var(--md-sys-shape-corner-large);
+            }
+
+            .logo-icon {
+                width: 64px;
+                height: 64px;
+                font-size: 1.75rem;
+            }
+
+            .logo h1 {
+                font-size: 1.75rem;
+            }
+
+            .form-group input {
+                padding: 16px 18px;
+                font-size: 1.1rem;
+            }
+
+            .btn {
+                padding: 16px 28px;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <div class="logo-icon">W</div>
+            <h1>Wergonic</h1>
+            <p>Device Manager</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                    autocomplete="current-password"
+                    placeholder="Enter your password"
+                >
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                Sign In
+            </button>
+        </form>
+
+        <div class="footer">
+            <p>Authorized access only</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const submitBtn = document.getElementById('submitBtn');
+        const passwordInput = document.getElementById('password');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const password = passwordInput.value;
+            if (!password) return;
+
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Signing in...';
+            errorMessage.classList.remove('visible');
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    window.location.href = data.redirect || '/';
+                } else {
+                    showError(data.error || 'Invalid password');
+                }
+            } catch (error) {
+                showError('Connection error. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('visible');
+            passwordInput.focus();
+            passwordInput.select();
+        }
+
+        // Auto-focus password input
+        passwordInput.focus();
+    </script>
+</body>
+</html>
