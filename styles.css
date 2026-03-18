@@ -145,6 +145,42 @@ body.debug-mode .debug-only {
     display: block;
 }
 
+/* ============ Navigation ============ */
+.navigation {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: var(--md-sys-color-surface-container-low);
+    border-radius: var(--md-sys-shape-corner-medium);
+    flex-wrap: wrap;
+}
+
+.nav-link {
+    padding: 12px 20px;
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-primary);
+    text-decoration: none;
+    border-radius: var(--md-sys-shape-corner-full);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    background: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+}
+
+.nav-link.active {
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    border-color: var(--md-sys-color-primary);
+}
+
 /* Connection Status - M3 Chip style */
 .connection-status {
     display: flex;
