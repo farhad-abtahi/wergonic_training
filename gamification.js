@@ -487,46 +487,46 @@ const AnthropomorphicFeedback = {
     MESSAGES: {
         trunk: {
             very_high: [
-                "My back was really struggling today — I felt a lot of strain in those red zones.",
-                "Ouch! My spine needed a break — too much forward bending this session.",
-                "My lower back is exhausted from all that strain. Let's straighten up next time!"
+                "I am your back, and I was really struggling today — those red zones put me under heavy strain.",
+                "I am your spine, and I needed a break — there was too much forward bending this session.",
+                "I am your lower back, and I am exhausted from that strain. Please keep me straighter next time!"
             ],
             high: [
-                "My back had a tough time during parts of this session.",
-                "I felt extra stress on my spine today — let's try to hold it more neutral.",
-                "My trunk was working harder than it should. Small adjustments make a big difference!"
+                "I am your back, and I had a tough time during parts of this session.",
+                "I am your spine, and I felt extra stress today — please keep me more neutral.",
+                "I am your trunk, and I worked harder than I should. Small adjustments make a big difference for me!"
             ],
             moderate: [
-                "My back was doing okay, but there's room to keep it straighter.",
-                "A few moments of strain here and there — I know you can do better!",
-                "Getting better! My back appreciates when you hold neutral posture."
+                "I am your back, and I did okay today, but I still need a straighter position.",
+                "I am your spine, and I felt a few moments of strain — I know we can do better.",
+                "I am your back, and I can feel the improvement when you hold a neutral posture."
             ],
             low: [
-                "My back felt great today — excellent neutral posture!",
-                "Spine happy, body happy! Great trunk control this session.",
-                "My back thanks you — minimal strain and great awareness throughout."
+                "I am your back, and I felt great today — excellent neutral posture!",
+                "I am your spine, and I felt relaxed all session — great trunk control!",
+                "I am your back, and I thank you — minimal strain and great awareness throughout."
             ]
         },
         arm: {
             very_high: [
-                "My arm was too far from my body for too long — that's a lot of shoulder load!",
-                "Whoa, my shoulder was working overtime this session. Let's bring the arm closer.",
-                "My arm and shoulder were under serious stress today. Try to keep your elbow closer to your side."
+                "I am your arm, and I stayed too far from your body for too long — that overloaded your shoulder.",
+                "I am your shoulder, and I was working overtime this session. Please bring your arm closer.",
+                "I am your arm and shoulder, and we were under serious stress today. Keep your elbow closer to your side."
             ],
             high: [
-                "My arm was reaching out quite a bit today — my shoulder felt the strain.",
-                "Some shoulder fatigue coming through — keeping the arm lower will help a lot.",
-                "My elbow kept drifting away from my body. Let's work on that next session!"
+                "I am your arm, and I reached out quite a bit today — your shoulder felt that strain.",
+                "I am your shoulder, and I started to fatigue — keeping your arm lower will help me a lot.",
+                "I am your elbow, and I kept drifting away from your body. Let's improve that next session!"
             ],
             moderate: [
-                "My arm position was decent today, but I noticed some drift in the yellow zones.",
-                "Getting better with arm control! Just a few more stretches away than ideal.",
-                "My shoulder appreciates your effort — just a bit more awareness in those yellow zones."
+                "I am your arm, and my position was decent today, but I still drifted into yellow zones.",
+                "I am your arm, and I can feel better control — just a few more reaches away than ideal.",
+                "I am your shoulder, and I appreciate your effort — I just need a bit more awareness in yellow zones."
             ],
             low: [
-                "My arm stayed nice and close today — perfect shoulder position!",
-                "Excellent arm control! My shoulder had a relaxed, efficient session.",
-                "My arm loved this session — great low-strain positioning throughout!"
+                "I am your arm, and I stayed close to your body today — perfect shoulder position!",
+                "I am your shoulder, and I felt relaxed and efficient all session — excellent arm control!",
+                "I am your arm, and I loved this session — great low-strain positioning throughout!"
             ]
         }
     },
@@ -553,7 +553,7 @@ const AnthropomorphicFeedback = {
         return {
             message,
             icon:      deviceType === 'arm' ? '💪' : '🧍',
-            partLabel: deviceType === 'arm' ? 'Arm & Shoulder' : 'Back & Trunk',
+            partLabel: deviceType === 'arm' ? 'Arm' : 'Trunk',
             riskLevel
         };
     },
@@ -564,7 +564,7 @@ const AnthropomorphicFeedback = {
      */
     generateNarrative(summary) {
         const deviceType = (summary.deviceType || 'trunk').toLowerCase();
-        const partLabel  = deviceType === 'arm' ? 'arm & shoulder' : 'back & trunk';
+        const partLabel  = deviceType === 'arm' ? 'arm' : 'trunk';
         const segs = summary.segments;
         if (!segs) return null;
 
@@ -575,11 +575,11 @@ const AnthropomorphicFeedback = {
 
         let narrative;
         if (trend === 'improving') {
-            narrative = `My ${partLabel} warmed up as the session progressed — I finished stronger (${lt.greenPct}% green) than I started (${ft.greenPct}% green).`;
+            narrative = `The ${partLabel} warmed up as the session progressed — I finished stronger (${lt.greenPct}% green) than I started (${ft.greenPct}% green).`;
         } else if (trend === 'declining') {
-            narrative = `My ${partLabel} started well (${ft.greenPct}% green) but fatigued toward the end (${lt.greenPct}% green). Try to maintain focus in the final stretch!`;
+            narrative = `The ${partLabel} started well (${ft.greenPct}% green) but fatigued toward the end (${lt.greenPct}% green). Try to maintain focus in the final stretch!`;
         } else {
-            narrative = `My ${partLabel} stayed at a consistent level throughout — ${ft.greenPct}% → ${mt.greenPct}% → ${lt.greenPct}% green across thirds.`;
+            narrative = `The ${partLabel} stayed at a consistent level throughout — ${ft.greenPct}% → ${mt.greenPct}% → ${lt.greenPct}% green across thirds.`;
         }
 
         if (segs.best_60s && segs.worst_60s) {
@@ -2428,6 +2428,24 @@ async function renderTeacherControlTab(container) {
     const effectiveCards = TeacherMissionConfig.getEffectiveCards();
     const todayCardId = localStorage.getItem('wergonic_mission_card_id') || '';
 
+    const knownTagSet = new Set(['general']);
+    presetCards.forEach(card => {
+        (card.tags || []).forEach(tag => {
+            const value = String(tag || '').trim();
+            if (value) knownTagSet.add(value);
+        });
+    });
+    (cfg.customCards || []).forEach(card => {
+        (card.tags || []).forEach(tag => {
+            const value = String(tag || '').trim();
+            if (value) knownTagSet.add(value);
+        });
+    });
+    const knownTagOptions = Array.from(knownTagSet).sort((a, b) => a.localeCompare(b));
+    const tagOptionsHtml = knownTagOptions
+        .map(tag => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`)
+        .join('');
+
     const presetRows = presetCards.map(card => {
         const checked = selectedSet.has(card.id) ? 'checked' : '';
         const tags = (card.tags || []).map(t => `<span class="teacher-card-tag">${escapeHtml(t)}</span>`).join('');
@@ -2497,11 +2515,19 @@ async function renderTeacherControlTab(container) {
                     <textarea id="teacherCardWhyInput" class="teacher-input" rows="2" maxlength="280" placeholder="Why this matters"></textarea>
                     <textarea id="teacherCardActionInput" class="teacher-input" rows="2" maxlength="280" placeholder="Today's action"></textarea>
                     <textarea id="teacherCardCheckpointInput" class="teacher-input" rows="2" maxlength="280" placeholder="Checkpoint after session"></textarea>
-                    <select id="teacherCardTagInput" class="teacher-input">
-                        <option value="general">General</option>
-                        <option value="arm">Arm</option>
-                        <option value="trunk">Trunk</option>
-                    </select>
+                    <div class="teacher-tag-field">
+                        <div id="teacherCardSelectedTags" class="teacher-tag-selected"></div>
+                        <button type="button" class="btn btn-small btn-secondary" id="teacherCardShowTagPickerBtn">Add Tag</button>
+                        <div id="teacherCardTagPicker" class="teacher-tag-picker" style="display:none;">
+                            <input type="text" id="teacherCardCustomTagInput" class="teacher-input teacher-tag-input-compact" maxlength="40" placeholder="Custom type (optional)">
+                            <button type="button" class="btn btn-small btn-secondary" id="teacherCardConfirmTagBtn">Add</button>
+                            <select id="teacherCardTagInput" class="teacher-input teacher-tag-input-compact">
+                                ${tagOptionsHtml}
+                            </select>
+                            <button type="button" class="btn btn-small btn-secondary" id="teacherCardCancelTagBtn">Cancel</button>
+                        </div>
+                        <div class="teacher-control-sub teacher-tag-help">Added tags are shown above. Click Add Tag to add one each time.</div>
+                    </div>
                     <button class="btn btn-primary" id="teacherAddCustomCardBtn">Add Custom Card</button>
                 </div>
                 <div class="teacher-custom-list">${customRows}</div>
@@ -2547,6 +2573,95 @@ async function renderTeacherControlTab(container) {
         });
     }
 
+    const draftTags = [];
+    const selectedTagsEl = container.querySelector('#teacherCardSelectedTags');
+    const showTagPickerBtn = container.querySelector('#teacherCardShowTagPickerBtn');
+    const tagPickerEl = container.querySelector('#teacherCardTagPicker');
+    const tagEl = container.querySelector('#teacherCardTagInput');
+    const customTagEl = container.querySelector('#teacherCardCustomTagInput');
+    const confirmTagBtn = container.querySelector('#teacherCardConfirmTagBtn');
+    const cancelTagBtn = container.querySelector('#teacherCardCancelTagBtn');
+
+    const renderDraftTags = () => {
+        if (!selectedTagsEl) return;
+        if (draftTags.length === 0) {
+            selectedTagsEl.innerHTML = '<span class="teacher-tag-placeholder">No tags added yet</span>';
+            return;
+        }
+        selectedTagsEl.innerHTML = draftTags
+            .map(tag => `<span class="teacher-card-tag">${escapeHtml(tag)}</span>`)
+            .join('');
+    };
+
+    const addKnownOptionIfMissing = (tag) => {
+        if (!tagEl || !tag) return;
+        const exists = Array.from(tagEl.options).some(opt => opt.value.toLowerCase() === tag.toLowerCase());
+        if (exists) return;
+        const option = document.createElement('option');
+        option.value = tag;
+        option.textContent = tag;
+        tagEl.appendChild(option);
+    };
+
+    const addDraftTag = (tag) => {
+        const value = String(tag || '').trim();
+        if (!value) return;
+        if (draftTags.some(t => t.toLowerCase() === value.toLowerCase())) return;
+        draftTags.push(value);
+        renderDraftTags();
+    };
+
+    const openTagPicker = () => {
+        if (tagPickerEl) tagPickerEl.style.display = 'grid';
+        if (showTagPickerBtn) showTagPickerBtn.style.display = 'none';
+    };
+
+    renderDraftTags();
+
+    if (showTagPickerBtn) {
+        showTagPickerBtn.addEventListener('click', () => {
+            openTagPicker();
+        });
+    }
+
+    const closeTagPicker = () => {
+        if (!tagPickerEl) return;
+        tagPickerEl.style.display = 'none';
+        if (showTagPickerBtn) showTagPickerBtn.style.display = '';
+        if (customTagEl) customTagEl.value = '';
+    };
+
+    const confirmAddTag = () => {
+        if (!customTagEl || !tagPickerEl) return;
+        const raw = customTagEl.value.trim();
+        const picked = tagEl ? String(tagEl.value || '').trim() : '';
+        const finalTag = raw || picked;
+        if (!finalTag) return;
+        addKnownOptionIfMissing(finalTag);
+        addDraftTag(finalTag);
+        closeTagPicker();
+    };
+
+    if (confirmTagBtn) {
+        confirmTagBtn.addEventListener('click', () => {
+            confirmAddTag();
+        });
+    }
+
+    if (cancelTagBtn) {
+        cancelTagBtn.addEventListener('click', () => {
+            closeTagPicker();
+        });
+    }
+
+    if (customTagEl) {
+        customTagEl.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            confirmAddTag();
+        });
+    }
+
     const addBtn = container.querySelector('#teacherAddCustomCardBtn');
     if (addBtn) {
         addBtn.addEventListener('click', () => {
@@ -2554,13 +2669,12 @@ async function renderTeacherControlTab(container) {
             const whyEl = container.querySelector('#teacherCardWhyInput');
             const actionEl = container.querySelector('#teacherCardActionInput');
             const checkpointEl = container.querySelector('#teacherCardCheckpointInput');
-            const tagEl = container.querySelector('#teacherCardTagInput');
 
             const title = titleEl ? titleEl.value.trim() : '';
             const why = whyEl ? whyEl.value.trim() : '';
             const action = actionEl ? actionEl.value.trim() : '';
             const checkpoint = checkpointEl ? checkpointEl.value.trim() : '';
-            const tag = tagEl ? tagEl.value : 'general';
+            const tags = draftTags.length > 0 ? draftTags.slice() : ['general'];
 
             if (!title || !action || !checkpoint) {
                 alert('Title, action, and checkpoint are required.');
@@ -2572,7 +2686,7 @@ async function renderTeacherControlTab(container) {
                 why: why || 'Custom mission created by teacher.',
                 action,
                 checkpoint,
-                tags: [tag]
+                tags
             });
 
             const createdCard = TeacherMissionConfig.getEffectiveCards().find(c => c.id === createdId);

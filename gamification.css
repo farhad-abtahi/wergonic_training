@@ -1373,6 +1373,69 @@
     border-color: var(--md-sys-color-primary);
 }
 
+.teacher-tag-field {
+    display: grid;
+    gap: 6px;
+}
+
+.teacher-tag-selected {
+    min-height: 36px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    border: 1px dashed var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-small);
+    padding: 6px 8px;
+}
+
+.teacher-tag-placeholder {
+    font-size: 0.76rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.teacher-tag-picker {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "custom add"
+        "existing cancel";
+    gap: 6px;
+    align-items: start;
+}
+
+.teacher-tag-input-compact {
+    max-width: 280px;
+    width: 100%;
+}
+
+.teacher-tag-picker #teacherCardCustomTagInput {
+    grid-area: custom;
+}
+
+.teacher-tag-picker #teacherCardTagInput {
+    grid-area: existing;
+}
+
+.teacher-tag-picker #teacherCardConfirmTagBtn {
+    grid-area: add;
+}
+
+.teacher-tag-picker #teacherCardCancelTagBtn {
+    grid-area: cancel;
+}
+
+.teacher-tag-custom-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.teacher-tag-help {
+    margin-top: -2px;
+}
+
 .teacher-custom-list {
     display: grid;
     gap: 8px;

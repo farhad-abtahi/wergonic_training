@@ -261,8 +261,8 @@
 <!-- Navigation -->
 <nav class="navigation">
     <a href="index.html" class="nav-link">Home</a>
-    <a href="demo.html" class="nav-link active">Demo</a>
-    <a href="demo-report.html" class="nav-link">Demo Report</a>
+    <a href="demo-report.html" class="nav-link">Session Report</a>
+    <a href="demo.html" class="nav-link active">Comparison</a>
     <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
     <a href="teacher-control.html" class="nav-link">Teacher Control</a>
     <span class="nav-version"></span>
@@ -271,35 +271,35 @@
 <div class="demo-header-shell">
     <header>
         <div class="page-heading">
-            <h1>Posture Session Demo</h1>
-            <p class="page-subtitle">Two full records. Each record has ARM+TRUNK slots and per-part snapshots.</p>
+            <h1>Session Comparison</h1>
+            <p class="page-subtitle">Each session record has an ARM and a TRUNK slots.</p>
         </div>
     </header>
 </div>
 
 <div class="slot-picker">
     <div class="record-slot-card">
-        <div class="record-slot-title">Record A Slots</div>
+        <div class="record-slot-title">Session A</div>
         <div class="record-slot-grid">
             <div class="slot-field">
-                <label for="recordAArmSelect">ARM CSV Slot</label>
+                <label for="recordAArmSelect">ARM</label>
                 <select id="recordAArmSelect"></select>
             </div>
             <div class="slot-field">
-                <label for="recordATrunkSelect">TRUNK CSV Slot</label>
+                <label for="recordATrunkSelect">TRUNK</label>
                 <select id="recordATrunkSelect"></select>
             </div>
         </div>
     </div>
     <div class="record-slot-card">
-        <div class="record-slot-title">Record B Slots</div>
+        <div class="record-slot-title">Session B</div>
         <div class="record-slot-grid">
             <div class="slot-field">
-                <label for="recordBArmSelect">ARM CSV Slot</label>
+                <label for="recordBArmSelect">ARM</label>
                 <select id="recordBArmSelect"></select>
             </div>
             <div class="slot-field">
-                <label for="recordBTrunkSelect">TRUNK CSV Slot</label>
+                <label for="recordBTrunkSelect">TRUNK</label>
                 <select id="recordBTrunkSelect"></select>
             </div>
         </div>
@@ -322,7 +322,7 @@
 <div id="avatarReplayModal" class="modal hidden">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>🤸 Motion Replay (Posture Viewer)</h3>
+            <h3>🤸 Motion Replay</h3>
             <button class="modal-close" id="avatarReplayModalClose">&times;</button>
         </div>
         <div class="modal-body">
@@ -535,6 +535,61 @@ function buildCombinedReplayTrack(armData, trunkData) {
     });
 }
 
+function calculateCombinedVennStats(track) {
+    if (!Array.isArray(track) || track.length < 2) {
+        return {
+            bothGreenPct: 0,
+            anyYellowPct: 0,
+            anyRedPct: 0,
+            bothRedPct: 0,
+            bothGreenSec: 0,
+            anyYellowSec: 0,
+            anyRedSec: 0,
+            bothRedSec: 0,
+            totalSec: 0
+        };
+    }
+
+    let bothGreenSec = 0;
+    let anyYellowSec = 0;
+    let anyRedSec = 0;
+    let bothRedSec = 0;
+
+    for (let i = 1; i < track.length; i++) {
+        const curr = track[i];
+        const prev = track[i - 1];
+        const dt = Math.max(0, (curr.adjusted_elapsed_ms - prev.adjusted_elapsed_ms) / 1000);
+        if (dt <= 0) continue;
+
+        const armZone = curr.armZone || 'green';
+        const trunkZone = curr.trunkZone || 'green';
+
+        const isBothGreen = armZone === 'green' && trunkZone === 'green';
+        const isAnyYellow = armZone === 'yellow' || trunkZone === 'yellow';
+        const isAnyRed = armZone === 'red' || trunkZone === 'red';
+        const isBothRed = armZone === 'red' && trunkZone === 'red';
+
+        if (isBothGreen) bothGreenSec += dt;
+        if (isAnyYellow) anyYellowSec += dt;
+        if (isAnyRed) anyRedSec += dt;
+        if (isBothRed) bothRedSec += dt;
+    }
+
+    const totalSec = Math.max(0.0001, (track[track.length - 1].adjusted_elapsed_ms - track[0].adjusted_elapsed_ms) / 1000);
+
+    return {
+        bothGreenPct: (bothGreenSec / totalSec) * 100,
+        anyYellowPct: (anyYellowSec / totalSec) * 100,
+        anyRedPct: (anyRedSec / totalSec) * 100,
+        bothRedPct: (bothRedSec / totalSec) * 100,
+        bothGreenSec,
+        anyYellowSec,
+        anyRedSec,
+        bothRedSec,
+        totalSec
+    };
+}
+
 /**
  * After renderAvatarGrid() creates .avatar-jump-btn elements, their
  * onclick reads window._gamCurrentData. Re-bind them here so each
@@ -700,14 +755,7 @@ const RECORD_SLOTS = {
 };
 
 async function loadDemoFileOptions() {
-    const fallback = [
-        'S10.CSV',
-        'S11.CSV',
-        'demo_arm_1_measurements_20260126_085405_rightArm_VCBC04_reformatted.csv',
-        'demo_arm_2_measurements_20260126_113637_rightArm_VCBC08_reformatted.csv',
-        'demo_trunk_1_measurements_20260126_085405_trunk_VCBC04_reformatted.csv',
-        'demo_trunk_2_measurements_20260126_113637_trunk_VCBC08_reformatted.csv'
-    ];
+    const fallback = Array.isArray(APP_CONFIG?.demoDataFiles) ? APP_CONFIG.demoDataFiles.slice() : [];
 
     try {
         const resp = await fetch('demo-data/');
@@ -776,6 +824,12 @@ function getCombinedRiskPresentation(totalScore) {
 
 function renderCombinedOverview(summary, armFile, trunkFile, label) {
     const risk = getCombinedRiskPresentation(summary.rulaScore);
+    const venn = summary.vennStats || {
+        bothGreenPct: 0,
+        anyYellowPct: 0,
+        anyRedPct: 0,
+        bothRedPct: 0
+    };
     return `
     <div class="session-card">
         <div class="session-card-header">
@@ -784,10 +838,13 @@ function renderCombinedOverview(summary, armFile, trunkFile, label) {
         </div>
         <div class="session-card-body">
             <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
-                <div class="stat-cell"><div class="stat-val">${summary.rulaScore}</div><div class="stat-label">Final Score (1–7)</div></div>
-                <div class="stat-cell"><div class="stat-val c-green">${summary.greenPct.toFixed(1)}%</div><div class="stat-label">Green Avg</div></div>
-                <div class="stat-cell"><div class="stat-val c-yellow">${summary.yellowPct.toFixed(1)}%</div><div class="stat-label">Yellow Avg</div></div>
-                <div class="stat-cell"><div class="stat-val c-red">${summary.redPct.toFixed(1)}%</div><div class="stat-label">Red Avg</div></div>
+                <div class="stat-cell"><div class="stat-val">${summary.rulaScore}</div><div class="stat-label">RULA Score</div></div>
+                <div class="stat-cell"><div class="stat-val c-green">${venn.bothGreenPct.toFixed(1)}%</div><div class="stat-label">Both Green</div></div>
+                <div class="stat-cell"><div class="stat-val c-yellow">${venn.anyYellowPct.toFixed(1)}%</div><div class="stat-label">Any Yellow</div></div>
+                <div class="stat-cell"><div class="stat-val c-red">${venn.anyRedPct.toFixed(1)}%</div><div class="stat-label">Any Red</div></div>
+            </div>
+            <div class="stats-grid" style="grid-template-columns: 1fr; margin-top:-8px; margin-bottom:12px;">
+                <div class="stat-cell"><div class="stat-val c-red">${venn.bothRedPct.toFixed(1)}%</div><div class="stat-label">Both Red</div></div>
             </div>
             <div class="rula-badge" style="background:${risk.bg};color:${risk.color};margin-bottom:0;">
                 <span class="rula-icon">⚡</span>
@@ -801,6 +858,12 @@ function renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary
     const armKey = `${recordKey}-arm`;
     const trunkKey = `${recordKey}-trunk`;
     const risk = getCombinedRiskPresentation(combinedSummary.rulaScore);
+    const venn = combinedSummary.vennStats || {
+        bothGreenPct: 0,
+        anyYellowPct: 0,
+        anyRedPct: 0,
+        bothRedPct: 0
+    };
     return `
     <div class="session-card">
         <div class="session-card-header">
@@ -809,10 +872,13 @@ function renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary
         </div>
         <div class="session-card-body">
             <div class="record-overview-strip">
-                <div class="stat-cell"><div class="stat-val">${combinedSummary.rulaScore}</div><div class="stat-label">Final Score (1–7)</div></div>
-                <div class="stat-cell"><div class="stat-val c-green">${combinedSummary.greenPct.toFixed(1)}%</div><div class="stat-label">Green Avg</div></div>
-                <div class="stat-cell"><div class="stat-val c-yellow">${combinedSummary.yellowPct.toFixed(1)}%</div><div class="stat-label">Yellow Avg</div></div>
-                <div class="stat-cell"><div class="stat-val c-red">${combinedSummary.redPct.toFixed(1)}%</div><div class="stat-label">Red Avg</div></div>
+                <div class="stat-cell"><div class="stat-val c-green">${venn.bothGreenPct.toFixed(1)}%</div><div class="stat-label">Both Green</div></div>
+                <div class="stat-cell"><div class="stat-val c-yellow">${venn.anyYellowPct.toFixed(1)}%</div><div class="stat-label">Any Yellow</div></div>
+                <div class="stat-cell"><div class="stat-val c-red">${venn.anyRedPct.toFixed(1)}%</div><div class="stat-label">Any Red</div></div>
+                <div class="stat-cell"><div class="stat-val c-red">${venn.bothRedPct.toFixed(1)}%</div><div class="stat-label">Both Red</div></div>
+            </div>
+            <div class="stats-grid" style="grid-template-columns: 1fr; margin-top:-4px; margin-bottom:10px;">
+                <div class="stat-cell"><div class="stat-val">${combinedSummary.rulaScore}</div><div class="stat-label">RULA Score</div></div>
             </div>
 
             <div class="rula-badge" style="background:${risk.bg};color:${risk.color};margin-bottom:12px;">
@@ -828,7 +894,7 @@ function renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary
                         <div class="stat-cell"><div class="stat-val c-yellow">${armSummary.yellowPct}%</div><div class="stat-label">Yellow</div></div>
                         <div class="stat-cell"><div class="stat-val c-red">${armSummary.redPct}%</div><div class="stat-label">Red</div></div>
                     </div>
-                    <div class="section-title">Snapshots (5) & Feedback</div>
+                    <div class="section-title">Snapshots & Feedback</div>
                     <div id="anthro-${armKey}"></div>
                 </div>
                 <div class="record-part">
@@ -838,7 +904,7 @@ function renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary
                         <div class="stat-cell"><div class="stat-val c-yellow">${trunkSummary.yellowPct}%</div><div class="stat-label">Yellow</div></div>
                         <div class="stat-cell"><div class="stat-val c-red">${trunkSummary.redPct}%</div><div class="stat-label">Red</div></div>
                     </div>
-                    <div class="section-title">Snapshots (5) & Feedback</div>
+                    <div class="section-title">Snapshots & Feedback</div>
                     <div id="anthro-${trunkKey}"></div>
                 </div>
             </div>
@@ -869,6 +935,8 @@ async function buildRecord(recordKey, recordLabel, armFile, trunkFile) {
         { data: trunkData, metadata: SLOT_META.trunk, stats: trunkStats, filename: trunkFile },
         `${recordLabel}: ${armFile} + ${trunkFile}`
     );
+    const combinedTrack = buildCombinedReplayTrack(armData, trunkData);
+    combinedSummary.vennStats = calculateCombinedVennStats(combinedTrack);
 
     // Combined final score is ARM + TRUNK, capped to the 1-7 scale.
     const combinedTotalScore = Math.min(7, armSummary.rulaScore + trunkSummary.rulaScore);
@@ -879,7 +947,7 @@ async function buildRecord(recordKey, recordLabel, armFile, trunkFile) {
     const trunkKey = `${recordKey}-trunk`;
     _sessions[armKey] = { data: armData, deviceType: 'arm', summary: armSummary };
     _sessions[trunkKey] = { data: trunkData, deviceType: 'trunk', summary: trunkSummary };
-    _recordReplayTracks[recordKey] = buildCombinedReplayTrack(armData, trunkData);
+    _recordReplayTracks[recordKey] = combinedTrack;
 
     return {
         html: renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary, trunkSummary, combinedSummary),

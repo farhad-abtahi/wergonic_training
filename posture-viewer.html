@@ -153,8 +153,8 @@
 <!-- Navigation -->
 <nav class="navigation">
     <a href="index.html" class="nav-link">Home</a>
-    <a href="demo.html" class="nav-link">Demo</a>
-    <a href="demo-report.html" class="nav-link">Demo Report</a>
+    <a href="demo-report.html" class="nav-link">Session Report</a>
+    <a href="demo.html" class="nav-link">Comparison</a>
     <a href="posture-viewer.html" class="nav-link active">Posture Viewer</a>
     <a href="teacher-control.html" class="nav-link">Teacher Control</a>
     <span class="nav-version"></span>
@@ -179,12 +179,12 @@
 
         <div class="source-grid">
             <div class="source-card" id="armCard">
-                <h3>💪 Arm (ARM)</h3>
+                <h3>Arm</h3>
                 <div class="file-chips" id="armChips"></div>
                 <div class="source-status" id="armStatus">Not selected</div>
             </div>
             <div class="source-card" id="trunkCard">
-                <h3>🧍 Trunk (TRUNK)</h3>
+                <h3>Trunk</h3>
                 <div class="file-chips" id="trunkChips"></div>
                 <div class="source-status" id="trunkStatus">Not selected</div>
             </div>
@@ -211,12 +211,12 @@
             <!-- Info panel -->
             <div class="info-panel">
                 <div class="readout-card" id="armReadout" style="display:none;">
-                    <div class="readout-label">💪 Arm Angle</div>
+                    <div class="readout-label">Arm Angle</div>
                     <div class="readout-value"><span id="armVal">—</span>°</div>
                     <div class="readout-zone" id="armZone">—</div>
                 </div>
                 <div class="readout-card" id="trunkReadout" style="display:none;">
-                    <div class="readout-label">🧍 Trunk Angle</div>
+                    <div class="readout-label">Trunk Angle</div>
                     <div class="readout-value"><span id="trunkVal">—</span>°</div>
                     <div class="readout-zone" id="trunkZone">—</div>
                 </div>
@@ -262,14 +262,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 // ══════════════════════════════════════════
 let DEMO_FILES = [];
 
-const DEMO_FILE_FALLBACK = [
-    'S10.CSV',
-    'S11.CSV',
-    'demo_arm_1_measurements_20260126_085405_rightArm_VCBC04_reformatted.csv',
-    'demo_arm_2_measurements_20260126_113637_rightArm_VCBC08_reformatted.csv',
-    'demo_trunk_1_measurements_20260126_085405_trunk_VCBC04_reformatted.csv',
-    'demo_trunk_2_measurements_20260126_113637_trunk_VCBC08_reformatted.csv'
-];
+const DEMO_FILE_FALLBACK = Array.isArray(APP_CONFIG?.demoDataFiles) ? APP_CONFIG.demoDataFiles.slice() : [];
 
 function toDemoFileEntry(name) {
     const sessionMatch = /^S(\d+)\.CSV$/i.exec(name);
@@ -643,7 +636,7 @@ function updatePose(ms) {
 
 function setZoneLabel(id, zone) {
     const el = document.getElementById(id);
-    const labels = { green:'✅ Green — Safe', yellow:'⚠️ Yellow — Warning', red:'🚨 Red — Danger' };
+    const labels = { green:'Green', yellow:'Yellow', red:'Red' };
     const cls    = { green:'z-green', yellow:'z-yellow', red:'z-red' };
     el.textContent = labels[zone] || zone;
     el.className = `readout-zone ${cls[zone]||''}`;

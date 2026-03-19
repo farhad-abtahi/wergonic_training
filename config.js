@@ -4,8 +4,16 @@
 // ═══════════════════════════════════════════════════════════════
 
 const APP_CONFIG = {
-    version: '3.0.2',
-    name: 'Wergonic Training'
+    version: '3.0.3',
+    name: 'Wergonic Training',
+    demoDataFiles: [
+        '1_arm.csv',
+        '1_trunk.csv',
+        '2_arm.csv',
+        '2_trunk.csv',
+        'S10.CSV',
+        'S11.CSV'
+    ]
 };
 
 // Update nav version labels without creating extra DOM churn.
