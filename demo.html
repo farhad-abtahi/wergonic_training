@@ -401,6 +401,7 @@ function parseCSVData(csvText) {
 function calculateStatistics(data, metadata) {
     const yellowThreshold = parseFloat(metadata.threshold_yellow) || 30;
     const redThreshold    = parseFloat(metadata.threshold_red)    || 60;
+    // totalYellowTime intentionally includes both yellow and red exposure.
     let totalGreenTime = 0, totalYellowTime = 0, totalRedTime = 0;
     let recoveryEvents = [], currentBadZoneStart = null, currentBadZone = null;
     let greenStreaks = [], currentGreenStreak = 0;
@@ -648,7 +649,7 @@ function renderSessionCard(sessionKey, label, filename, summary) {
                 </div>
                 <div class="stat-cell">
                     <div class="stat-val c-yellow">${summary.yellowPct}%</div>
-                    <div class="stat-label">Yellow</div>
+                    <div class="stat-label">Yellow+Red</div>
                 </div>
                 <div class="stat-cell">
                     <div class="stat-val c-green">${summary.greenPct}%</div>
@@ -891,7 +892,7 @@ function renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary
                     <h3>💪 ARM Session (${armFile})</h3>
                     <div class="stats-grid">
                         <div class="stat-cell"><div class="stat-val c-green">${armSummary.greenPct}%</div><div class="stat-label">Green</div></div>
-                        <div class="stat-cell"><div class="stat-val c-yellow">${armSummary.yellowPct}%</div><div class="stat-label">Yellow</div></div>
+                        <div class="stat-cell"><div class="stat-val c-yellow">${armSummary.yellowPct}%</div><div class="stat-label">Yellow+Red</div></div>
                         <div class="stat-cell"><div class="stat-val c-red">${armSummary.redPct}%</div><div class="stat-label">Red</div></div>
                     </div>
                     <div class="section-title">Snapshots & Feedback</div>
@@ -901,7 +902,7 @@ function renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary
                     <h3>🧍 TRUNK Session (${trunkFile})</h3>
                     <div class="stats-grid">
                         <div class="stat-cell"><div class="stat-val c-green">${trunkSummary.greenPct}%</div><div class="stat-label">Green</div></div>
-                        <div class="stat-cell"><div class="stat-val c-yellow">${trunkSummary.yellowPct}%</div><div class="stat-label">Yellow</div></div>
+                        <div class="stat-cell"><div class="stat-val c-yellow">${trunkSummary.yellowPct}%</div><div class="stat-label">Yellow+Red</div></div>
                         <div class="stat-cell"><div class="stat-val c-red">${trunkSummary.redPct}%</div><div class="stat-label">Red</div></div>
                     </div>
                     <div class="section-title">Snapshots & Feedback</div>
@@ -937,6 +938,10 @@ async function buildRecord(recordKey, recordLabel, armFile, trunkFile) {
     );
     const combinedTrack = buildCombinedReplayTrack(armData, trunkData);
     combinedSummary.vennStats = calculateCombinedVennStats(combinedTrack);
+
+    // Ensure snapshot avatars can use paired arm+trunk real measurements at each timestamp.
+    armSummary.snapshotTrack = combinedTrack;
+    trunkSummary.snapshotTrack = combinedTrack;
 
     // Combined final score is ARM + TRUNK, capped to the 1-7 scale.
     const combinedTotalScore = Math.min(7, armSummary.rulaScore + trunkSummary.rulaScore);

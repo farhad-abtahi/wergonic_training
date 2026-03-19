@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 const APP_CONFIG = {
-    version: '3.0.3',
+    version: '3.0.4',
     name: 'Wergonic Training',
     demoDataFiles: [
         '1_arm.csv',

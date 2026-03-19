@@ -209,6 +209,9 @@ function computeSegments(data, metadata) {
 
     // Find best and worst 60-second windows
     const windowMs = 60000;
+    const sessionStartMs = data[0].adjusted_elapsed_ms || 0;
+    const sessionEndMs = data[data.length - 1].adjusted_elapsed_ms || sessionStartMs;
+    const requireFullMinuteWindow = (sessionEndMs - sessionStartMs) > windowMs;
     let best60  = null;
     let worst60 = null;
     let bestAvg = Infinity;
@@ -217,6 +220,10 @@ function computeSegments(data, metadata) {
     for (let i = 0; i < data.length; i++) {
         const startMs = data[i].adjusted_elapsed_ms;
         const endMs   = startMs + windowMs;
+
+        // If the session itself is longer than 60s, only evaluate complete 60s windows.
+        if (requireFullMinuteWindow && endMs > sessionEndMs) continue;
+
         const window  = data.filter(d => d.adjusted_elapsed_ms >= startMs && d.adjusted_elapsed_ms < endMs);
         if (window.length < 10) continue;
         const avg = window.reduce((s, d) => s + d.angle, 0) / window.length;
@@ -784,7 +791,7 @@ const MiniAvatar3D = {
         }
     },
 
-    render(canvas, { deviceType, angle, zone }) {
+    render(canvas, { deviceType, angle, zone, armAngle = null, trunkAngle = null, armZone = null, trunkZone = null }) {
         if (!this.isSupported() || !canvas) return false;
 
         const ctx2d = canvas.getContext('2d');
@@ -807,9 +814,14 @@ const MiniAvatar3D = {
             }
 
             const kind = (deviceType || 'trunk').toLowerCase();
+            const explicitArmDeg = Number(armAngle);
+            const explicitTrunkDeg = Number(trunkAngle);
+            const hasPairedPose = Number.isFinite(explicitArmDeg) && Number.isFinite(explicitTrunkDeg);
             const rawAngle = Math.max(0, +angle || 0);
-            const trunkDeg = kind === 'trunk' ? rawAngle : Math.min(18, rawAngle * 0.22);
-            const armDeg = kind === 'arm' ? rawAngle : Math.max(8, rawAngle * 0.6);
+            const trunkDeg = hasPairedPose ? Math.max(0, explicitTrunkDeg) : (kind === 'trunk' ? rawAngle : Math.min(18, rawAngle * 0.22));
+            const armDeg = hasPairedPose ? Math.max(0, explicitArmDeg) : (kind === 'arm' ? rawAngle : Math.max(8, rawAngle * 0.6));
+            const trunkPoseZone = hasPairedPose ? (trunkZone || 'green') : (kind === 'trunk' ? zone : 'green');
+            const armPoseZone = hasPairedPose ? (armZone || 'green') : (kind === 'arm' ? zone : 'green');
 
             shared.renderer.setPixelRatio(dpr);
             shared.renderer.setSize(width, height, false);
@@ -821,8 +833,8 @@ const MiniAvatar3D = {
             shared.mannequin.reset();
             shared.mannequin.setTrunkAngle(trunkDeg);
             shared.mannequin.setArmAngle(armDeg, trunkDeg);
-            shared.mannequin.setTrunkZone(kind === 'trunk' ? zone : 'green');
-            shared.mannequin.setArmZone(kind === 'arm' ? zone : 'green');
+            shared.mannequin.setTrunkZone(trunkPoseZone);
+            shared.mannequin.setArmZone(armPoseZone);
             shared.renderer.render(shared.scene, shared.camera);
 
             ctx2d.clearRect(0, 0, pxW, pxH);
@@ -846,10 +858,29 @@ function _renderAvatarGridMini3D(rootEl) {
         const deviceType = canvas.dataset.deviceType || 'trunk';
         const angle = parseFloat(canvas.dataset.angle || '0');
         const zone = canvas.dataset.zone || 'green';
-        const ok = MiniAvatar3D.render(canvas, { deviceType, angle, zone });
+        const armAngle = parseFloat(canvas.dataset.armAngle || '');
+        const trunkAngle = parseFloat(canvas.dataset.trunkAngle || '');
+        const armZone = canvas.dataset.armZone || 'green';
+        const trunkZone = canvas.dataset.trunkZone || 'green';
+        const hasPairedPose = Number.isFinite(armAngle) && Number.isFinite(trunkAngle);
+        const ok = MiniAvatar3D.render(canvas, {
+            deviceType,
+            angle,
+            zone,
+            armAngle: hasPairedPose ? armAngle : null,
+            trunkAngle: hasPairedPose ? trunkAngle : null,
+            armZone: hasPairedPose ? armZone : null,
+            trunkZone: hasPairedPose ? trunkZone : null
+        });
         if (!ok) {
-            const color = zone === 'red' ? '#f44336' : (zone === 'yellow' ? '#ffc107' : '#4caf50');
-            const svgInner = _composePostureViewerSvg(angle, color, deviceType, true);
+            const fallbackAngle = hasPairedPose
+                ? (deviceType === 'arm' ? armAngle : trunkAngle)
+                : angle;
+            const fallbackZone = hasPairedPose
+                ? (deviceType === 'arm' ? armZone : trunkZone)
+                : zone;
+            const color = fallbackZone === 'red' ? '#f44336' : (fallbackZone === 'yellow' ? '#ffc107' : '#4caf50');
+            const svgInner = _composePostureViewerSvg(fallbackAngle, color, deviceType, true);
             canvas.outerHTML = `<svg viewBox="0 0 140 225" width="70" height="113" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`;
         }
     });
@@ -990,24 +1021,203 @@ function renderAvatarGrid(containerId, summary) {
     const zoneOf = a => a >= rThr ? 'red' : (a >= yThr ? 'yellow' : 'green');
     const zoneCol = z => z === 'red' ? '#f44336' : (z === 'yellow' ? '#ffc107' : '#4caf50');
     const svgFn   = deviceType === 'arm' ? _miniArmSvgContent : _miniTrunkSvgContent;
+    const timelineChannel = deviceType === 'arm' ? 'arm' : 'trunk';
+    const timelineChannelLabel = timelineChannel === 'arm' ? 'ARM' : 'TRUNK';
+    const snapshotTrack = Array.isArray(summary.snapshotTrack) ? summary.snapshotTrack : null;
 
-    // Build avatar list: thirds + best/worst 60s
+    const nearestSnapshotPoint = ms => {
+        if (!snapshotTrack || snapshotTrack.length === 0 || ms == null) return null;
+        let lo = 0;
+        let hi = snapshotTrack.length - 1;
+        while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const cur = snapshotTrack[mid]?.adjusted_elapsed_ms;
+            if (cur === ms) return snapshotTrack[mid];
+            if (cur < ms) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        const left = hi >= 0 ? snapshotTrack[hi] : null;
+        const right = lo < snapshotTrack.length ? snapshotTrack[lo] : null;
+        if (!left) return right;
+        if (!right) return left;
+        return Math.abs((left.adjusted_elapsed_ms || 0) - ms) <= Math.abs((right.adjusted_elapsed_ms || 0) - ms) ? left : right;
+    };
+
+    const validSnapshotTrack = Array.isArray(snapshotTrack) && snapshotTrack.length >= 2;
+    const timelineStartMs = validSnapshotTrack ? (snapshotTrack[0].adjusted_elapsed_ms || 0) : 0;
+    const timelineEndMs = validSnapshotTrack ? (snapshotTrack[snapshotTrack.length - 1].adjusted_elapsed_ms || timelineStartMs) : timelineStartMs;
+    const timelineSpanMs = Math.max(1, timelineEndMs - timelineStartMs);
+
+    const formatSec = ms => (Math.max(0, ms) / 1000).toFixed(1);
+    const rangeText = (startMs, endMs) => `${formatSec(startMs)}s-${formatSec(endMs)}s`;
+
+    const firstStartMs = segs.first_third.startMs || timelineStartMs;
+    const midStartMs = segs.middle_third.startMs || firstStartMs;
+    const endStartMs = segs.last_third.startMs || midStartMs;
+    const firstEndMs = Math.max(firstStartMs, midStartMs);
+    const midEndMs = Math.max(midStartMs, endStartMs);
+    const endEndMs = Math.max(endStartMs, timelineEndMs);
+
+    // Build avatar list: thirds + best/worst 60s (all ranges)
     const avatars = [
-        { label: 'Start',   badge: null, avgAngle: segs.first_third.avgAngle,  zone: zoneOf(segs.first_third.avgAngle),  timeMs: segs.first_third.startMs },
-        { label: 'Mid',     badge: null, avgAngle: segs.middle_third.avgAngle, zone: zoneOf(segs.middle_third.avgAngle), timeMs: segs.middle_third.startMs },
-        { label: 'End',     badge: null, avgAngle: segs.last_third.avgAngle,   zone: zoneOf(segs.last_third.avgAngle),   timeMs: segs.last_third.startMs },
+        {
+            label: 'Start 1/3',
+            badge: null,
+            avgAngle: segs.first_third.avgAngle,
+            zone: zoneOf(segs.first_third.avgAngle),
+            timeMs: firstStartMs,
+            rangeStartMs: firstStartMs,
+            rangeEndMs: firstEndMs,
+            rangeLabel: rangeText(firstStartMs, firstEndMs)
+        },
+        {
+            label: 'Mid 1/3',
+            badge: null,
+            avgAngle: segs.middle_third.avgAngle,
+            zone: zoneOf(segs.middle_third.avgAngle),
+            timeMs: midStartMs,
+            rangeStartMs: midStartMs,
+            rangeEndMs: midEndMs,
+            rangeLabel: rangeText(midStartMs, midEndMs)
+        },
+        {
+            label: 'End 1/3',
+            badge: null,
+            avgAngle: segs.last_third.avgAngle,
+            zone: zoneOf(segs.last_third.avgAngle),
+            timeMs: endStartMs,
+            rangeStartMs: endStartMs,
+            rangeEndMs: endEndMs,
+            rangeLabel: rangeText(endStartMs, endEndMs)
+        },
     ];
-    if (segs.best_60s)  avatars.push({ label: 'Best 60s',  badge: '🏆', avgAngle: segs.best_60s.avgAngle,  zone: 'green', timeMs: segs.best_60s.startMs });
-    if (segs.worst_60s) avatars.push({ label: 'Worst 60s', badge: '⚠️', avgAngle: segs.worst_60s.avgAngle, zone: 'red',   timeMs: segs.worst_60s.startMs });
+    if (segs.best_60s) {
+        const s = Math.max(timelineStartMs, segs.best_60s.startMs || timelineStartMs);
+        const e = Math.min(timelineEndMs, s + 60000);
+        avatars.push({
+            label: 'Best 60s',
+            badge: '🏆',
+            avgAngle: segs.best_60s.avgAngle,
+            zone: 'green',
+            timeMs: s,
+            rangeStartMs: s,
+            rangeEndMs: e,
+            rangeLabel: rangeText(s, e)
+        });
+    }
+    if (segs.worst_60s) {
+        const s = Math.max(timelineStartMs, segs.worst_60s.startMs || timelineStartMs);
+        const e = Math.min(timelineEndMs, s + 60000);
+        avatars.push({
+            label: 'Worst 60s',
+            badge: '⚠️',
+            avgAngle: segs.worst_60s.avgAngle,
+            zone: 'red',
+            timeMs: s,
+            rangeStartMs: s,
+            rangeEndMs: e,
+            rangeLabel: rangeText(s, e)
+        });
+    }
+
+    const clampPct = p => Math.max(0, Math.min(100, p));
+    const msToPct = ms => clampPct(((ms - timelineStartMs) / timelineSpanMs) * 100);
+    const normalizeZone = (zone, angle) => {
+        const z = String(zone || '').trim().toLowerCase();
+        if (z === 'green' || z === 'yellow' || z === 'red') return z;
+        return zoneOf(Number(angle) || 0);
+    };
+
+    const buildZoneGradient = channel => {
+        if (!validSnapshotTrack) return null;
+        const stops = [];
+        for (let i = 0; i < snapshotTrack.length - 1; i++) {
+            const cur = snapshotTrack[i];
+            const next = snapshotTrack[i + 1];
+            const start = msToPct(cur.adjusted_elapsed_ms || timelineStartMs);
+            const end = msToPct(next.adjusted_elapsed_ms || timelineEndMs);
+            if (end <= start) continue;
+
+            const zone = channel === 'arm'
+                ? normalizeZone(cur.armZone, cur.armAngle)
+                : normalizeZone(cur.trunkZone, cur.trunkAngle);
+            stops.push(`${zoneCol(zone)} ${start.toFixed(3)}% ${end.toFixed(3)}%`);
+        }
+
+        if (stops.length === 0) {
+            const only = snapshotTrack[0] || {};
+            const zone = channel === 'arm'
+                ? normalizeZone(only.armZone, only.armAngle)
+                : normalizeZone(only.trunkZone, only.trunkAngle);
+            return zoneCol(zone);
+        }
+
+        return `linear-gradient(to right, ${stops.join(', ')})`;
+    };
+
+    const timelineMarkers = avatars
+        .filter(av => av.rangeStartMs != null)
+        .map(av => ({
+            key: av.label,
+            label: `${av.badge ? `${av.badge} ` : ''}${av.label} (${av.rangeLabel || ''})`,
+            shortLabel: av.badge ? `${av.badge}${av.label.replace(' 60s', '')}` : av.label,
+            isBestWorst: av.label === 'Best 60s' || av.label === 'Worst 60s',
+            timeMs: av.timeMs,
+            startPos: validSnapshotTrack ? msToPct(av.rangeStartMs) : null,
+            endPos: validSnapshotTrack ? msToPct(av.rangeEndMs == null ? av.rangeStartMs : av.rangeEndMs) : null
+        }))
+        .filter(m => m.startPos != null)
+        .map(m => ({
+            ...m,
+            startPos: clampPct(m.startPos),
+            endPos: clampPct(m.endPos == null ? m.startPos : m.endPos)
+        }));
+
+    const timelineHtml = validSnapshotTrack ? `
+        <div class="snapshot-timeline-section">
+            <div class="snapshot-timeline-title">${timelineChannelLabel} Zone Timeline Mapping</div>
+            <div class="snapshot-timeline-rows">
+                <div class="snapshot-timeline-row">
+                    <div class="snapshot-timeline-track" style="background:${buildZoneGradient(timelineChannel)};"></div>
+                </div>
+            </div>
+            <div class="snapshot-timeline-markers">
+                ${timelineMarkers.map(m => `
+                    <button class="snapshot-timeline-marker ${m.isBestWorst ? 'is-best-worst' : ''}" style="left:${m.startPos.toFixed(2)}%;width:${Math.max(1.2, m.endPos - m.startPos).toFixed(2)}%;" title="${m.label}" onclick="openAvatarReplayAtMs(${m.timeMs})">${m.isBestWorst ? `<span class="snapshot-timeline-marker-inline">${m.shortLabel}</span>` : ''}
+                        <span class="snapshot-timeline-marker-label">${m.shortLabel}</span>
+                    </button>
+                `).join('')}
+            </div>
+            <div class="snapshot-timeline-legend">
+                <span><i style="background:#4caf50"></i>Green</span>
+                <span><i style="background:#ffc107"></i>Yellow</span>
+                <span><i style="background:#f44336"></i>Red</span>
+            </div>
+        </div>
+    ` : '';
 
     const useMini3D = _shouldUseMiniAvatar3D();
     const cards = avatars.map(av => {
-        const color = zoneCol(av.zone);
-        const svgInner = svgFn(av.avgAngle, color);
+        const pairPoint = nearestSnapshotPoint(av.timeMs);
+        const armAngle = pairPoint && Number.isFinite(Number(pairPoint.armAngle)) ? Math.max(0, Number(pairPoint.armAngle)) : null;
+        const trunkAngle = pairPoint && Number.isFinite(Number(pairPoint.trunkAngle)) ? Math.max(0, Number(pairPoint.trunkAngle)) : null;
+        const armZone = pairPoint ? String(pairPoint.armZone || '') : '';
+        const trunkZone = pairPoint ? String(pairPoint.trunkZone || '') : '';
+        const hasPairedPose = armAngle != null && trunkAngle != null;
+
+        const primaryAngle = hasPairedPose
+            ? (deviceType === 'arm' ? armAngle : trunkAngle)
+            : av.avgAngle;
+        const primaryZone = hasPairedPose
+            ? (deviceType === 'arm' ? (armZone || zoneOf(primaryAngle)) : (trunkZone || zoneOf(primaryAngle)))
+            : av.zone;
+
+        const color = zoneCol(primaryZone);
+        const svgInner = svgFn(primaryAngle, color);
         const figure = useMini3D
-            ? `<canvas class="avatar-mini-canvas" width="70" height="113" data-device-type="${deviceType}" data-angle="${av.avgAngle}" data-zone="${av.zone}"></canvas>`
+            ? `<canvas class="avatar-mini-canvas" width="70" height="113" data-device-type="${deviceType}" data-angle="${primaryAngle}" data-zone="${primaryZone}" data-arm-angle="${hasPairedPose ? armAngle : ''}" data-trunk-angle="${hasPairedPose ? trunkAngle : ''}" data-arm-zone="${hasPairedPose ? (armZone || zoneOf(armAngle)) : ''}" data-trunk-zone="${hasPairedPose ? (trunkZone || zoneOf(trunkAngle)) : ''}"></canvas>`
             : `<svg viewBox="0 0 140 225" width="70" height="113" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`;
-        const angleLabel = av.avgAngle === 0 ? 'Neutral' : `${av.avgAngle}°`;
+        const angleLabel = primaryAngle === 0 ? 'Neutral' : `${primaryAngle.toFixed(2)}°`;
         const action = av.timeMs != null
             ? `<button class="avatar-jump-btn" onclick="openAvatarReplayAtMs(${av.timeMs})">▶ Replay</button>`
             : `<span class="avatar-reference-tag">reference</span>`;
@@ -1016,6 +1226,7 @@ function renderAvatarGrid(containerId, summary) {
                 <div class="avatar-grid-label">${av.badge ? av.badge + ' ' : ''}${av.label}</div>
                 ${figure}
                 <div class="avatar-grid-angle" style="color:${color}">${angleLabel}</div>
+                <div class="avatar-grid-range">${av.rangeLabel || ''}</div>
                 ${action}
             </div>`;
     }).join('');
@@ -1023,6 +1234,7 @@ function renderAvatarGrid(containerId, summary) {
     el.insertAdjacentHTML('beforeend', `
         <div class="avatar-grid-section">
             <div class="avatar-grid-title">Posture Snapshots</div>
+            ${timelineHtml}
             <div class="avatar-grid-row">${cards}</div>
             <p class="avatar-grid-hint">Click ▶ Replay to jump the full animation to that moment.</p>
         </div>

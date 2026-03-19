@@ -9,87 +9,71 @@
     <style>
         /* ─── Page-level overrides ─── */
 
-        /* File picker panel */
-        .file-picker-grid {
+        /* File picker panel (same interaction style as Posture Viewer) */
+        .source-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
             margin-top: 12px;
         }
-        .demo-file-card {
-            border: 2px solid var(--md-sys-color-outline-variant);
+        @media (max-width: 680px) {
+            .source-grid { grid-template-columns: 1fr; }
+        }
+        .source-card {
+            border: 1.5px solid var(--md-sys-color-outline-variant);
             border-radius: 12px;
-            padding: 16px;
-            cursor: pointer;
-            transition: all .2s;
+            padding: 14px;
             background: var(--md-sys-color-surface-container-low);
-            text-align: center;
+            transition: border-color .2s, background .2s;
         }
-        .demo-file-card:hover {
-            border-color: var(--md-sys-color-primary);
-            background: var(--md-sys-color-primary-container);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(26,95,180,.15);
-        }
-        .demo-file-card.active {
+        .source-card.loaded {
             border-color: var(--md-sys-color-primary);
             background: var(--md-sys-color-primary-container);
         }
-        .demo-file-icon { font-size: 2rem; margin-bottom: 6px; }
-        .demo-file-name {
+        .source-card h3 { margin: 0 0 10px; font-size: .95rem; }
+        .file-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .file-chip {
+            padding: 5px 13px;
+            border-radius: 20px;
+            font-size: .82rem;
             font-weight: 600;
-            font-size: 1rem;
-            white-space: normal;
-            word-break: break-word;
-            overflow-wrap: anywhere;
-        }
-        .demo-file-meta {
-            font-size: 0.78rem;
-            color: var(--md-sys-color-on-surface-variant);
-            margin-top: 4px;
-            white-space: normal;
-            word-break: break-word;
-            overflow-wrap: anywhere;
-        }
-
-        .upload-card {
-            border: 2px dashed var(--md-sys-color-outline);
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
+            border: 1.5px solid var(--md-sys-color-outline);
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
             cursor: pointer;
-            transition: all .2s;
-            background: var(--md-sys-color-surface-container-low);
+            transition: all .15s;
         }
-        .upload-card:hover {
+        .file-chip:hover {
+            border-color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-primary-container);
+        }
+        .file-chip.active {
+            border-color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-primary);
+            color: #fff;
+        }
+        .upload-label {
+            display: inline-block;
+            padding: 5px 13px;
+            border-radius: 20px;
+            font-size: .82rem;
+            font-weight: 600;
+            border: 1.5px dashed var(--md-sys-color-outline);
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .upload-label:hover {
             border-color: var(--md-sys-color-secondary);
             background: var(--md-sys-color-secondary-container);
         }
-        .upload-card input[type="file"] { display: none; }
-
-        .slot-toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
-            margin: 12px 0 8px;
-            padding: 10px;
-            background: var(--md-sys-color-surface-container-low);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: 10px;
-        }
-        .slot-toolbar .slot-pill {
-            font-size: 0.78rem;
-            border-radius: 20px;
-            padding: 4px 10px;
-            border: 1px solid var(--md-sys-color-outline-variant);
-            background: var(--md-sys-color-surface);
-            white-space: normal;
-            word-break: break-word;
-            overflow-wrap: anywhere;
-        }
-        .slot-toolbar .slot-pill strong {
-            color: var(--md-sys-color-primary);
+        .upload-label input { display: none; }
+        .source-status {
+            font-size: .78rem;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-top: 8px;
+            min-height: 16px;
             white-space: normal;
             word-break: break-word;
             overflow-wrap: anywhere;
@@ -342,6 +326,24 @@
             gap: 8px;
             font-size: 0.9rem;
         }
+        .threshold-slot-block {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+        .threshold-slot-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: var(--md-sys-color-on-surface-variant);
+            min-width: 46px;
+        }
         .threshold-group label { color: var(--md-sys-color-on-surface-variant); font-weight: 500; }
         .threshold-input {
             width: 70px;
@@ -352,6 +354,21 @@
             background: var(--md-sys-color-surface);
         }
         .threshold-input:focus { outline: none; border-color: var(--md-sys-color-primary); }
+        .slot-thresholds {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            align-items: center;
+        }
+        .slot-threshold-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--md-sys-color-on-surface-variant);
+            width: 100%;
+        }
 
         /* section gaps */
         .report-section { margin-bottom: 28px; }
@@ -405,6 +422,16 @@
             overflow-wrap: anywhere;
         }
 
+        .picker-error {
+            background: var(--md-sys-color-error-container);
+            color: var(--md-sys-color-on-error-container);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: .88rem;
+            display: none;
+            margin-top: 10px;
+        }
+
         @media (max-width: 1100px) {
             .dual-reports-grid {
                 grid-template-columns: 1fr;
@@ -439,32 +466,46 @@
     <section class="panel" id="pickerPanel">
         <h2>Import Session from Files</h2>
 
-        <div class="slot-toolbar">
-            <button class="btn btn-small btn-primary" id="activeSlotArmBtn">Active: ARM Slot</button>
-            <button class="btn btn-small btn-secondary" id="activeSlotTrunkBtn">Switch to TRUNK Slot</button>
-            <span class="slot-pill">ARM: <strong id="armSlotFile">(empty)</strong></span>
-            <span class="slot-pill">TRUNK: <strong id="trunkSlotFile">(empty)</strong></span>
+        <p style="color:var(--md-sys-color-on-surface-variant);font-size:.9rem;margin:0 0 4px;">
+            Select CSV files for Arm and Trunk slots independently. You can use demo-data files or upload local CSV files.
+        </p>
+
+        <div class="source-grid">
+            <div class="source-card" id="armCard">
+                <h3>Arm Slot</h3>
+                <div class="file-chips" id="armChips"></div>
+                <div class="source-status" id="armStatus">Not selected</div>
+                <div class="slot-thresholds">
+                    <div class="slot-threshold-title">Thresholds (CSV zone still has priority)</div>
+                    <div class="threshold-group">
+                        <label for="armYellowThresholdInput">⚠️ Yellow</label>
+                        <input type="number" id="armYellowThresholdInput" class="threshold-input" value="30" min="1" max="180"> °
+                    </div>
+                    <div class="threshold-group">
+                        <label for="armRedThresholdInput">🚨 Red</label>
+                        <input type="number" id="armRedThresholdInput" class="threshold-input" value="60" min="1" max="180"> °
+                    </div>
+                </div>
+            </div>
+            <div class="source-card" id="trunkCard">
+                <h3>Trunk Slot</h3>
+                <div class="file-chips" id="trunkChips"></div>
+                <div class="source-status" id="trunkStatus">Not selected</div>
+                <div class="slot-thresholds">
+                    <div class="slot-threshold-title">Thresholds (CSV zone still has priority)</div>
+                    <div class="threshold-group">
+                        <label for="trunkYellowThresholdInput">⚠️ Yellow</label>
+                        <input type="number" id="trunkYellowThresholdInput" class="threshold-input" value="20" min="1" max="180"> °
+                    </div>
+                    <div class="threshold-group">
+                        <label for="trunkRedThresholdInput">🚨 Red</label>
+                        <input type="number" id="trunkRedThresholdInput" class="threshold-input" value="45" min="1" max="180"> °
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Threshold configuration -->
-        <div class="threshold-row">
-            <span style="font-weight:600;font-size:.9rem;">Zone Threshold Configuration:</span>
-            <div class="threshold-group">
-                <label for="yellowThresholdInput">⚠️ Yellow Threshold</label>
-                <input type="number" id="yellowThresholdInput" class="threshold-input" value="30" min="1" max="180"> °
-            </div>
-            <div class="threshold-group">
-                <label for="redThresholdInput">🚨 Red Threshold</label>
-                <input type="number" id="redThresholdInput" class="threshold-input" value="60" min="1" max="180"> °
-            </div>
-            <small style="color:var(--md-sys-color-on-surface-variant);font-size:.78rem;">
-                (If CSV already has a zone column, it takes priority)
-            </small>
-        </div>
-
-        <div class="file-picker-grid" id="demoFileGrid">
-            <!-- Demo files injected by JS -->
-        </div>
+        <div class="picker-error" id="pickerError"></div>
     </section>
 
     <!-- ── Report Area ────────────────────────────────────────── -->
@@ -541,6 +582,10 @@ const reportState = {
         arm: { yellow: 30, red: 60 },
         trunk: { yellow: 20, red: 45 }
     },
+    slotSourceSelection: {
+        arm: null,
+        trunk: null
+    },
     slots: {
         arm: { filename: '', data: [] },
         trunk: { filename: '', data: [] }
@@ -565,52 +610,65 @@ function updateReportFilenameHeader() {
 
 function applyThresholdDefaultsForSlot(slot) {
     const defaults = reportState.slotThresholdDefaults[slot] || reportState.slotThresholdDefaults.arm;
-    document.getElementById('yellowThresholdInput').value = defaults.yellow;
-    document.getElementById('redThresholdInput').value = defaults.red;
+    const yellowInput = document.getElementById(`${slot}YellowThresholdInput`);
+    const redInput = document.getElementById(`${slot}RedThresholdInput`);
+    if (yellowInput) yellowInput.value = defaults.yellow;
+    if (redInput) redInput.value = defaults.red;
 }
 
 function initThresholdInputs() {
-    const yellowInput = document.getElementById('yellowThresholdInput');
-    const redInput = document.getElementById('redThresholdInput');
-    const onThresholdChange = () => {
-        const slot = reportState.activeSlot;
-        const nextYellow = Math.max(1, Math.min(180, parseInt(yellowInput.value, 10) || 1));
-        const nextRed = Math.max(1, Math.min(180, parseInt(redInput.value, 10) || 1));
-        reportState.slotThresholdDefaults[slot] = { yellow: nextYellow, red: nextRed };
-        yellowInput.value = nextYellow;
-        redInput.value = nextRed;
-        renderCombinedSlotSummary();
-        renderDualSlotComparison();
-        renderAll();
-    };
+    const slots = ['arm', 'trunk'];
+    const clamp = v => Math.max(1, Math.min(180, parseInt(v, 10) || 1));
 
-    yellowInput.addEventListener('change', onThresholdChange);
-    redInput.addEventListener('change', onThresholdChange);
+    slots.forEach(slot => {
+        const yellowInput = document.getElementById(`${slot}YellowThresholdInput`);
+        const redInput = document.getElementById(`${slot}RedThresholdInput`);
+        if (!yellowInput || !redInput) return;
+
+        const onThresholdChange = () => {
+            let nextYellow = clamp(yellowInput.value);
+            let nextRed = clamp(redInput.value);
+            if (nextRed <= nextYellow) nextRed = Math.min(180, nextYellow + 1);
+
+            reportState.slotThresholdDefaults[slot] = { yellow: nextYellow, red: nextRed };
+            yellowInput.value = nextYellow;
+            redInput.value = nextRed;
+
+            renderCombinedSlotSummary();
+            renderDualSlotComparison();
+            renderAll();
+        };
+
+        yellowInput.addEventListener('change', onThresholdChange);
+        redInput.addEventListener('change', onThresholdChange);
+    });
+
+    applyThresholdDefaultsForSlot('arm');
+    applyThresholdDefaultsForSlot('trunk');
 }
 
-function updateSlotToolbar() {
-    const armFile = reportState.slots.arm.filename || '(empty)';
-    const trunkFile = reportState.slots.trunk.filename || '(empty)';
-    document.getElementById('armSlotFile').textContent = armFile;
-    document.getElementById('trunkSlotFile').textContent = trunkFile;
+function updateSourceCardsUI() {
+    ['arm', 'trunk'].forEach(slot => {
+        const card = document.getElementById(`${slot}Card`);
+        const status = document.getElementById(`${slot}Status`);
+        const slotState = reportState.slots[slot];
+        const selectedName = reportState.slotSourceSelection[slot];
+        const isLoaded = Boolean(slotState && slotState.data && slotState.data.length > 0);
 
-    const armBtn = document.getElementById('activeSlotArmBtn');
-    const trunkBtn = document.getElementById('activeSlotTrunkBtn');
-    if (reportState.activeSlot === 'arm') {
-        armBtn.classList.remove('btn-secondary');
-        armBtn.classList.add('btn-primary');
-        armBtn.textContent = 'Active: ARM Slot';
-        trunkBtn.classList.remove('btn-primary');
-        trunkBtn.classList.add('btn-secondary');
-        trunkBtn.textContent = 'Switch to TRUNK Slot';
-    } else {
-        trunkBtn.classList.remove('btn-secondary');
-        trunkBtn.classList.add('btn-primary');
-        trunkBtn.textContent = 'Active: TRUNK Slot';
-        armBtn.classList.remove('btn-primary');
-        armBtn.classList.add('btn-secondary');
-        armBtn.textContent = 'Switch to ARM Slot';
-    }
+        if (card) card.classList.toggle('loaded', isLoaded);
+        if (status) {
+            status.textContent = isLoaded
+                ? `Loaded: ${slotState.filename}`
+                : (selectedName ? `Selected: ${selectedName}` : 'Not selected');
+        }
+
+        const chipParent = document.getElementById(`${slot}Chips`);
+        if (chipParent) {
+            chipParent.querySelectorAll('.file-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.fileName === selectedName);
+            });
+        }
+    });
 }
 
 function renderCombinedSlotSummary() {
@@ -622,8 +680,10 @@ function renderCombinedSlotSummary() {
         return;
     }
 
-    const armStats = calculateStats(arm.data, 30, 60);
-    const trunkStats = calculateStats(trunk.data, 30, 60);
+    const armDefaults = reportState.slotThresholdDefaults.arm || { yellow: 30, red: 60 };
+    const trunkDefaults = reportState.slotThresholdDefaults.trunk || { yellow: 20, red: 45 };
+    const armStats = calculateStats(arm.data, armDefaults.yellow, armDefaults.red);
+    const trunkStats = calculateStats(trunk.data, trunkDefaults.yellow, trunkDefaults.red);
     const greenAvg = ((parseFloat(armStats.greenPct) + parseFloat(trunkStats.greenPct)) / 2).toFixed(1);
     const yellowAvg = ((parseFloat(armStats.yellowPct) + parseFloat(trunkStats.yellowPct)) / 2).toFixed(1);
     const redAvg = ((parseFloat(armStats.redPct) + parseFloat(trunkStats.redPct)) / 2).toFixed(1);
@@ -704,85 +764,62 @@ function renderDualSlotComparison() {
     target.innerHTML = `${buildSlotCard('arm', 'Arm Analysis')} ${buildSlotCard('trunk', 'Trunk Analysis')}`;
 }
 
-function switchActiveSlot(slot) {
-    if (slot !== 'arm' && slot !== 'trunk') return;
-    reportState.activeSlot = slot;
-    applyThresholdDefaultsForSlot(slot);
-    const src = reportState.slots[slot];
-    updateSlotToolbar();
-    if (!src.data.length) return;
+function renderSourceChipsForSlot(slot) {
+    const container = document.getElementById(`${slot}Chips`);
+    if (!container) return;
 
-    reportState.fullData = src.data;
-    reportState.currentData = src.data;
-    reportState.filename = src.filename;
-    reportState.timeRange = { start: 0, end: 100 };
+    container.innerHTML = '';
 
-    updateReportFilenameHeader();
-    document.getElementById('reportArea').classList.add('visible');
-    renderCombinedSlotSummary();
-    renderDualSlotComparison();
-    renderAll();
-}
-
-function initSlotToolbarEvents() {
-    document.getElementById('activeSlotArmBtn').addEventListener('click', () => switchActiveSlot('arm'));
-    document.getElementById('activeSlotTrunkBtn').addEventListener('click', () => switchActiveSlot('trunk'));
-    updateSlotToolbar();
-}
-
-// ─── Render demo file cards ────────────────────────────────────
-function renderFileGrid() {
-    const grid = document.getElementById('demoFileGrid');
-    grid.innerHTML = '';
-
-    // Demo file cards
     DEMO_FILES.forEach(file => {
-        const card = document.createElement('div');
-        card.className = 'demo-file-card';
-        card.id = 'card_' + file.name;
-        card.innerHTML = `
-            <div class="demo-file-icon">📄</div>
-            <div class="demo-file-name">${file.label}</div>
-            <div class="demo-file-meta">${file.desc}</div>
-        `;
-        card.addEventListener('click', () => loadDemoFile(file));
-        grid.appendChild(card);
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'file-chip';
+        chip.dataset.fileName = file.name;
+        chip.textContent = file.label;
+        chip.addEventListener('click', () => loadDemoFileToSlot(file, slot));
+        container.appendChild(chip);
     });
 
-    // Upload card
-    const uploadCard = document.createElement('label');
-    uploadCard.className = 'upload-card';
-    uploadCard.innerHTML = `
-        <div class="demo-file-icon">⬆️</div>
-        <div class="demo-file-name">Upload CSV</div>
-        <div class="demo-file-meta">Select a local CSV file</div>
-        <input type="file" id="csvUploadInput" accept=".csv,.CSV,.txt">
-    `;
-    grid.appendChild(uploadCard);
+    const uploadLabel = document.createElement('label');
+    uploadLabel.className = 'upload-label';
+    uploadLabel.textContent = 'Upload CSV';
 
-    document.getElementById('csvUploadInput').addEventListener('change', e => {
-        const file = e.target.files[0];
+    const uploadInput = document.createElement('input');
+    uploadInput.type = 'file';
+    uploadInput.accept = '.csv,.CSV,.txt';
+    uploadInput.addEventListener('change', e => {
+        const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = ev => processCSV(ev.target.result, file.name, reportState.activeSlot);
+        reader.onload = ev => {
+            reportState.slotSourceSelection[slot] = file.name;
+            processCSV(String(ev.target?.result || ''), file.name, slot);
+            updateSourceCardsUI();
+        };
         reader.readAsText(file);
-        // Clear active state
-        document.querySelectorAll('.demo-file-card.active').forEach(c => c.classList.remove('active'));
+        e.target.value = '';
     });
+
+    uploadLabel.appendChild(uploadInput);
+    container.appendChild(uploadLabel);
+}
+
+function renderSourcePicker() {
+    renderSourceChipsForSlot('arm');
+    renderSourceChipsForSlot('trunk');
+    updateSourceCardsUI();
 }
 
 // ─── Load a demo file via fetch ────────────────────────────────
-async function loadDemoFile(file) {
-    // Visual feedback
-    document.querySelectorAll('.demo-file-card.active').forEach(c => c.classList.remove('active'));
-    const card = document.getElementById('card_' + file.name);
-    if (card) card.classList.add('active');
+async function loadDemoFileToSlot(file, slot) {
+    reportState.slotSourceSelection[slot] = file.name;
+    updateSourceCardsUI();
 
     try {
         const resp = await fetch(file.path);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const text = await resp.text();
-        processCSV(text, file.name, reportState.activeSlot);
+        processCSV(text, file.name, slot);
     } catch (err) {
         showError(`Failed to load "${file.path}": ${err.message}. Please serve via HTTP server or upload the file directly.`);
     }
@@ -798,12 +835,12 @@ function processCSV(csvText, filename, slot = 'arm') {
     }
 
     reportState.slots[slot] = { filename, data };
-    updateSlotToolbar();
+    reportState.slotSourceSelection[slot] = filename;
+    reportState.activeSlot = slot;
+    updateSourceCardsUI();
     renderCombinedSlotSummary();
     renderDualSlotComparison();
 
-    reportState.activeSlot = slot;
-    applyThresholdDefaultsForSlot(slot);
     reportState.fullData = data;
     reportState.currentData = data;
     reportState.timeRange = { start: 0, end: 100 };
@@ -818,7 +855,7 @@ function processCSV(csvText, filename, slot = 'arm') {
 
 function closeReport() {
     document.getElementById('reportArea').classList.remove('visible');
-    document.querySelectorAll('.demo-file-card.active').forEach(c => c.classList.remove('active'));
+    updateSourceCardsUI();
 }
 
 // ─── CSV parser (same logic as app.js) ────────────────────────
@@ -914,7 +951,7 @@ function renderAll() {
         const defaults = reportState.slotThresholdDefaults[slot] || reportState.slotThresholdDefaults.arm;
         const yellow = defaults.yellow;
         const red = defaults.red;
-        renderZoneSummary(src.data, slot);
+        renderZoneSummary(src.data, slot, yellow, red);
         renderChart(src.data, yellow, red, slot);
         renderHistogram(src.data, slot);
         const stats = calculateStats(src.data, yellow, red);
@@ -924,9 +961,22 @@ function renderAll() {
 }
 
 // ─── Zone summary chips ────────────────────────────────────────
-function renderZoneSummary(data, slot) {
+function zoneFromPoint(point, yellowThreshold, redThreshold) {
+    const zone = String(point?.zone || '').trim().toLowerCase();
+    if (zone === 'green' || zone === 'yellow' || zone === 'red') return zone;
+    const angle = Number(point?.angle);
+    if (!Number.isFinite(angle)) return 'green';
+    if (angle >= redThreshold) return 'red';
+    if (angle >= yellowThreshold) return 'yellow';
+    return 'green';
+}
+
+function renderZoneSummary(data, slot, yellowThreshold, redThreshold) {
     const counts = { green: 0, yellow: 0, red: 0 };
-    data.forEach(d => { if (counts[d.zone] !== undefined) counts[d.zone]++; });
+    data.forEach(d => {
+        const zone = zoneFromPoint(d, yellowThreshold, redThreshold);
+        if (counts[zone] !== undefined) counts[zone]++;
+    });
     const total = data.length || 1;
     const totalSec = ((data[data.length - 1].adjusted_elapsed_ms - data[0].adjusted_elapsed_ms) / 1000).toFixed(1);
 
@@ -967,7 +1017,7 @@ function renderChart(data, yellowThreshold, redThreshold, slot) {
     if (metaEl) {
         metaEl.textContent = `Angle range: ${minAngle.toFixed(2)}° to ${maxAngle.toFixed(2)}° (span ${rawSpan.toFixed(2)}°)`;
     }
-    const zones   = data.map(d => d.zone);
+    const zones   = data.map(d => zoneFromPoint(d, yellowThreshold, redThreshold));
     const feedbacks = data.map(d => d.feedback);
 
     slotChartInstances[slot] = new Chart(ctx, {
@@ -1190,21 +1240,23 @@ function calculateStats(data, yellowThreshold, redThreshold) {
         const p = data[i];
         const prev = i > 0 ? data[i - 1] : null;
         const dt = prev ? (p.adjusted_elapsed_ms - prev.adjusted_elapsed_ms) / 1000 : 0;
+        const curZone = zoneFromPoint(p, yellowThreshold, redThreshold);
+        const prevZone = prev ? zoneFromPoint(prev, yellowThreshold, redThreshold) : null;
 
-        if (p.zone === 'green') {
+        if (curZone === 'green') {
             tGreen += dt; greenA.push(p.angle); curGreen += dt;
-            if (prev && (prev.zone === 'yellow' || prev.zone === 'red') && badStart !== null) {
+            if (prev && (prevZone === 'yellow' || prevZone === 'red') && badStart !== null) {
                 recoveries.push({ fromZone: badZone, t: (p.adjusted_elapsed_ms - badStart) / 1000 });
                 badStart = null; badZone = null;
             }
         } else {
             if (curGreen > 0) { greenStreaks.push(curGreen); curGreen = 0; }
-            if (p.zone === 'yellow') {
+            if (curZone === 'yellow') {
                 tYellow += dt; yellowA.push(p.angle);
-                if (prev && prev.zone === 'green') { badStart = p.adjusted_elapsed_ms; badZone = 'yellow'; }
-            } else if (p.zone === 'red') {
+                if (prev && prevZone === 'green') { badStart = p.adjusted_elapsed_ms; badZone = 'yellow'; }
+            } else if (curZone === 'red') {
                 tRed += dt; redA.push(p.angle);
-                if (prev && prev.zone === 'green') { badStart = p.adjusted_elapsed_ms; badZone = 'red'; }
+                if (prev && prevZone === 'green') { badStart = p.adjusted_elapsed_ms; badZone = 'red'; }
                 else if (badZone === 'yellow') badZone = 'red';
             }
         }
@@ -1316,28 +1368,21 @@ function renderAchievements(achievements, slot) {
 
 // ─── Error helpers ─────────────────────────────────────────────
 function showError(msg) {
-    let el = document.getElementById('errorMsg');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'errorMsg';
-        el.className = 'error-msg';
-        document.getElementById('pickerPanel').appendChild(el);
-    }
+    const el = document.getElementById('pickerError');
+    if (!el) return;
     el.textContent = msg;
     el.style.display = 'block';
 }
 function hideError() {
-    const el = document.getElementById('errorMsg');
+    const el = document.getElementById('pickerError');
     if (el) el.style.display = 'none';
 }
 
 // ─── Init ──────────────────────────────────────────────────────
 async function initDemoReport() {
     await loadDemoFiles();
-    renderFileGrid();
-    initSlotToolbarEvents();
+    renderSourcePicker();
     initThresholdInputs();
-    applyThresholdDefaultsForSlot(reportState.activeSlot);
     renderDualSlotComparison();
 }
 
