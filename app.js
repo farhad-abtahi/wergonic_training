@@ -195,6 +195,15 @@ function init() {
     // File operations
     elements.listFilesBtn.addEventListener('click', listFiles);
     elements.refreshFilesBtn.addEventListener('click', listFiles);
+    if (elements.generateDualReportBtn) {
+        elements.generateDualReportBtn.addEventListener('click', generateCombinedReportFromSlots);
+    }
+    if (elements.clearArmReportSlotBtn) {
+        elements.clearArmReportSlotBtn.addEventListener('click', () => clearReportSlot('arm'));
+    }
+    if (elements.clearTrunkReportSlotBtn) {
+        elements.clearTrunkReportSlotBtn.addEventListener('click', () => clearReportSlot('trunk'));
+    }
 
     // File device selector
     document.querySelectorAll('[data-file-device]').forEach(btn => {
@@ -229,6 +238,7 @@ function init() {
     setFeedbackState(true);
     setFilterState(false);
     setIntensityState('medium');
+    updateDualReportBuilderUI();
 
     logToConsole('Wergonic Device Manager ready. Connect ARM and/or TRUNK devices.', 'info');
 
@@ -292,6 +302,11 @@ function cacheElements() {
     elements.downloadProgress = document.getElementById('downloadProgress');
     elements.progressFill = document.getElementById('progressFill');
     elements.progressText = document.getElementById('progressText');
+    elements.armReportSlotFile = document.getElementById('armReportSlotFile');
+    elements.trunkReportSlotFile = document.getElementById('trunkReportSlotFile');
+    elements.clearArmReportSlotBtn = document.getElementById('clearArmReportSlotBtn');
+    elements.clearTrunkReportSlotBtn = document.getElementById('clearTrunkReportSlotBtn');
+    elements.generateDualReportBtn = document.getElementById('generateDualReportBtn');
 
     // Console elements
     elements.consoleDeviceSelect = document.getElementById('consoleDeviceSelect');
@@ -1125,6 +1140,7 @@ function renderFileList(deviceType) {
                     ${isCSV ? `
                         <button class="btn btn-small btn-info" onclick="viewMetadata('${file.name}', '${deviceType}')">Meta</button>
                         <button class="btn btn-small btn-primary" onclick="downloadFile('${binFilename}', '${deviceType}')">Bin</button>
+                        <button class="btn btn-small btn-warning" onclick="setReportSlot('${deviceType}', '${file.name}')">Set ${deviceType.toUpperCase()} Slot</button>
                         <button class="btn btn-small btn-success" 
                                 onclick="generateReport('${file.name}', '${deviceType}')" 
                                 ${reportReady ? '' : 'disabled'}
@@ -1592,8 +1608,14 @@ function showNotification(message) {
 window.downloadFile = downloadFile;
 window.viewMetadata = viewMetadata;
 window.generateReport = generateReport;
+window.setReportSlot = setReportSlot;
 
 // ============ Report Generation ============
+
+let dualReportSlots = {
+    arm: null,
+    trunk: null
+};
 
 let reportData = {
     csvData: null,
@@ -1602,8 +1624,114 @@ let reportData = {
     deviceType: null,
     fullData: null,  // Store full parsed data
     currentData: null,  // Store filtered data based on range
-    timeRange: { start: 0, end: 100 }  // Percentage range
+    timeRange: { start: 0, end: 100 },  // Percentage range
+    dualPayload: null
 };
+
+function updateDualReportBuilderUI() {
+    if (!elements.armReportSlotFile || !elements.trunkReportSlotFile) return;
+
+    const armFile = dualReportSlots.arm ? dualReportSlots.arm.filename : '(empty)';
+    const trunkFile = dualReportSlots.trunk ? dualReportSlots.trunk.filename : '(empty)';
+
+    elements.armReportSlotFile.textContent = armFile;
+    elements.trunkReportSlotFile.textContent = trunkFile;
+
+    if (elements.clearArmReportSlotBtn) {
+        elements.clearArmReportSlotBtn.disabled = !dualReportSlots.arm;
+    }
+    if (elements.clearTrunkReportSlotBtn) {
+        elements.clearTrunkReportSlotBtn.disabled = !dualReportSlots.trunk;
+    }
+    if (elements.generateDualReportBtn) {
+        elements.generateDualReportBtn.disabled = !(dualReportSlots.arm && dualReportSlots.trunk);
+    }
+}
+
+function setReportSlot(deviceType, filename) {
+    const slot = String(deviceType || '').toLowerCase();
+    if (slot !== 'arm' && slot !== 'trunk') return;
+
+    dualReportSlots[slot] = { deviceType: slot, filename };
+    updateDualReportBuilderUI();
+    showNotification(`${slot.toUpperCase()} slot set: ${filename}`);
+}
+
+function clearReportSlot(slot) {
+    if (slot !== 'arm' && slot !== 'trunk') return;
+    dualReportSlots[slot] = null;
+    updateDualReportBuilderUI();
+}
+
+function getCachedReportFiles(slotInfo) {
+    if (!slotInfo) return null;
+
+    const { deviceType, filename } = slotInfo;
+    const deviceState = devices[deviceType];
+    if (!deviceState || !filename) return null;
+
+    const baseName = filename.replace(/\.csv$/i, '');
+    const binFilename = baseName + '.bin';
+    const metaName = baseName + '_m.txt';
+
+    const fileCache = deviceState.fileCache || {};
+    const csvData = fileCache[filename] || fileCache[binFilename];
+    const metaData = fileCache[metaName];
+    if (!csvData || !metaData) return null;
+
+    return {
+        filename,
+        deviceType,
+        csvData,
+        metaData
+    };
+}
+
+async function generateCombinedReportFromSlots() {
+    const armCached = getCachedReportFiles(dualReportSlots.arm);
+    const trunkCached = getCachedReportFiles(dualReportSlots.trunk);
+
+    if (!armCached || !trunkCached) {
+        alert('Both slots need ready data (CSV/Bin + Meta). Download needed files first, then try again.');
+        return;
+    }
+
+    try {
+        const armData = parseCSVData(armCached.csvData);
+        const trunkData = parseCSVData(trunkCached.csvData);
+        const armMetadata = parseMetadata(armCached.metaData);
+        const trunkMetadata = parseMetadata(trunkCached.metaData);
+
+        const armStats = calculateStatistics(armData, armMetadata);
+        const trunkStats = calculateStatistics(trunkData, trunkMetadata);
+
+        // Keep trunk as the visible chart dataset in current modal,
+        // and pass both parts to gamification for combined scoring/history.
+        reportData.filename = `${armCached.filename} + ${trunkCached.filename}`;
+        reportData.deviceType = 'combined';
+        reportData.csvData = trunkCached.csvData;
+        reportData.metadata = trunkCached.metaData;
+        reportData.dualPayload = {
+            arm: {
+                filename: armCached.filename,
+                data: armData,
+                metadata: armMetadata,
+                stats: armStats
+            },
+            trunk: {
+                filename: trunkCached.filename,
+                data: trunkData,
+                metadata: trunkMetadata,
+                stats: trunkStats
+            }
+        };
+
+        displayReport();
+    } catch (error) {
+        console.error('generateCombinedReportFromSlots failed:', error);
+        alert('Failed to generate combined report: ' + error.message);
+    }
+}
 
 async function generateReport(filename, deviceType) {
     console.log('generateReport called:', filename, deviceType);
@@ -1670,6 +1798,7 @@ async function generateReport(filename, deviceType) {
 
     reportData.filename = filename;
     reportData.deviceType = deviceType;
+    reportData.dualPayload = null;
     
     if (csvCached && metaCached) {
         // Use cached data directly
@@ -2000,7 +2129,16 @@ function renderReportAnalysis() {
 
     // ── Gamification hook ──
     if (window.GamificationSystem) {
-        GamificationSystem.onReportLoaded(data, metadata, stats);
+        if (reportData.dualPayload && typeof GamificationSystem.onDualReportLoaded === 'function') {
+            GamificationSystem.onDualReportLoaded(reportData.dualPayload, {
+                data,
+                metadata,
+                stats,
+                filename: reportData.filename
+            });
+        } else {
+            GamificationSystem.onReportLoaded(data, metadata, stats);
+        }
     }
 }
 

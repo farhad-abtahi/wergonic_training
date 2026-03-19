@@ -5,8 +5,8 @@
 // Dependencies:
 //   - mission-cards-data.js  (MISSION_CARDS, evaluateTriggerRule)
 //   - Chart.js 4.x           (loaded via CDN in index.html)
-//   - IndexedDB              (browser built-in)
-//   - localStorage           (browser built-in)
+//   - IndexedDB (optional)   (browser built-in, preferred)
+//   - localStorage           (browser built-in, fallback)
 // ============================================================
 
 // ═══════════════════════════════════════════════════════════
@@ -46,13 +46,13 @@ function angleToRulaScore(angle, deviceType) {
 }
 
 /**
- * Compute a session RULA score (1.00–4.00) as the mean of per-point
- * RULA values derived from the angle-threshold table.
+ * Compute a session RULA score (1–4) as an integer.
+ * First average all angles, then convert the average to RULA score.
  */
 function computeRulaScore(data, deviceType) {
     if (!data || data.length === 0) return 4;
-    const sum = data.reduce((s, pt) => s + angleToRulaScore(pt.angle, deviceType), 0);
-    return Math.round((sum / data.length) * 100) / 100;
+    const avgAngle = data.reduce((s, pt) => s + pt.angle, 0) / data.length;
+    return angleToRulaScore(avgAngle, deviceType);
 }
 
 function riskLevelFromScore(score) {
@@ -114,6 +114,57 @@ function buildSessionSummary(data, metadata, stats, filename) {
         recoveryCount: stats.recoveryCount || 0,
         improvement: stats.improvement || false,
         segments
+    };
+}
+
+function buildCombinedSessionSummary(armPart, trunkPart, combinedFilename) {
+    const arm = armPart || {};
+    const trunk = trunkPart || {};
+
+    const armSummary = buildSessionSummary(
+        arm.data || [],
+        { ...(arm.metadata || {}), device_type: 'arm' },
+        arm.stats || {},
+        arm.filename || 'arm.csv'
+    );
+    const trunkSummary = buildSessionSummary(
+        trunk.data || [],
+        { ...(trunk.metadata || {}), device_type: 'trunk' },
+        trunk.stats || {},
+        trunk.filename || 'trunk.csv'
+    );
+
+    const combinedRula = Math.round(((armSummary.rulaScore + trunkSummary.rulaScore) / 2) * 100) / 100;
+
+    return {
+        id: generateUUID(),
+        userId: getUserId(),
+        timestamp: new Date().toISOString(),
+        filename: combinedFilename || `${armSummary.filename} + ${trunkSummary.filename}`,
+        deviceType: 'combined',
+        subject: trunkSummary.subject || armSummary.subject || '',
+        sessionDuration: Math.max(armSummary.sessionDuration || 0, trunkSummary.sessionDuration || 0),
+        avgDeviation: Math.round(((armSummary.avgDeviation + trunkSummary.avgDeviation) / 2) * 100) / 100,
+        maxDeviation: Math.max(armSummary.maxDeviation || 0, trunkSummary.maxDeviation || 0),
+        timeAboveThreshold: (armSummary.timeAboveThreshold || 0) + (trunkSummary.timeAboveThreshold || 0),
+        vibrationCount: (armSummary.vibrationCount || 0) + (trunkSummary.vibrationCount || 0),
+        avgRecoveryTime: null,
+        fastestRecovery: null,
+        greenPct: Math.round(((armSummary.greenPct + trunkSummary.greenPct) / 2) * 10) / 10,
+        yellowPct: Math.round(((armSummary.yellowPct + trunkSummary.yellowPct) / 2) * 10) / 10,
+        redPct: Math.round(((armSummary.redPct + trunkSummary.redPct) / 2) * 10) / 10,
+        rulaScore: combinedRula,
+        riskLevel: riskLevelFromScore(combinedRula),
+        yellowThreshold: null,
+        redThreshold: null,
+        longestGreenStreak: Math.max(armSummary.longestGreenStreak || 0, trunkSummary.longestGreenStreak || 0),
+        recoveryCount: (armSummary.recoveryCount || 0) + (trunkSummary.recoveryCount || 0),
+        improvement: !!(armSummary.improvement || trunkSummary.improvement),
+        segments: null,
+        parts: {
+            arm: armSummary,
+            trunk: trunkSummary
+        }
     };
 }
 
@@ -188,8 +239,31 @@ function computeSegments(data, metadata) {
 
 const GamificationDB = {
     _db: null,
+    _useLocalStorage: false,
+    _LS_SESSIONS_KEY: 'wergonic_local_progress_sessions_v1',
+    _LS_USERS_KEY: 'wergonic_local_progress_users_v1',
+
+    _readLS(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            const parsed = JSON.parse(raw);
+            return parsed || fallback;
+        } catch {
+            return fallback;
+        }
+    },
+
+    _writeLS(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    },
 
     async init() {
+        if (typeof indexedDB === 'undefined') {
+            this._useLocalStorage = true;
+            return null;
+        }
+
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(GAM.DB_NAME, GAM.DB_VERSION);
 
@@ -211,14 +285,31 @@ const GamificationDB = {
 
             request.onsuccess = (event) => {
                 this._db = event.target.result;
+                this._useLocalStorage = false;
                 resolve(this._db);
             };
 
-            request.onerror = () => reject(request.error);
+            request.onerror = () => {
+                // Some browser modes block IndexedDB; fall back to localStorage.
+                this._useLocalStorage = true;
+                resolve(null);
+            };
         });
     },
 
     async saveSession(summary) {
+        if (this._useLocalStorage || !this._db) {
+            const db = this._readLS(this._LS_SESSIONS_KEY, { sessions: [] });
+            const sessions = db.sessions || [];
+            const idx = sessions.findIndex(s => s.id === summary.id);
+            if (idx >= 0) sessions[idx] = summary;
+            else sessions.push(summary);
+            if (sessions.length > 2000) db.sessions = sessions.slice(-2000);
+            else db.sessions = sessions;
+            this._writeLS(this._LS_SESSIONS_KEY, db);
+            return summary.id;
+        }
+
         const db = this._db;
         return new Promise((resolve, reject) => {
             const tx  = db.transaction('sessions', 'readwrite');
@@ -229,6 +320,13 @@ const GamificationDB = {
     },
 
     async getUserSessions(userId, limit = 50) {
+        if (this._useLocalStorage || !this._db) {
+            const db = this._readLS(this._LS_SESSIONS_KEY, { sessions: [] });
+            const all = (db.sessions || []).filter(s => s.userId === userId);
+            all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            return all.slice(0, limit);
+        }
+
         const db = this._db;
         return new Promise((resolve, reject) => {
             const tx    = db.transaction('sessions', 'readonly');
@@ -244,6 +342,18 @@ const GamificationDB = {
     },
 
     async setUser(userId, displayName) {
+        if (this._useLocalStorage || !this._db) {
+            const db = this._readLS(this._LS_USERS_KEY, { users: [] });
+            const users = db.users || [];
+            const payload = { userId, displayName, updatedAt: new Date().toISOString() };
+            const idx = users.findIndex(u => u.userId === userId);
+            if (idx >= 0) users[idx] = payload;
+            else users.push(payload);
+            db.users = users;
+            this._writeLS(this._LS_USERS_KEY, db);
+            return;
+        }
+
         const db = this._db;
         return new Promise((resolve, reject) => {
             const tx  = db.transaction('users', 'readwrite');
@@ -254,6 +364,11 @@ const GamificationDB = {
     },
 
     async getUser(userId) {
+        if (this._useLocalStorage || !this._db) {
+            const db = this._readLS(this._LS_USERS_KEY, { users: [] });
+            return (db.users || []).find(u => u.userId === userId) || null;
+        }
+
         const db = this._db;
         return new Promise((resolve, reject) => {
             const tx  = db.transaction('users', 'readonly');
@@ -264,6 +379,13 @@ const GamificationDB = {
     },
 
     async deleteSession(id) {
+        if (this._useLocalStorage || !this._db) {
+            const db = this._readLS(this._LS_SESSIONS_KEY, { sessions: [] });
+            db.sessions = (db.sessions || []).filter(s => s.id !== id);
+            this._writeLS(this._LS_SESSIONS_KEY, db);
+            return;
+        }
+
         const db = this._db;
         return new Promise((resolve, reject) => {
             const tx  = db.transaction('sessions', 'readwrite');
@@ -952,31 +1074,6 @@ const GroupAPI = {
         return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     },
 
-    _getCurrentSeasonObject() {
-        const THEMES = [
-            { name: 'Back Awareness',       description: 'Focus on reducing trunk forward bend', deviceFocus: 'trunk', metricFocus: 'redPct' },
-            { name: 'Arm Precision',        description: 'Keep your arm close and controlled', deviceFocus: 'arm', metricFocus: 'redPct' },
-            { name: 'Recovery Sprint',      description: 'Improve how quickly you return to good posture', deviceFocus: 'both', metricFocus: 'recoveryTime' },
-            { name: 'Consistency Challenge',description: 'Complete a session every training day', deviceFocus: 'both', metricFocus: 'sessionCount' },
-            { name: 'Total Wellness',       description: 'Reduce overall posture risk this fortnight', deviceFocus: 'both', metricFocus: 'rulaScore' }
-        ];
-        const epoch = new Date('2026-01-01T00:00:00Z');
-        const now = new Date();
-        const seasonLen = 14 * 24 * 60 * 60 * 1000;
-        const seasonIndex = Math.floor((now - epoch) / seasonLen);
-        const theme = THEMES[((seasonIndex % THEMES.length) + THEMES.length) % THEMES.length];
-        const startDate = new Date(epoch.getTime() + seasonIndex * seasonLen);
-        const endDate = new Date(startDate.getTime() + seasonLen);
-        const daysRemaining = Math.max(0, Math.ceil((endDate - now) / (24 * 60 * 60 * 1000)));
-        return {
-            seasonNumber: seasonIndex + 1,
-            ...theme,
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
-            daysRemaining
-        };
-    },
-
     async createGroup(name) {
         const userId = getUserId();
         const displayName = getDisplayName();
@@ -1079,17 +1176,15 @@ const GroupAPI = {
 
     // ── Goals API ──────────────────────────────────────────
     async setGroupGoal(groupId, type, target, description) {
-        const season = this._getCurrentSeasonObject();
         const db = this._readJSON(this._GOALS_KEY, { goals: [] });
-        db.goals = (db.goals || []).filter(g => !(g.groupId === groupId && g.seasonNumber === season.seasonNumber));
+        db.goals = (db.goals || []).filter(g => g.groupId !== groupId);
         const goal = {
             id: this._generateId(),
             groupId,
             type,
             target: parseFloat(target),
             description: String(description || '').slice(0, 100),
-            createdAt: new Date().toISOString(),
-            seasonNumber: season.seasonNumber
+            createdAt: new Date().toISOString()
         };
         db.goals.push(goal);
         this._writeJSON(this._GOALS_KEY, db);
@@ -1098,25 +1193,20 @@ const GroupAPI = {
 
     async getGroupGoals(groupId) {
         const group = await this.getGroup(groupId);
-        const season = this._getCurrentSeasonObject();
         const goalsDb = this._readJSON(this._GOALS_KEY, { goals: [] });
         const sessionDb = this._readJSON(this._SESSIONS_KEY, { sessions: [] });
 
-        const goal = (goalsDb.goals || []).find(g => g.groupId === groupId && g.seasonNumber === season.seasonNumber);
-        if (!goal) return { goal: null, season };
+        const goal = (goalsDb.goals || []).find(g => g.groupId === groupId);
+        if (!goal) return { goal: null };
 
         const memberIds = group.memberIds || [];
-        const seasonSessions = (sessionDb.sessions || []).filter(s =>
-            s.groupId === groupId &&
-            s.timestamp >= season.startDate &&
-            s.timestamp <= season.endDate
-        );
+        const groupSessions = (sessionDb.sessions || []).filter(s => s.groupId === groupId);
 
         let progress = {};
         let progressPct = 0;
         if (goal.type === 'reduce_risk') {
-            const avgRula = seasonSessions.length > 0
-                ? seasonSessions.reduce((sum, s) => sum + (s.rulaScore || 0), 0) / seasonSessions.length
+            const avgRula = groupSessions.length > 0
+                ? groupSessions.reduce((sum, s) => sum + (s.rulaScore || 0), 0) / groupSessions.length
                 : null;
             progressPct = avgRula !== null && goal.target > 0
                 ? Math.max(0, Math.min(100, Math.round((1 - avgRula / goal.target) * 100)))
@@ -1127,28 +1217,21 @@ const GroupAPI = {
             };
         } else {
             const membersReached = memberIds.filter(uid =>
-                seasonSessions.filter(s => s.userId === uid).length >= goal.target
+                groupSessions.filter(s => s.userId === uid).length >= goal.target
             ).length;
             progressPct = memberIds.length > 0 ? Math.round((membersReached / memberIds.length) * 100) : 0;
             progress = { membersReached, totalMembers: memberIds.length, targetSessions: goal.target };
         }
-        return { goal, progress, progressPct, season };
+        return { goal, progress, progressPct };
     },
 
-    // ── Season & Leaderboard API ───────────────────────────
-    async getCurrentSeason() {
-        return this._getCurrentSeasonObject();
-    },
+    // ── Leaderboard API ─────────────────────────────────────
 
     async getLeaderboard() {
         const groupsDb = this._readJSON(this._GROUPS_KEY, { groups: [] });
         const sessionsDb = this._readJSON(this._SESSIONS_KEY, { sessions: [] });
-        const season = this._getCurrentSeasonObject();
         const leaderboard = (groupsDb.groups || []).map(group => {
-            const groupSessions = (sessionsDb.sessions || []).filter(s =>
-                s.groupId === group.groupId &&
-                s.timestamp >= season.startDate
-            );
+            const groupSessions = (sessionsDb.sessions || []).filter(s => s.groupId === group.groupId);
             const avgRula = groupSessions.length > 0
                 ? Math.round(groupSessions.reduce((sum, s) => sum + (s.rulaScore || 0), 0) / groupSessions.length * 10) / 10
                 : null;
@@ -1161,7 +1244,7 @@ const GroupAPI = {
             };
         }).filter(g => g.avgRula !== null);
         leaderboard.sort((a, b) => a.avgRula - b.avgRula);
-        return { leaderboard, season };
+        return { leaderboard };
     }
 };
 
@@ -1169,12 +1252,183 @@ const GroupAPI = {
 // SECTION 6: Mission Card Engine
 // ═══════════════════════════════════════════════════════════
 
+const TeacherMissionConfig = {
+    _KEY: 'wergonic_teacher_mission_config_v1',
+
+    _baseCards() {
+        return Array.isArray(window.MISSION_CARDS) ? window.MISSION_CARDS : [];
+    },
+
+    _defaultPresetIds() {
+        return this._baseCards().map(c => c.id);
+    },
+
+    load() {
+        let parsed = null;
+        try {
+            parsed = JSON.parse(localStorage.getItem(this._KEY) || '{}');
+        } catch (_err) {
+            parsed = null;
+        }
+
+        const hasPresetIds = Array.isArray(parsed && parsed.presetIds);
+        const presetIdsRaw = hasPresetIds
+            ? parsed.presetIds
+            : this._defaultPresetIds();
+        const customCardsRaw = Array.isArray(parsed && parsed.customCards)
+            ? parsed.customCards
+            : [];
+
+        const baseIdSet = new Set(this._baseCards().map(c => c.id));
+        const presetIds = presetIdsRaw.filter(id => baseIdSet.has(id));
+        const customCards = customCardsRaw.filter(card => card && card.id && card.title);
+
+        return {
+            presetIds: hasPresetIds ? presetIds : this._defaultPresetIds(),
+            customCards
+        };
+    },
+
+    save(config) {
+        localStorage.setItem(this._KEY, JSON.stringify({
+            presetIds: Array.isArray(config && config.presetIds) ? config.presetIds : this._defaultPresetIds(),
+            customCards: Array.isArray(config && config.customCards) ? config.customCards : []
+        }));
+    },
+
+    getPresetCards() {
+        return this._baseCards();
+    },
+
+    getConfig() {
+        return this.load();
+    },
+
+    getEffectiveCards() {
+        const { presetIds, customCards } = this.load();
+        const selectedPresetSet = new Set(presetIds);
+        const presetCards = this._baseCards().filter(card => selectedPresetSet.has(card.id));
+        return [...presetCards, ...customCards];
+    },
+
+    updatePresetSelection(cardId, enabled) {
+        const cfg = this.load();
+        const set = new Set(cfg.presetIds);
+        if (enabled) set.add(cardId);
+        else set.delete(cardId);
+        cfg.presetIds = Array.from(set);
+        this.save(cfg);
+    },
+
+    selectAllPresets() {
+        const cfg = this.load();
+        cfg.presetIds = this._defaultPresetIds();
+        this.save(cfg);
+    },
+
+    clearPresetSelection() {
+        const cfg = this.load();
+        cfg.presetIds = [];
+        this.save(cfg);
+    },
+
+    addCustomCard(payload) {
+        const cfg = this.load();
+        const now = Date.now();
+        const id = `teacher-custom-${now}-${Math.floor(Math.random() * 10000)}`;
+        const tags = Array.isArray(payload.tags) && payload.tags.length > 0 ? payload.tags : ['general'];
+
+        cfg.customCards.push({
+            id,
+            title: String(payload.title || '').trim(),
+            why: String(payload.why || '').trim(),
+            action: String(payload.action || '').trim(),
+            checkpoint: String(payload.checkpoint || '').trim(),
+            tags,
+            triggerRule: null,
+            source: 'teacher-custom',
+            createdAt: new Date().toISOString()
+        });
+
+        this.save(cfg);
+        return id;
+    },
+
+    removeCustomCard(cardId) {
+        const cfg = this.load();
+        cfg.customCards = cfg.customCards.filter(c => c.id !== cardId);
+        this.save(cfg);
+    },
+
+    assignTodayCard(cardId) {
+        const today = new Date().toDateString();
+        localStorage.setItem('wergonic_mission_card_date', today);
+        localStorage.setItem('wergonic_mission_card_id', cardId);
+        localStorage.setItem('wergonic_last_card_id', cardId);
+        localStorage.removeItem('wergonic_mission_dismissed_date');
+    },
+
+    exportPayload() {
+        const cfg = this.load();
+        return {
+            type: 'wergonic-teacher-mission-config',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            presetIds: cfg.presetIds,
+            customCards: cfg.customCards
+        };
+    },
+
+    importPayload(payload) {
+        const source = payload && typeof payload === 'object' ? payload : null;
+        if (!source) throw new Error('Invalid JSON payload.');
+
+        const presetIdsRaw = Array.isArray(source.presetIds) ? source.presetIds : [];
+        const customCardsRaw = Array.isArray(source.customCards) ? source.customCards : [];
+
+        const baseIdSet = new Set(this._baseCards().map(c => c.id));
+        const presetIds = presetIdsRaw.filter(id => typeof id === 'string' && baseIdSet.has(id));
+
+        const customCards = customCardsRaw.map((card, idx) => {
+            const title = String(card && card.title ? card.title : '').trim();
+            const action = String(card && card.action ? card.action : '').trim();
+            const checkpoint = String(card && card.checkpoint ? card.checkpoint : '').trim();
+            if (!title || !action || !checkpoint) return null;
+
+            const id = String(card && card.id ? card.id : `teacher-custom-import-${Date.now()}-${idx}`);
+            const why = String(card && card.why ? card.why : 'Imported custom mission card.').trim();
+            const tags = Array.isArray(card && card.tags) && card.tags.length > 0
+                ? card.tags.map(t => String(t).trim()).filter(Boolean)
+                : ['general'];
+
+            return {
+                id,
+                title,
+                why,
+                action,
+                checkpoint,
+                tags,
+                triggerRule: null,
+                source: 'teacher-custom',
+                createdAt: String(card && card.createdAt ? card.createdAt : new Date().toISOString())
+            };
+        }).filter(Boolean);
+
+        if (presetIds.length === 0 && customCards.length === 0) {
+            throw new Error('No valid cards found in JSON.');
+        }
+
+        this.save({ presetIds, customCards });
+        return { presetCount: presetIds.length, customCount: customCards.length };
+    }
+};
+
 const MissionCardEngine = {
     /**
      * Select the best card for today given user history.
      */
     selectCard(lastSession) {
-        const cards = window.MISSION_CARDS || [];
+        const cards = TeacherMissionConfig.getEffectiveCards();
         if (cards.length === 0) return null;
 
         const context = {
@@ -1224,7 +1478,7 @@ const MissionCardEngine = {
         const storedId   = localStorage.getItem('wergonic_mission_card_id');
 
         if (storedDate === today && storedId) {
-            const cards = window.MISSION_CARDS || [];
+            const cards = TeacherMissionConfig.getEffectiveCards();
             const found = cards.find(c => c.id === storedId);
             if (found) return found;
         }
@@ -1439,6 +1693,53 @@ function showMissionCardModal(forceShow = false) {
         modal.classList.add('hidden');
         localStorage.setItem('wergonic_mission_dismissed_date', today);
     });
+}
+
+function showTeacherCardPreview(card) {
+    if (!card) return;
+
+    let modal = document.getElementById('missionCardModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'missionCardModal';
+        modal.className = 'hidden';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="mission-card-container">
+            <div class="mission-card-header">
+                <span class="mc-badge">Preview</span>
+                <h3>${escapeHtml(card.title)}</h3>
+                <button class="mission-card-close" id="missionCardCloseBtn">×</button>
+            </div>
+            <div class="mission-card-body">
+                <div class="mc-row">
+                    <div class="mc-row-label">Why It Matters</div>
+                    <div class="mc-row-text">${escapeHtml(card.why)}</div>
+                </div>
+                <div class="mc-row">
+                    <div class="mc-row-label">Today's Action</div>
+                    <div class="mc-row-text">${escapeHtml(card.action)}</div>
+                </div>
+                <div class="mc-row">
+                    <div class="mc-row-label">Post-Session Checkpoint</div>
+                    <div class="mc-row-text">${escapeHtml(card.checkpoint)}</div>
+                </div>
+            </div>
+            <div class="mission-card-footer">
+                <button class="mc-got-it-btn" id="missionGotItBtn">Close</button>
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+
+    const close = () => modal.classList.add('hidden');
+    const closeBtn = document.getElementById('missionCardCloseBtn');
+    const okBtn = document.getElementById('missionGotItBtn');
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    if (okBtn) okBtn.addEventListener('click', close);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1788,10 +2089,15 @@ function showProgressProfileModal() {
         const sorted = [...sessions].sort((a, b) => a.rulaScore - b.rulaScore);
         const bestRows = sorted.slice(0, 5).map((s, i) => {
             const date = new Date(s.timestamp).toLocaleDateString('en-US');
+            const typeLabel = (s.deviceType || 'unknown').toUpperCase();
+            const fileLabel = s.deviceType === 'combined'
+                ? `ARM+TRUNK · ${s.filename || 'Combined Session'}`
+                : (s.filename || 'Unknown');
             return `
             <tr>
                 <td>${i + 1}</td>
-                <td>${escapeHtml(s.filename || 'Unknown')}</td>
+                <td>${escapeHtml(fileLabel)}</td>
+                <td>${escapeHtml(typeLabel)}</td>
                 <td>${date}</td>
                 <td style="color:${GAM.RISK_LEVELS[s.riskLevel]?.color || '#333'};font-weight:600">${(+s.rulaScore).toFixed(1)}</td>
                 <td>${s.greenPct.toFixed(1)}%</td>
@@ -1803,7 +2109,7 @@ function showProgressProfileModal() {
         <h4 style="margin-top:20px;margin-bottom:10px;">🏆 Best Training Records</h4>
         <table class="profile-bests-table">
             <thead><tr>
-                <th>#</th><th>File</th><th>Date</th>
+                <th>#</th><th>File</th><th>Type</th><th>Date</th>
                 <th>RULA</th><th>Green</th><th>Duration</th>
             </tr></thead>
             <tbody>${bestRows}</tbody>
@@ -1813,7 +2119,9 @@ function showProgressProfileModal() {
     // Timeline chart
     const timelineHtml = sessions.length >= 2 ? `
         <h4 style="margin-top:20px;margin-bottom:10px;">📈 RULA Risk Score Trend</h4>
-        <canvas id="profileTimelineCanvas" height="160"></canvas>
+        <div class="profile-timeline-wrap">
+            <canvas id="profileTimelineCanvas"></canvas>
+        </div>
     ` : '';
 
     const content = document.getElementById('progressProfileContent');
@@ -1872,6 +2180,7 @@ function drawProfileTimeline(canvasId, sessions) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 120,
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -1914,7 +2223,17 @@ async function renderGroupPanel() {
 
     try {
         if (myGroupId) {
-            renderGroupTabs(container, myGroupId);
+            try {
+                await GroupAPI.getGroup(myGroupId);
+                renderGroupTabs(container, myGroupId);
+            } catch (e) {
+                if (e && /group not found/i.test(String(e.message || e))) {
+                    localStorage.removeItem('wergonic_group_id');
+                    renderGroupJoinCreate(container);
+                    return;
+                }
+                throw e;
+            }
         } else {
             renderGroupJoinCreate(container);
         }
@@ -1994,7 +2313,6 @@ function renderGroupTabs(container, groupId) {
         <div class="group-tabs">
             <button class="group-tab active" data-tab="performance">My Stats</button>
             <button class="group-tab" data-tab="goal">Group Goal</button>
-            <button class="group-tab" data-tab="season">Season</button>
             <button class="group-tab" data-tab="leaderboard">Leaderboard</button>
         </div>
         <div id="groupTabContent" class="group-tab-content"></div>
@@ -2091,11 +2409,259 @@ async function loadGroupTab(tab, groupId) {
         switch (tab) {
             case 'performance': await renderGroupPerformanceTab(content, groupId); break;
             case 'goal':        await renderGroupGoalTab(content, groupId);        break;
-            case 'season':      await renderGroupSeasonTab(content, groupId);      break;
             case 'leaderboard': await renderInterGroupLeaderboard(content);        break;
         }
     } catch (e) {
+        if (e && /group not found/i.test(String(e.message || e))) {
+            localStorage.removeItem('wergonic_group_id');
+            await renderGroupPanel();
+            return;
+        }
         content.innerHTML = `<div class="gam-placeholder">Failed to load: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
+async function renderTeacherControlTab(container) {
+    const cfg = TeacherMissionConfig.getConfig();
+    const presetCards = TeacherMissionConfig.getPresetCards();
+    const selectedSet = new Set(cfg.presetIds);
+    const effectiveCards = TeacherMissionConfig.getEffectiveCards();
+    const todayCardId = localStorage.getItem('wergonic_mission_card_id') || '';
+
+    const presetRows = presetCards.map(card => {
+        const checked = selectedSet.has(card.id) ? 'checked' : '';
+        const tags = (card.tags || []).map(t => `<span class="teacher-card-tag">${escapeHtml(t)}</span>`).join('');
+        return `
+            <div class="teacher-preset-item">
+                <input type="checkbox" class="teacher-preset-check" data-card-id="${escapeHtml(card.id)}" ${checked}>
+                <div class="teacher-preset-text">
+                    <div class="teacher-preset-title">${escapeHtml(card.title)}</div>
+                    <div class="teacher-preset-meta">${tags}</div>
+                </div>
+                <button type="button" class="teacher-preset-preview-btn" data-card-id="${escapeHtml(card.id)}" data-card-title="${escapeHtml(card.title)}" data-card-why="${escapeHtml(card.why)}" data-card-action="${escapeHtml(card.action)}" data-card-checkpoint="${escapeHtml(card.checkpoint)}">Preview</button>
+            </div>
+        `;
+    }).join('');
+
+    const customRows = (cfg.customCards || []).length > 0
+        ? cfg.customCards.map(card => {
+            const tags = (card.tags || []).map(t => `<span class="teacher-card-tag">${escapeHtml(t)}</span>`).join('');
+            return `
+                <div class="teacher-custom-item">
+                    <div class="teacher-custom-main">
+                        <div class="teacher-custom-title">${escapeHtml(card.title)}</div>
+                        <div class="teacher-custom-meta">${tags}</div>
+                    </div>
+                    <button class="btn btn-small btn-danger teacher-delete-custom-btn" data-card-id="${escapeHtml(card.id)}">Delete</button>
+                </div>
+            `;
+        }).join('')
+        : '<div class="gam-placeholder">No custom cards yet.</div>';
+
+    const assignOptions = effectiveCards.length > 0
+        ? effectiveCards.map(card => `<option value="${escapeHtml(card.id)}" ${todayCardId === card.id ? 'selected' : ''}>${escapeHtml(card.title)}</option>`).join('')
+        : '<option value="">No cards available</option>';
+
+    container.innerHTML = `
+        <div class="teacher-control-grid">
+            <div class="teacher-control-card teacher-control-full-width">
+                <div class="teacher-control-title">Assign Today Mission</div>
+                <div class="teacher-control-sub">Choose a card from enabled presets and custom cards, then push it as today's mission.</div>
+                <div class="teacher-control-actions">
+                    <select id="teacherAssignTodaySelect" class="teacher-input teacher-assign-select">${assignOptions}</select>
+                    <button class="btn btn-primary" id="teacherAssignTodayBtn" ${effectiveCards.length === 0 ? 'disabled' : ''}>Assign</button>
+                    <button class="btn btn-secondary" id="teacherPreviewTodayBtn" ${effectiveCards.length === 0 ? 'disabled' : ''}>Preview</button>
+                    <button class="btn btn-small btn-secondary" id="teacherExportJsonBtn">Export JSON</button>
+                    <label class="btn btn-small btn-secondary teacher-import-json-btn" for="teacherImportJsonInput">Import JSON</label>
+                    <input type="file" id="teacherImportJsonInput" accept="application/json,.json" style="display:none">
+                </div>
+                <div class="teacher-json-status" id="teacherJsonStatus"></div>
+            </div>
+
+            <div class="teacher-control-card">
+                <div class="teacher-control-title">Preset Mission Cards</div>
+                <div class="teacher-control-sub">Select which built-in cards are available for random daily missions.</div>
+                <div class="teacher-control-actions">
+                    <button class="btn btn-small btn-secondary" id="teacherSelectAllPresetsBtn">Select All</button>
+                    <button class="btn btn-small btn-secondary" id="teacherClearPresetsBtn">Clear All</button>
+                    <span class="teacher-counter">Selected: ${cfg.presetIds.length} / ${presetCards.length}</span>
+                </div>
+                <div class="teacher-preset-list">${presetRows}</div>
+            </div>
+
+            <div class="teacher-control-card">
+                <div class="teacher-control-title">Manual Custom Card</div>
+                <div class="teacher-control-sub">Create your own mission card for class-specific coaching.</div>
+                <div class="teacher-form-grid">
+                    <input type="text" id="teacherCardTitleInput" class="teacher-input" maxlength="80" placeholder="Card title">
+                    <textarea id="teacherCardWhyInput" class="teacher-input" rows="2" maxlength="280" placeholder="Why this matters"></textarea>
+                    <textarea id="teacherCardActionInput" class="teacher-input" rows="2" maxlength="280" placeholder="Today's action"></textarea>
+                    <textarea id="teacherCardCheckpointInput" class="teacher-input" rows="2" maxlength="280" placeholder="Checkpoint after session"></textarea>
+                    <select id="teacherCardTagInput" class="teacher-input">
+                        <option value="general">General</option>
+                        <option value="arm">Arm</option>
+                        <option value="trunk">Trunk</option>
+                    </select>
+                    <button class="btn btn-primary" id="teacherAddCustomCardBtn">Add Custom Card</button>
+                </div>
+                <div class="teacher-custom-list">${customRows}</div>
+            </div>
+        </div>
+    `;
+
+    container.querySelectorAll('.teacher-preset-check').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const id = e.target.dataset.cardId;
+            TeacherMissionConfig.updatePresetSelection(id, e.target.checked);
+            renderTeacherControlTab(container);
+        });
+    });
+
+    container.querySelectorAll('.teacher-preset-preview-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const cardData = {
+                title: btn.dataset.cardTitle,
+                why: btn.dataset.cardWhy,
+                action: btn.dataset.cardAction,
+                checkpoint: btn.dataset.cardCheckpoint
+            };
+            showTeacherCardPreview(cardData);
+        });
+    });
+
+    const selectAllBtn = container.querySelector('#teacherSelectAllPresetsBtn');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', () => {
+            TeacherMissionConfig.selectAllPresets();
+            renderTeacherControlTab(container);
+        });
+    }
+
+    const clearBtn = container.querySelector('#teacherClearPresetsBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            TeacherMissionConfig.clearPresetSelection();
+            renderTeacherControlTab(container);
+        });
+    }
+
+    const addBtn = container.querySelector('#teacherAddCustomCardBtn');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            const titleEl = container.querySelector('#teacherCardTitleInput');
+            const whyEl = container.querySelector('#teacherCardWhyInput');
+            const actionEl = container.querySelector('#teacherCardActionInput');
+            const checkpointEl = container.querySelector('#teacherCardCheckpointInput');
+            const tagEl = container.querySelector('#teacherCardTagInput');
+
+            const title = titleEl ? titleEl.value.trim() : '';
+            const why = whyEl ? whyEl.value.trim() : '';
+            const action = actionEl ? actionEl.value.trim() : '';
+            const checkpoint = checkpointEl ? checkpointEl.value.trim() : '';
+            const tag = tagEl ? tagEl.value : 'general';
+
+            if (!title || !action || !checkpoint) {
+                alert('Title, action, and checkpoint are required.');
+                return;
+            }
+
+            const createdId = TeacherMissionConfig.addCustomCard({
+                title,
+                why: why || 'Custom mission created by teacher.',
+                action,
+                checkpoint,
+                tags: [tag]
+            });
+
+            const createdCard = TeacherMissionConfig.getEffectiveCards().find(c => c.id === createdId);
+            if (createdCard) showTeacherCardPreview(createdCard);
+            renderTeacherControlTab(container);
+        });
+    }
+
+    container.querySelectorAll('.teacher-delete-custom-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.cardId;
+            TeacherMissionConfig.removeCustomCard(id);
+            renderTeacherControlTab(container);
+        });
+    });
+
+    const assignBtn = container.querySelector('#teacherAssignTodayBtn');
+    if (assignBtn) {
+        assignBtn.addEventListener('click', () => {
+            const select = container.querySelector('#teacherAssignTodaySelect');
+            const id = select ? select.value : '';
+            if (!id) return;
+            TeacherMissionConfig.assignTodayCard(id);
+            showMissionCardModal(true);
+        });
+    }
+
+    const previewBtn = container.querySelector('#teacherPreviewTodayBtn');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', () => {
+            const select = container.querySelector('#teacherAssignTodaySelect');
+            const id = select ? select.value : '';
+            const cards = TeacherMissionConfig.getEffectiveCards();
+            const card = cards.find(c => c.id === id);
+            if (!card) {
+                alert('No card available to preview.');
+                return;
+            }
+            showTeacherCardPreview(card);
+        });
+    }
+
+    const exportBtn = container.querySelector('#teacherExportJsonBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            try {
+                const payload = TeacherMissionConfig.exportPayload();
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                const d = String(now.getDate()).padStart(2, '0');
+                a.href = url;
+                a.download = `teacher-mission-cards-${y}${m}${d}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+                const status = container.querySelector('#teacherJsonStatus');
+                if (status) status.textContent = 'Exported JSON successfully.';
+            } catch (e) {
+                alert('Export failed: ' + (e && e.message ? e.message : e));
+            }
+        });
+    }
+
+    const importInput = container.querySelector('#teacherImportJsonInput');
+    if (importInput) {
+        importInput.addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const parsed = JSON.parse(text);
+                const result = TeacherMissionConfig.importPayload(parsed);
+                renderTeacherControlTab(container);
+                const status = container.querySelector('#teacherJsonStatus');
+                if (status) {
+                    status.textContent = `Imported JSON: ${result.presetCount} preset cards, ${result.customCount} custom cards.`;
+                }
+            } catch (err) {
+                alert('Import failed: ' + (err && err.message ? err.message : err));
+            } finally {
+                importInput.value = '';
+            }
+        });
     }
 }
 
@@ -2191,7 +2757,7 @@ async function renderGroupPerformanceTab(container, groupId) {
 // ── Feature 15: Group Shared Goals ───────────────────────────
 
 async function renderGroupGoalTab(container, groupId) {
-    const { goal, progress, progressPct, season } = await GroupAPI.getGroupGoals(groupId);
+    const { goal, progress, progressPct } = await GroupAPI.getGroupGoals(groupId);
     const myGroupId = localStorage.getItem('wergonic_group_id');
 
     let goalHtml = '';
@@ -2216,16 +2782,15 @@ async function renderGroupGoalTab(container, groupId) {
                     <span class="goal-progress-pct">${progressPct}%</span>
                 </div>
                 <div class="goal-detail">${progressDetail}</div>
-                ${progressPct >= 100 ? '<div class="goal-complete">🎉 Goal completed this season!</div>' : ''}
+                ${progressPct >= 100 ? '<div class="goal-complete">🎉 Goal completed!</div>' : ''}
             </div>
         `;
     } else {
-        goalHtml = `<div class="gam-placeholder">No goal set for this season yet.</div>`;
+        goalHtml = `<div class="gam-placeholder">No goal set yet.</div>`;
     }
 
     container.innerHTML = `
         <div class="group-goal-section">
-            <div class="goal-season-note">Season ${season.seasonNumber}: <strong>${escapeHtml(season.name)}</strong> · ${season.daysRemaining}d remaining</div>
             ${goalHtml}
             <div class="goal-set-form" id="goalSetForm">
                 <div class="goal-form-title">Set a New Group Goal</div>
@@ -2236,7 +2801,7 @@ async function renderGroupGoalTab(container, groupId) {
                     </select>
                 </div>
                 <div class="goal-form-row">
-                    <input type="number" id="goalTargetInput" class="goal-input" min="1" max="200" value="40" placeholder="Target value">
+                    <input type="number" id="goalTargetInput" class="goal-input" min="1" max="200" value="2" placeholder="Target value">
                     <span id="goalTargetHint" class="goal-target-hint">max avg RULA score</span>
                 </div>
                 <div class="goal-form-row">
@@ -2251,7 +2816,7 @@ async function renderGroupGoalTab(container, groupId) {
     document.getElementById('goalTypeSelect').addEventListener('change', function() {
         const hint = document.getElementById('goalTargetHint');
         hint.textContent = this.value === 'reduce_risk' ? 'max avg RULA score' : 'sessions per member';
-        document.getElementById('goalTargetInput').value = this.value === 'reduce_risk' ? '40' : '3';
+        document.getElementById('goalTargetInput').value = this.value === 'reduce_risk' ? '2' : '3';
     });
 
     document.getElementById('setGoalBtn').addEventListener('click', async () => {
@@ -2266,88 +2831,16 @@ async function renderGroupGoalTab(container, groupId) {
     });
 }
 
-// ── Feature 16: Group Season System ──────────────────────────
-
-async function renderGroupSeasonTab(container, groupId) {
-    const [season, stats] = await Promise.all([
-        GroupAPI.getCurrentSeason(),
-        GroupAPI.getGroupStats(groupId)
-    ]);
-
-    const members    = (stats.members || []).filter(m => m.avgRula !== null);
-    const groupAvg   = members.length > 0 ? members.reduce((s, m) => s + m.avgRula, 0) / members.length : null;
-    const sessionCnt = members.reduce((s, m) => s + (m.sessionCount || 0), 0);
-
-    // Season progress bar (days elapsed / 14)
-    const start       = new Date(season.startDate);
-    const end         = new Date(season.endDate);
-    const now         = new Date();
-    const totalDays   = 14;
-    const elapsed     = Math.max(0, Math.min(totalDays, (now - start) / (24 * 60 * 60 * 1000)));
-    const seasonPct   = Math.round((elapsed / totalDays) * 100);
-
-    const deviceBadge = season.deviceFocus === 'both' ? '🔄 All devices'
-        : (season.deviceFocus === 'arm' ? '💪 ARM focus' : '🧍 TRUNK focus');
-
-    const avgColor = groupAvg !== null ? (GAM.RISK_LEVELS[riskLevelFromScore(Math.round(groupAvg))].color) : '#aaa';
-
-    container.innerHTML = `
-        <div class="season-card">
-            <div class="season-header">
-                <div class="season-number">Season ${season.seasonNumber}</div>
-                <div class="season-name">${escapeHtml(season.name)}</div>
-                <div class="season-device-badge">${deviceBadge}</div>
-            </div>
-            <div class="season-description">${escapeHtml(season.description)}</div>
-
-            <div class="season-timeline">
-                <div class="season-timeline-bar">
-                    <div class="season-timeline-fill" style="width:${seasonPct}%"></div>
-                </div>
-                <div class="season-timeline-labels">
-                    <span>${start.toLocaleDateString(undefined, { month:'short', day:'numeric' })}</span>
-                    <span>${season.daysRemaining} day${season.daysRemaining !== 1 ? 's' : ''} remaining</span>
-                    <span>${end.toLocaleDateString(undefined, { month:'short', day:'numeric' })}</span>
-                </div>
-            </div>
-
-            <div class="season-stats-row">
-                <div class="season-stat">
-                    <div class="season-stat-value" style="color:${avgColor}">${groupAvg !== null ? groupAvg.toFixed(1) : '--'}</div>
-                    <div class="season-stat-label">Group avg RULA</div>
-                </div>
-                <div class="season-stat">
-                    <div class="season-stat-value">${sessionCnt}</div>
-                    <div class="season-stat-label">Total sessions</div>
-                </div>
-                <div class="season-stat">
-                    <div class="season-stat-value">${members.length}</div>
-                    <div class="season-stat-label">Active members</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="season-upcoming-note">
-            <strong>Next season:</strong> ${getNextSeasonName(season.seasonNumber)}
-        </div>
-    `;
-}
-
-function getNextSeasonName(currentNum) {
-    const THEMES = ['Back Awareness', 'Arm Precision', 'Recovery Sprint', 'Consistency Challenge', 'Total Wellness'];
-    return THEMES[currentNum % THEMES.length];
-}
-
 // ── Feature 17: Inter-group Leaderboard ──────────────────────
 
 async function renderInterGroupLeaderboard(container) {
-    const { leaderboard, season } = await GroupAPI.getLeaderboard();
+    const { leaderboard } = await GroupAPI.getLeaderboard();
     const myGroupId = localStorage.getItem('wergonic_group_id');
 
     if (!leaderboard || leaderboard.length === 0) {
         container.innerHTML = `
-            <div class="leaderboard-header">Season ${season.seasonNumber}: <strong>${escapeHtml(season.name)}</strong></div>
-            <div class="gam-placeholder">No group data for this season yet. Complete sessions to appear here!</div>`;
+            <div class="leaderboard-header"><strong>Group Leaderboard</strong></div>
+            <div class="gam-placeholder">No group data yet. Complete sessions to appear here!</div>`;
         return;
     }
 
@@ -2367,8 +2860,7 @@ async function renderInterGroupLeaderboard(container) {
 
     container.innerHTML = `
         <div class="leaderboard-header">
-            Season ${season.seasonNumber}: <strong>${escapeHtml(season.name)}</strong>
-            <span class="lb-days-left">${season.daysRemaining}d left</span>
+            <strong>Group Leaderboard</strong>
         </div>
         <div class="inter-lb-legend">Avg RULA score (lower = better posture) · Individual data is never shown</div>
         <div class="inter-leaderboard">
@@ -3065,7 +3557,7 @@ const GamificationSystem = {
             // Save session to DB
             await GamificationDB.saveSession(summary);
 
-            // If user is in a group, upload session stub to server
+            // If user is in a group, mirror session into local group store
             const groupId = localStorage.getItem('wergonic_group_id');
             if (groupId) {
                 GroupAPI.uploadSession(summary, groupId).catch(() => {});
@@ -3077,6 +3569,55 @@ const GamificationSystem = {
 
         } catch (e) {
             console.warn('GamificationSystem.onReportLoaded error:', e);
+        }
+    },
+
+    async onDualReportLoaded(dualPayload, activeReport) {
+        if (!dualPayload || !dualPayload.arm || !dualPayload.trunk) return;
+
+        try {
+            const summary = buildCombinedSessionSummary(
+                {
+                    ...dualPayload.arm,
+                    metadata: { ...(dualPayload.arm.metadata || {}), device_type: 'arm' }
+                },
+                {
+                    ...dualPayload.trunk,
+                    metadata: { ...(dualPayload.trunk.metadata || {}), device_type: 'trunk' }
+                },
+                activeReport && activeReport.filename ? activeReport.filename : 'combined-session'
+            );
+
+            this._currentSession = summary;
+            window._gamCurrentData = activeReport && activeReport.data ? activeReport.data : (dualPayload.trunk.data || []);
+            window._gamCurrentDeviceType = 'trunk';
+
+            renderRiskGauge('reportRiskGauge', summary.rulaScore, summary.riskLevel);
+            renderSegmentComparison('reportSegmentComparison', null);
+            const bh = document.getElementById('reportBodyHeatmap');
+            if (bh) bh.innerHTML = '<p class="gam-placeholder">Combined mode: body heatmap is shown in single-part reports.</p>';
+            const af = document.getElementById('reportAnthroFeedback');
+            if (af) af.innerHTML = '<p class="gam-placeholder">Combined mode: detailed body feedback is shown in single-part reports.</p>';
+
+            const sessions = await GamificationDB.getUserSessions(getUserId());
+            const allSessions = [summary, ...sessions];
+            window._gamSessions = allSessions;
+            const trends = TrendCalculator.computeTrends(allSessions);
+            renderLongitudinalComparison('reportLongitudinal', summary, trends);
+
+            TeacherAnalysis.init(activeReport && activeReport.data ? activeReport.data : (dualPayload.trunk.data || []));
+
+            await GamificationDB.saveSession(summary);
+
+            const groupId = localStorage.getItem('wergonic_group_id');
+            if (groupId) {
+                GroupAPI.uploadSession(summary, groupId).catch(() => {});
+            }
+
+            window._gamSessions = await GamificationDB.getUserSessions(getUserId());
+            refreshIdentityBar();
+        } catch (e) {
+            console.warn('GamificationSystem.onDualReportLoaded error:', e);
         }
     },
 
@@ -3244,3 +3785,4 @@ window.showProgressProfileModal = showProgressProfileModal;
 window.showMissionCardModal     = showMissionCardModal;
 window.showAvatarReplayModal    = showAvatarReplayModal;
 window.renderGroupPanel         = renderGroupPanel;
+window.renderTeacherControlTab  = renderTeacherControlTab;

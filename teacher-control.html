@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#1a5fb4">
+    <title>Teacher Control - Wergonic</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="gamification.css">
+    <script src="config.js"></script>
+</head>
+<body>
+    <div id="missionCardModal" class="hidden"></div>
+
+    <nav class="navigation">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="demo.html" class="nav-link">Demo</a>
+        <a href="demo-report.html" class="nav-link">Demo Report</a>
+        <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
+        <a href="teacher-control.html" class="nav-link active">Teacher Control</a>
+        <span class="nav-version"></span>
+    </nav>
+
+    <div class="container">
+        <header>
+            <div class="page-heading">
+                <h1>Teacher Control</h1>
+                <p class="page-subtitle">Manage mission card presets, custom cards, and JSON import/export for class training.</p>
+                <div class="warning-alert">
+                    <span class="warning-icon">⚠️</span>
+                    <div class="warning-content">
+                        <strong>Important:</strong> Custom cards added here are for demonstration only and <strong>won't be saved permanently</strong>. To keep your custom cards, please <strong>export the JSON</strong> after adding them.
+                    </div>
+                </div>
+
+            </div>
+        </header>
+
+        <section class="panel">
+            <h2>Mission Card Management</h2>
+            <div id="teacherControlContent">
+                <div class="gam-loading">
+                    <div class="gam-loading-spinner"></div> Loading...
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="mission-cards-data.js?v=20260319"></script>
+    <script src="gamification.js?v=20260319"></script>
+    <script>
+        (async function initTeacherControlPage() {
+            const container = document.getElementById('teacherControlContent');
+            if (!container) return;
+            if (typeof window.renderTeacherControlTab !== 'function') {
+                container.innerHTML = '<div class="gam-placeholder">Teacher Control failed to load.</div>';
+                return;
+            }
+            await window.renderTeacherControlTab(container);
+        })();
+    </script>
+</body>
+</html>

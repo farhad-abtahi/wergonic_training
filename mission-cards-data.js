@@ -231,15 +231,6 @@ const MISSION_CARDS = [
         checkpoint: 'Experiment with standing on an anti-fatigue mat today (if available) or using a footrest. Does your lumbar comfort improve?',
         tags: ['general'],
         triggerRule: null
-    },
-    {
-        id: 'general-009',
-        title: 'Rapid Recovery Technique',
-        why: 'Vibration alerts are warning signals, but what matters most is how quickly you return from poor posture to good posture. A shorter average recovery time reflects stronger posture awareness.',
-        action: 'Practise the "3-second recovery protocol" today: vibration received → immediately stop movement → spend 3 seconds consciously adjusting to a green-zone posture → resume work. Aim for a recovery time under 5 seconds every time.',
-        checkpoint: 'What was your average recovery time today? Is it better than last session? A recovery time over 10 seconds indicates a need for more posture awareness practice.',
-        tags: ['general'],
-        triggerRule: 'lastSession && parseFloat(lastSession.avgRecoveryTime) > 10'
     }
 ];
 

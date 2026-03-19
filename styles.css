@@ -125,6 +125,36 @@ header h1 {
     color: var(--md-sys-color-on-surface-variant);
 }
 
+/* Warning Alert Box */
+.warning-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    margin-top: 16px;
+    background-color: #fff3e0;
+    border-left: 4px solid var(--md-sys-color-warning);
+    border-radius: var(--md-sys-shape-corner-small);
+    box-shadow: var(--md-sys-elevation-1);
+}
+
+.warning-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.warning-content {
+    flex: 1;
+    font-size: 0.95rem;
+    color: #593d00;
+    line-height: 1.5;
+}
+
+.warning-content strong {
+    font-weight: 600;
+    color: #7d5800;
+}
+
 .header-controls {
     display: flex;
     align-items: center;
@@ -641,6 +671,55 @@ input::placeholder {
     display: flex;
     gap: 12px;
     margin-bottom: 20px;
+}
+.dual-report-builder {
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: var(--md-sys-color-surface-container-low);
+    padding: 12px;
+    margin-bottom: 14px;
+}
+.dual-report-builder-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--md-sys-color-on-surface-variant);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.dual-report-slots {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.dual-report-slot {
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-small);
+    background: var(--md-sys-color-surface);
+    padding: 10px;
+}
+.slot-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--md-sys-color-on-surface-variant);
+    margin-bottom: 6px;
+}
+.slot-file {
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+    word-break: break-word;
+    min-height: 18px;
+}
+.dual-report-hint {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+@media (max-width: 700px) {
+    .dual-report-slots {
+        grid-template-columns: 1fr;
+    }
 }
 
 .file-list {

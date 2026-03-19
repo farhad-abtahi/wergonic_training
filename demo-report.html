@@ -36,8 +36,21 @@
             background: var(--md-sys-color-primary-container);
         }
         .demo-file-icon { font-size: 2rem; margin-bottom: 6px; }
-        .demo-file-name { font-weight: 600; font-size: 1rem; }
-        .demo-file-meta { font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; }
+        .demo-file-name {
+            font-weight: 600;
+            font-size: 1rem;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        .demo-file-meta {
+            font-size: 0.78rem;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-top: 4px;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
 
         .upload-card {
             border: 2px dashed var(--md-sys-color-outline);
@@ -53,6 +66,34 @@
             background: var(--md-sys-color-secondary-container);
         }
         .upload-card input[type="file"] { display: none; }
+
+        .slot-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0 8px;
+            padding: 10px;
+            background: var(--md-sys-color-surface-container-low);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 10px;
+        }
+        .slot-toolbar .slot-pill {
+            font-size: 0.78rem;
+            border-radius: 20px;
+            padding: 4px 10px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface);
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        .slot-toolbar .slot-pill strong {
+            color: var(--md-sys-color-primary);
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
 
         /* Report area */
         #reportArea { display: none; }
@@ -70,6 +111,9 @@
             font-size: 1.3rem;
             font-weight: 700;
             color: var(--md-sys-color-on-surface);
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
         .report-filename span {
             color: var(--md-sys-color-primary);
@@ -81,6 +125,86 @@
             gap: 10px;
             flex-wrap: wrap;
             margin-bottom: 16px;
+        }
+
+        .dual-slot-compare {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(240px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .dual-slot-card {
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 12px;
+            background: var(--md-sys-color-surface);
+            padding: 12px;
+        }
+        .dual-slot-card.empty {
+            background: var(--md-sys-color-surface-container-low);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        .dual-slot-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .dual-slot-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--md-sys-color-on-surface);
+        }
+        .dual-slot-file {
+            font-size: 0.78rem;
+            color: var(--md-sys-color-on-surface-variant);
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            margin-bottom: 8px;
+        }
+        .dual-slot-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(100px, 1fr));
+            gap: 8px;
+        }
+        .dual-metric {
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 8px;
+            padding: 8px;
+            background: var(--md-sys-color-surface-container-low);
+        }
+        .dual-metric-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        .dual-metric-value {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-top: 3px;
+            color: var(--md-sys-color-on-surface);
+        }
+        .rula-pill {
+            font-size: 0.74rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .rula-pill.low { background: #e8f5e9; color: #1b5e20; border-color: #81c784; }
+        .rula-pill.moderate { background: #fff9c4; color: #6b5200; border-color: #fdd835; }
+        .rula-pill.high { background: #fff3e0; color: #e65100; border-color: #ffb74d; }
+        .rula-pill.very-high { background: #ffebee; color: #b71c1c; border-color: #ef9a9a; }
+
+        @media (max-width: 860px) {
+            .dual-slot-compare {
+                grid-template-columns: 1fr;
+            }
         }
         .zone-chip {
             border-radius: 20px;
@@ -241,7 +365,53 @@
             padding-bottom: 6px;
             margin-bottom: 14px;
         }
+
+        .dual-reports-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(320px, 1fr));
+            gap: 14px;
+            margin-top: 8px;
+        }
+        .slot-report-card {
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 12px;
+            background: var(--md-sys-color-surface);
+            padding: 14px;
+        }
+        .slot-report-card.empty {
+            background: var(--md-sys-color-surface-container-low);
+            color: var(--md-sys-color-on-surface-variant);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 220px;
+        }
+        .slot-report-head {
+            margin-bottom: 10px;
+        }
+        .slot-report-title {
+            font-size: 0.96rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--md-sys-color-on-surface);
+        }
+        .slot-report-file {
+            font-size: 0.78rem;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-top: 4px;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 1100px) {
+            .dual-reports-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
 
@@ -251,7 +421,8 @@
     <a href="demo.html" class="nav-link">Demo</a>
     <a href="demo-report.html" class="nav-link active">Demo Report</a>
     <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
-    <span class="nav-version">v3.0.1</span>
+    <a href="teacher-control.html" class="nav-link">Teacher Control</a>
+    <span class="nav-version"></span>
 </nav>
 
 <div class="container">
@@ -266,10 +437,17 @@
 
     <!-- ── File Picker ────────────────────────────────────────── -->
     <section class="panel" id="pickerPanel">
-        <h2>Select Data File</h2>
+        <h2>Select Data File (Dual Slots)</h2>
         <p style="color:var(--md-sys-color-on-surface-variant);font-size:.9rem;margin-bottom:4px;">
-            Click a demo file below, or upload your own CSV file for analysis.
+            Keep two CSV slots: ARM and TRUNK. Pick files for each slot, then switch active slot to inspect details.
         </p>
+
+        <div class="slot-toolbar">
+            <button class="btn btn-small btn-primary" id="activeSlotArmBtn">Active: ARM Slot</button>
+            <button class="btn btn-small btn-secondary" id="activeSlotTrunkBtn">Switch to TRUNK Slot</button>
+            <span class="slot-pill">ARM: <strong id="armSlotFile">(empty)</strong></span>
+            <span class="slot-pill">TRUNK: <strong id="trunkSlotFile">(empty)</strong></span>
+        </div>
 
         <!-- Threshold configuration -->
         <div class="threshold-row">
@@ -301,55 +479,9 @@
             <button class="btn btn-secondary btn-small" onclick="closeReport()">✕ Close Report</button>
         </div>
 
-        <!-- Zone summary chips -->
-        <div class="zone-summary" id="zoneSummary"></div>
-
-        <!-- Time range selector -->
-        <div class="range-controls">
-            <h3>Time Range Filter</h3>
-            <div class="range-labels">
-                <span>Start: <strong id="rangeStartLabel">0.0s</strong></span>
-                <span id="rangeDuration">Full Recording</span>
-                <span>End: <strong id="rangeEndLabel">0.0s</strong></span>
-            </div>
-            <div class="range-row">
-                <div class="dual-slider-container">
-                    <input type="range" id="rangeStart" min="0" max="100" value="0"  step="0.1" class="range-slider range-start">
-                    <input type="range" id="rangeEnd"   min="0" max="100" value="100" step="0.1" class="range-slider range-end">
-                </div>
-                <button class="btn btn-small btn-secondary" id="resetRangeBtn">Reset</button>
-                <button class="btn btn-small btn-primary"   id="applyRangeBtn">Apply</button>
-            </div>
-        </div>
-
-        <!-- Angle chart -->
-        <div class="report-section">
-            <div class="report-section-title">Angle Over Time</div>
-            <div class="chart-wrapper">
-                <canvas id="reportChart" style="max-height:320px;"></canvas>
-            </div>
-        </div>
-
-        <!-- Histogram -->
-        <div class="report-section">
-            <div class="report-section-title">Angle Distribution</div>
-            <div class="chart-wrapper">
-                <canvas id="reportHistogram" style="max-height:280px;"></canvas>
-            </div>
-            <div id="histogramStats"></div>
-        </div>
-
-        <!-- Statistics -->
-        <div class="report-section">
-            <div class="report-section-title">Statistics</div>
-            <div class="stats-grid" id="reportStats"></div>
-        </div>
-
-        <!-- Achievements -->
-        <div class="report-section">
-            <div class="report-section-title">Achievements</div>
-            <div class="achievements-grid" id="reportAchievements"></div>
-        </div>
+        <div id="combinedSlotSummary" style="margin-bottom:12px;"></div>
+        <div id="dualSlotComparison" class="dual-slot-compare"></div>
+        <div id="dualReportsGrid" class="dual-reports-grid"></div>
 
     </div><!-- /reportArea -->
 
@@ -357,23 +489,249 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  DEMO FILES  –  add more entries here to extend the list
+//  DEMO FILES – auto-discover all CSV in demo-data/
 // ═══════════════════════════════════════════════════════════════
-const DEMO_FILES = [
-    { name: 'S10.CSV', path: 'demo-data/S10.CSV', label: 'Session 10', desc: '~647 data points · 85s' },
-    { name: 'S11.CSV', path: 'demo-data/S11.CSV', label: 'Session 11', desc: '~840 data points · 108s' }
-];
+let DEMO_FILES = [];
+
+async function loadDemoFiles() {
+    const fallbackNames = [
+        'S10.CSV',
+        'S11.CSV',
+        'demo_arm_1_measurements_20260126_085405_rightArm_VCBC04_reformatted.csv',
+        'demo_arm_2_measurements_20260126_113637_rightArm_VCBC08_reformatted.csv',
+        'demo_trunk_1_measurements_20260126_085405_trunk_VCBC04_reformatted.csv',
+        'demo_trunk_2_measurements_20260126_113637_trunk_VCBC08_reformatted.csv'
+    ];
+
+    try {
+        const resp = await fetch('demo-data/');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const html = await resp.text();
+        const regex = /href="([^"]+\.csv)"/ig;
+        const names = [];
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+            const raw = match[1] || '';
+            const name = decodeURIComponent(raw.split('/').pop());
+            if (name && !names.includes(name)) names.push(name);
+        }
+
+        const finalNames = (names.length > 0 ? names : fallbackNames)
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+        DEMO_FILES = finalNames.map(name => ({
+            name,
+            path: `demo-data/${encodeURIComponent(name)}`,
+            label: name,
+            desc: 'demo-data file'
+        }));
+    } catch (_err) {
+        DEMO_FILES = fallbackNames
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+            .map(name => ({
+                name,
+                path: `demo-data/${encodeURIComponent(name)}`,
+                label: name,
+                desc: 'demo-data file'
+            }));
+    }
+}
 
 // ─── Shared state ───────────────────────────────────────────────
 const reportState = {
+    activeSlot: 'arm',
+    slotThresholdDefaults: {
+        arm: { yellow: 30, red: 60 },
+        trunk: { yellow: 20, red: 45 }
+    },
+    slots: {
+        arm: { filename: '', data: [] },
+        trunk: { filename: '', data: [] }
+    },
     fullData: [],
     currentData: [],
     timeRange: { start: 0, end: 100 },
     filename: ''
 };
 
-let chartInstance = null;
-let histogramInstance = null;
+const slotChartInstances = { arm: null, trunk: null };
+const slotHistogramInstances = { arm: null, trunk: null };
+
+function updateReportFilenameHeader() {
+    const armName = reportState.slots.arm.filename;
+    const trunkName = reportState.slots.trunk.filename;
+    const label = armName && trunkName
+        ? `${armName} + ${trunkName}`
+        : (armName || trunkName || '—');
+    document.getElementById('reportFilename').textContent = label;
+}
+
+function applyThresholdDefaultsForSlot(slot) {
+    const defaults = reportState.slotThresholdDefaults[slot] || reportState.slotThresholdDefaults.arm;
+    document.getElementById('yellowThresholdInput').value = defaults.yellow;
+    document.getElementById('redThresholdInput').value = defaults.red;
+}
+
+function initThresholdInputs() {
+    const yellowInput = document.getElementById('yellowThresholdInput');
+    const redInput = document.getElementById('redThresholdInput');
+    const onThresholdChange = () => {
+        const slot = reportState.activeSlot;
+        const nextYellow = Math.max(1, Math.min(180, parseInt(yellowInput.value, 10) || 1));
+        const nextRed = Math.max(1, Math.min(180, parseInt(redInput.value, 10) || 1));
+        reportState.slotThresholdDefaults[slot] = { yellow: nextYellow, red: nextRed };
+        yellowInput.value = nextYellow;
+        redInput.value = nextRed;
+        renderCombinedSlotSummary();
+        renderDualSlotComparison();
+        renderAll();
+    };
+
+    yellowInput.addEventListener('change', onThresholdChange);
+    redInput.addEventListener('change', onThresholdChange);
+}
+
+function updateSlotToolbar() {
+    const armFile = reportState.slots.arm.filename || '(empty)';
+    const trunkFile = reportState.slots.trunk.filename || '(empty)';
+    document.getElementById('armSlotFile').textContent = armFile;
+    document.getElementById('trunkSlotFile').textContent = trunkFile;
+
+    const armBtn = document.getElementById('activeSlotArmBtn');
+    const trunkBtn = document.getElementById('activeSlotTrunkBtn');
+    if (reportState.activeSlot === 'arm') {
+        armBtn.classList.remove('btn-secondary');
+        armBtn.classList.add('btn-primary');
+        armBtn.textContent = 'Active: ARM Slot';
+        trunkBtn.classList.remove('btn-primary');
+        trunkBtn.classList.add('btn-secondary');
+        trunkBtn.textContent = 'Switch to TRUNK Slot';
+    } else {
+        trunkBtn.classList.remove('btn-secondary');
+        trunkBtn.classList.add('btn-primary');
+        trunkBtn.textContent = 'Active: TRUNK Slot';
+        armBtn.classList.remove('btn-primary');
+        armBtn.classList.add('btn-secondary');
+        armBtn.textContent = 'Switch to ARM Slot';
+    }
+}
+
+function renderCombinedSlotSummary() {
+    const el = document.getElementById('combinedSlotSummary');
+    const arm = reportState.slots.arm;
+    const trunk = reportState.slots.trunk;
+    if (!arm.data.length || !trunk.data.length) {
+        el.innerHTML = '';
+        return;
+    }
+
+    const armStats = calculateStats(arm.data, 30, 60);
+    const trunkStats = calculateStats(trunk.data, 30, 60);
+    const greenAvg = ((parseFloat(armStats.greenPct) + parseFloat(trunkStats.greenPct)) / 2).toFixed(1);
+    const yellowAvg = ((parseFloat(armStats.yellowPct) + parseFloat(trunkStats.yellowPct)) / 2).toFixed(1);
+    const redAvg = ((parseFloat(armStats.redPct) + parseFloat(trunkStats.redPct)) / 2).toFixed(1);
+
+    el.innerHTML = `
+        <div class="zone-summary">
+            <div class="zone-chip" style="background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);border:1.5px solid var(--md-sys-color-primary);">
+                🧩 Combined Slots Ready
+            </div>
+            <div class="zone-chip green"><div class="dot"></div> Green Avg ${greenAvg}%</div>
+            <div class="zone-chip yellow"><div class="dot"></div> Yellow Avg ${yellowAvg}%</div>
+            <div class="zone-chip red"><div class="dot"></div> Red Avg ${redAvg}%</div>
+        </div>
+    `;
+}
+
+function angleToRulaScoreBySlot(angle, slot) {
+    const type = (slot || '').toLowerCase();
+    if (type === 'arm') {
+        if (angle <= 20) return 1;
+        if (angle <= 45) return 2;
+        if (angle <= 90) return 3;
+        return 4;
+    }
+    if (angle > -10 && angle <= 10) return 1;
+    if (angle > 10 && angle <= 20) return 2;
+    if (angle > 20 && angle <= 60) return 3;
+    return 4;
+}
+
+function rulaLevelFromScore(score) {
+    if (score <= 1.75) return { key: 'low', label: 'Low Risk' };
+    if (score <= 2.5) return { key: 'moderate', label: 'Moderate Risk' };
+    if (score <= 3.25) return { key: 'high', label: 'High Risk' };
+    return { key: 'very-high', label: 'Very High Risk' };
+}
+
+function renderDualSlotComparison() {
+    const target = document.getElementById('dualSlotComparison');
+    if (!target) return;
+
+    const buildSlotCard = (slotKey, slotLabel) => {
+        const slot = reportState.slots[slotKey];
+        if (!slot || !slot.data || slot.data.length === 0) {
+            return `
+                <div class="dual-slot-card empty">
+                    <div class="dual-slot-head">
+                        <div class="dual-slot-title">${slotLabel}</div>
+                    </div>
+                    <div class="dual-slot-file">No file selected yet.</div>
+                </div>
+            `;
+        }
+
+        const defaults = reportState.slotThresholdDefaults[slotKey] || reportState.slotThresholdDefaults.arm;
+        const stats = calculateStats(slot.data, defaults.yellow, defaults.red);
+        const meanAngle = parseFloat(stats.avgAngle) || 0;
+        const meanValueRula = angleToRulaScoreBySlot(meanAngle, slotKey);
+        const rulaLevel = rulaLevelFromScore(meanValueRula);
+
+        return `
+            <div class="dual-slot-card">
+                <div class="dual-slot-head">
+                    <div class="dual-slot-title">${slotLabel}</div>
+                    <span class="rula-pill ${rulaLevel.key}">${rulaLevel.label}</span>
+                </div>
+                <div class="dual-slot-file">${slot.filename}</div>
+                <div class="dual-slot-metrics">
+                    <div class="dual-metric"><div class="dual-metric-label">Mean Angle</div><div class="dual-metric-value">${meanAngle.toFixed(2)}°</div></div>
+                    <div class="dual-metric"><div class="dual-metric-label">Mean Value RULA</div><div class="dual-metric-value">${meanValueRula.toFixed(2)}</div></div>
+                    <div class="dual-metric"><div class="dual-metric-label">Green</div><div class="dual-metric-value">${stats.greenPct}%</div></div>
+                    <div class="dual-metric"><div class="dual-metric-label">Yellow + Red</div><div class="dual-metric-value">${stats.yellowRedPct}%</div></div>
+                </div>
+            </div>
+        `;
+    };
+
+    target.innerHTML = `${buildSlotCard('arm', 'Arm Analysis')} ${buildSlotCard('trunk', 'Trunk Analysis')}`;
+}
+
+function switchActiveSlot(slot) {
+    if (slot !== 'arm' && slot !== 'trunk') return;
+    reportState.activeSlot = slot;
+    applyThresholdDefaultsForSlot(slot);
+    const src = reportState.slots[slot];
+    updateSlotToolbar();
+    if (!src.data.length) return;
+
+    reportState.fullData = src.data;
+    reportState.currentData = src.data;
+    reportState.filename = src.filename;
+    reportState.timeRange = { start: 0, end: 100 };
+
+    updateReportFilenameHeader();
+    document.getElementById('reportArea').classList.add('visible');
+    renderCombinedSlotSummary();
+    renderDualSlotComparison();
+    renderAll();
+}
+
+function initSlotToolbarEvents() {
+    document.getElementById('activeSlotArmBtn').addEventListener('click', () => switchActiveSlot('arm'));
+    document.getElementById('activeSlotTrunkBtn').addEventListener('click', () => switchActiveSlot('trunk'));
+    updateSlotToolbar();
+}
 
 // ─── Render demo file cards ────────────────────────────────────
 function renderFileGrid() {
@@ -388,7 +746,6 @@ function renderFileGrid() {
         card.innerHTML = `
             <div class="demo-file-icon">📄</div>
             <div class="demo-file-name">${file.label}</div>
-            <div class="demo-file-meta">${file.name}</div>
             <div class="demo-file-meta">${file.desc}</div>
         `;
         card.addEventListener('click', () => loadDemoFile(file));
@@ -410,7 +767,7 @@ function renderFileGrid() {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = ev => processCSV(ev.target.result, file.name);
+        reader.onload = ev => processCSV(ev.target.result, file.name, reportState.activeSlot);
         reader.readAsText(file);
         // Clear active state
         document.querySelectorAll('.demo-file-card.active').forEach(c => c.classList.remove('active'));
@@ -428,14 +785,14 @@ async function loadDemoFile(file) {
         const resp = await fetch(file.path);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const text = await resp.text();
-        processCSV(text, file.name);
+        processCSV(text, file.name, reportState.activeSlot);
     } catch (err) {
         showError(`Failed to load "${file.path}": ${err.message}. Please serve via HTTP server or upload the file directly.`);
     }
 }
 
 // ─── Process CSV ───────────────────────────────────────────────
-function processCSV(csvText, filename) {
+function processCSV(csvText, filename, slot = 'arm') {
     hideError();
     const data = parseCSVData(csvText);
     if (data.length === 0) {
@@ -443,16 +800,22 @@ function processCSV(csvText, filename) {
         return;
     }
 
+    reportState.slots[slot] = { filename, data };
+    updateSlotToolbar();
+    renderCombinedSlotSummary();
+    renderDualSlotComparison();
+
+    reportState.activeSlot = slot;
+    applyThresholdDefaultsForSlot(slot);
     reportState.fullData = data;
     reportState.currentData = data;
     reportState.timeRange = { start: 0, end: 100 };
     reportState.filename = filename;
 
-    document.getElementById('reportFilename').textContent = filename;
+    updateReportFilenameHeader();
     document.getElementById('reportArea').classList.add('visible');
     document.getElementById('reportArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    initTimeRangeControls(data);
     renderAll();
 }
 
@@ -477,6 +840,11 @@ function parseCSVData(csvText) {
         if (parts.length < 5) continue;
         try {
             const elapsed_ms = parseInt(parts[0]);
+            const angle = parseFloat(parts[2]);
+            const feedback = parseInt(parts[3]);
+            if (!Number.isFinite(elapsed_ms) || !Number.isFinite(angle) || !Number.isFinite(feedback)) {
+                continue;
+            }
             if (i > 1 && elapsed_ms < previousElapsed) {
                 timeOffset += previousElapsed;
                 sequenceCount++;
@@ -485,8 +853,8 @@ function parseCSVData(csvText) {
                 elapsed_ms,
                 adjusted_elapsed_ms: elapsed_ms + timeOffset,
                 timestamp: parts[1],
-                angle: parseFloat(parts[2]),
-                feedback: parseInt(parts[3]),
+                angle,
+                feedback,
                 zone: parts[4].trim().toLowerCase(),
                 sequence: sequenceCount
             });
@@ -496,95 +864,78 @@ function parseCSVData(csvText) {
     return data;
 }
 
-// ─── Time range controls ───────────────────────────────────────
-function initTimeRangeControls(data) {
-    const totalTime = (data[data.length - 1].adjusted_elapsed_ms - data[0].adjusted_elapsed_ms) / 1000;
-    const startSlider = document.getElementById('rangeStart');
-    const endSlider   = document.getElementById('rangeEnd');
-
-    startSlider.value = 0;
-    endSlider.value   = 100;
-    reportState.timeRange = { start: 0, end: 100 };
-
-    function updateLabels() {
-        const s = parseFloat(startSlider.value);
-        const e = parseFloat(endSlider.value);
-        document.getElementById('rangeStartLabel').textContent = (totalTime * s / 100).toFixed(1) + 's';
-        document.getElementById('rangeEndLabel').textContent   = (totalTime * e / 100).toFixed(1) + 's';
-        if (s === 0 && e === 100) {
-            document.getElementById('rangeDuration').textContent = 'Full recording';
-        } else {
-            const dur = ((totalTime * e / 100) - (totalTime * s / 100)).toFixed(1);
-            document.getElementById('rangeDuration').textContent = `Selected: ${dur}s`;
-        }
-    }
-
-    // Remove old listeners by cloning
-    const newStart = startSlider.cloneNode(true);
-    const newEnd   = endSlider.cloneNode(true);
-    startSlider.parentNode.replaceChild(newStart, startSlider);
-    endSlider.parentNode.replaceChild(newEnd, endSlider);
-
-    newStart.addEventListener('input', () => {
-        if (parseFloat(newStart.value) >= parseFloat(newEnd.value))
-            newStart.value = parseFloat(newEnd.value) - 0.1;
-        updateLabels();
-    });
-    newEnd.addEventListener('input', () => {
-        if (parseFloat(newEnd.value) <= parseFloat(newStart.value))
-            newEnd.value = parseFloat(newStart.value) + 0.1;
-        updateLabels();
-    });
-
-    document.getElementById('resetRangeBtn').onclick = () => {
-        newStart.value = 0;
-        newEnd.value   = 100;
-        reportState.timeRange = { start: 0, end: 100 };
-        updateLabels();
-        applyTimeRange();
-    };
-    document.getElementById('applyRangeBtn').onclick = () => {
-        reportState.timeRange = { start: parseFloat(newStart.value), end: parseFloat(newEnd.value) };
-        applyTimeRange();
-    };
-
-    updateLabels();
-}
-
-function applyTimeRange() {
-    const { start, end } = reportState.timeRange;
-    const full = reportState.fullData;
-    const totalMs = full[full.length - 1].adjusted_elapsed_ms - full[0].adjusted_elapsed_ms;
-    const startMs = full[0].adjusted_elapsed_ms + totalMs * start / 100;
-    const endMs   = full[0].adjusted_elapsed_ms + totalMs * end   / 100;
-    reportState.currentData = full.filter(p => p.adjusted_elapsed_ms >= startMs && p.adjusted_elapsed_ms <= endMs);
-    renderAll();
-}
-
 // ─── Render everything ────────────────────────────────────────
 function renderAll() {
-    const data = reportState.currentData;
-    if (!data || data.length === 0) return;
+    const target = document.getElementById('dualReportsGrid');
+    if (!target) return;
 
-    const yellow = parseInt(document.getElementById('yellowThresholdInput').value) || 30;
-    const red    = parseInt(document.getElementById('redThresholdInput').value)    || 60;
+    target.innerHTML = ['arm', 'trunk'].map(slot => {
+        const src = reportState.slots[slot];
+        const title = slot === 'arm' ? 'ARM Full Analysis' : 'TRUNK Full Analysis';
+        if (!src || !src.data || src.data.length === 0) {
+            if (slotChartInstances[slot]) { slotChartInstances[slot].destroy(); slotChartInstances[slot] = null; }
+            if (slotHistogramInstances[slot]) { slotHistogramInstances[slot].destroy(); slotHistogramInstances[slot] = null; }
+            return `<div class="slot-report-card empty"><div>${title}: waiting for CSV in this slot.</div></div>`;
+        }
 
-    renderZoneSummary(data);
-    renderChart(data, yellow, red);
-    renderHistogram(data);
-    const stats = calculateStats(data, yellow, red);
-    renderStats(stats);
-    renderAchievements(evaluateAchievements(data, stats));
+        return `
+            <div class="slot-report-card">
+                <div class="slot-report-head">
+                    <div class="slot-report-title">${title}</div>
+                    <div class="slot-report-file">${src.filename}</div>
+                </div>
+                <div class="zone-summary" id="zoneSummary_${slot}"></div>
+                <div class="report-section">
+                    <div class="report-section-title">Angle Over Time</div>
+                    <div class="demo-file-meta" id="chartRangeMeta_${slot}" style="margin-bottom:6px;"></div>
+                    <div class="chart-wrapper">
+                        <canvas id="reportChart_${slot}" style="max-height:320px;"></canvas>
+                    </div>
+                </div>
+                <div class="report-section">
+                    <div class="report-section-title">Angle Distribution</div>
+                    <div class="chart-wrapper">
+                        <canvas id="reportHistogram_${slot}" style="max-height:280px;"></canvas>
+                    </div>
+                    <div id="histogramStats_${slot}"></div>
+                </div>
+                <div class="report-section">
+                    <div class="report-section-title">Statistics</div>
+                    <div class="stats-grid" id="reportStats_${slot}"></div>
+                </div>
+                <div class="report-section">
+                    <div class="report-section-title">Achievements</div>
+                    <div class="achievements-grid" id="reportAchievements_${slot}"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    ['arm', 'trunk'].forEach(slot => {
+        const src = reportState.slots[slot];
+        if (!src || !src.data || src.data.length === 0) return;
+        const defaults = reportState.slotThresholdDefaults[slot] || reportState.slotThresholdDefaults.arm;
+        const yellow = defaults.yellow;
+        const red = defaults.red;
+        renderZoneSummary(src.data, slot);
+        renderChart(src.data, yellow, red, slot);
+        renderHistogram(src.data, slot);
+        const stats = calculateStats(src.data, yellow, red);
+        renderStats(stats, slot);
+        renderAchievements(evaluateAchievements(src.data, stats), slot);
+    });
 }
 
 // ─── Zone summary chips ────────────────────────────────────────
-function renderZoneSummary(data) {
+function renderZoneSummary(data, slot) {
     const counts = { green: 0, yellow: 0, red: 0 };
     data.forEach(d => { if (counts[d.zone] !== undefined) counts[d.zone]++; });
     const total = data.length || 1;
     const totalSec = ((data[data.length - 1].adjusted_elapsed_ms - data[0].adjusted_elapsed_ms) / 1000).toFixed(1);
 
-    document.getElementById('zoneSummary').innerHTML = `
+    const zoneEl = document.getElementById(`zoneSummary_${slot}`);
+    if (!zoneEl) return;
+    zoneEl.innerHTML = `
         <div class="zone-chip green"><div class="dot"></div> Green ${(counts.green / total * 100).toFixed(1)}%</div>
         <div class="zone-chip yellow"><div class="dot"></div> Yellow ${(counts.yellow / total * 100).toFixed(1)}%</div>
         <div class="zone-chip red"><div class="dot"></div> Red ${(counts.red / total * 100).toFixed(1)}%</div>
@@ -595,32 +946,51 @@ function renderZoneSummary(data) {
 }
 
 // ─── Angle chart ───────────────────────────────────────────────
-function renderChart(data, yellowThreshold, redThreshold) {
-    const ctx = document.getElementById('reportChart');
-    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+function renderChart(data, yellowThreshold, redThreshold, slot) {
+    const ctx = document.getElementById(`reportChart_${slot}`);
+    if (!ctx) return;
+    if (slotChartInstances[slot]) {
+        slotChartInstances[slot].destroy();
+        slotChartInstances[slot] = null;
+    }
 
     const startMs = data[0].adjusted_elapsed_ms;
     const labels  = data.map(d => ((d.adjusted_elapsed_ms - startMs) / 1000).toFixed(1));
     const angles  = data.map(d => d.angle);
+    const finiteAngles = angles.filter(v => Number.isFinite(v));
+    const minAngle = finiteAngles.length ? Math.min(...finiteAngles) : 0;
+    const maxAngle = finiteAngles.length ? Math.max(...finiteAngles) : 0;
+    const rawSpan = maxAngle - minAngle;
+    const span = Math.max(rawSpan, 0.2);
+    const pad = Math.max(0.3, span * 0.25);
+    const yAngleMin = minAngle - pad;
+    const yAngleMax = maxAngle + pad;
+    const yThresholdMax = Math.max(100, redThreshold + 20);
+    const metaEl = document.getElementById(`chartRangeMeta_${slot}`);
+    if (metaEl) {
+        metaEl.textContent = `Angle range: ${minAngle.toFixed(2)}° to ${maxAngle.toFixed(2)}° (span ${rawSpan.toFixed(2)}°)`;
+    }
     const zones   = data.map(d => d.zone);
     const feedbacks = data.map(d => d.feedback);
 
-    chartInstance = new Chart(ctx, {
+    slotChartInstances[slot] = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
             datasets: [{
                 label: 'Angle (°)',
                 data: angles,
+                yAxisID: 'yAngle',
                 borderColor: 'rgb(33,150,243)',
-                backgroundColor: 'rgba(33,150,243,0.08)',
-                borderWidth: 2,
-                pointRadius: 0,
+                backgroundColor: 'rgba(33,150,243,0.18)',
+                borderWidth: rawSpan < 2 ? 3 : 2.4,
+                pointRadius: rawSpan < 2 ? 2 : 0.8,
                 pointHoverRadius: 4,
-                tension: 0.15
+                tension: 0.1
             }, {
                 label: `Yellow Threshold (${yellowThreshold}°)`,
                 data: Array(data.length).fill(yellowThreshold),
+                yAxisID: 'yThreshold',
                 borderColor: 'rgba(255,193,7,0.7)',
                 borderWidth: 1.5,
                 borderDash: [6, 4],
@@ -629,6 +999,7 @@ function renderChart(data, yellowThreshold, redThreshold) {
             }, {
                 label: `Red Threshold (${redThreshold}°)`,
                 data: Array(data.length).fill(redThreshold),
+                yAxisID: 'yThreshold',
                 borderColor: 'rgba(244,67,54,0.7)',
                 borderWidth: 1.5,
                 borderDash: [6, 4],
@@ -655,8 +1026,25 @@ function renderChart(data, yellowThreshold, redThreshold) {
             },
             scales: {
                 x: { title: { display: true, text: 'Time (s)' }, ticks: { maxTicksLimit: 20 } },
-                y: { title: { display: true, text: 'Angle (°)' }, beginAtZero: true,
-                     suggestedMax: Math.max(redThreshold + 10, Math.max(...angles) + 5) }
+                yAngle: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Angle (°)' },
+                    min: yAngleMin,
+                    max: yAngleMax,
+                    ticks: {
+                        maxTicksLimit: 6,
+                        callback: value => Number(value).toFixed(2)
+                    }
+                },
+                yThreshold: {
+                    type: 'linear',
+                    position: 'right',
+                    display: false,
+                    min: 0,
+                    max: yThresholdMax,
+                    grid: { drawOnChartArea: false }
+                }
             }
         },
         plugins: [{
@@ -686,9 +1074,13 @@ function renderChart(data, yellowThreshold, redThreshold) {
 }
 
 // ─── Histogram ─────────────────────────────────────────────────
-function renderHistogram(data) {
-    const ctx = document.getElementById('reportHistogram');
-    if (histogramInstance) { histogramInstance.destroy(); histogramInstance = null; }
+function renderHistogram(data, slot) {
+    const ctx = document.getElementById(`reportHistogram_${slot}`);
+    if (!ctx) return;
+    if (slotHistogramInstances[slot]) {
+        slotHistogramInstances[slot].destroy();
+        slotHistogramInstances[slot] = null;
+    }
 
     const angles = data.map(d => d.angle);
     const stats  = calcAdvancedStats(angles);
@@ -705,7 +1097,7 @@ function renderHistogram(data) {
         if (idx >= 0) bins[idx]++;
     });
 
-    histogramInstance = new Chart(ctx, {
+    slotHistogramInstances[slot] = new Chart(ctx, {
         type: 'bar',
         data: {
             labels,
@@ -745,7 +1137,9 @@ function renderHistogram(data) {
                    : skew < -0.5 ? 'Negative skew: more time at high angles'
                    : 'Approximately symmetric distribution';
 
-    document.getElementById('histogramStats').innerHTML = `
+    const histogramStatsEl = document.getElementById(`histogramStats_${slot}`);
+    if (!histogramStatsEl) return;
+    histogramStatsEl.innerHTML = `
         <div class="histogram-stats-grid">
             <div class="hist-stat-card primary"><div class="hist-stat-label">Mean</div><div class="hist-stat-value">${stats.mean}°</div></div>
             <div class="hist-stat-card primary"><div class="hist-stat-label">Variance</div><div class="hist-stat-value">${stats.variance}°²</div></div>
@@ -828,9 +1222,11 @@ function calculateStats(data, yellowThreshold, redThreshold) {
     return {
         totalTime,
         tGreen, tYellow, tRed,
+        tYellowRed: tYellow + tRed,
         greenPct:  (tGreen  / totalTime * 100).toFixed(1),
         yellowPct: (tYellow / totalTime * 100).toFixed(1),
         redPct:    (tRed    / totalTime * 100).toFixed(1),
+        yellowRedPct: ((tYellow + tRed) / totalTime * 100).toFixed(1),
         avgAngle: (data.reduce((s, d) => s + d.angle, 0) / data.length).toFixed(2),
         avgGreen:  greenA.length  ? (greenA.reduce((a,b)=>a+b,0)  / greenA.length).toFixed(2)  : 'N/A',
         avgYellow: yellowA.length ? (yellowA.reduce((a,b)=>a+b,0) / yellowA.length).toFixed(2) : 'N/A',
@@ -844,11 +1240,13 @@ function calculateStats(data, yellowThreshold, redThreshold) {
     };
 }
 
-function renderStats(s) {
-    document.getElementById('reportStats').innerHTML = `
+function renderStats(s, slot) {
+    const statsEl = document.getElementById(`reportStats_${slot}`);
+    if (!statsEl) return;
+    statsEl.innerHTML = `
         <div class="stat-card"><div class="stat-label">Total Time</div><div class="stat-value">${s.totalTime.toFixed(1)}s</div></div>
         <div class="stat-card green-stat"><div class="stat-label">Green Zone</div><div class="stat-value">${s.tGreen.toFixed(1)}s (${s.greenPct}%)</div></div>
-        <div class="stat-card yellow-stat"><div class="stat-label">Yellow Zone</div><div class="stat-value">${s.tYellow.toFixed(1)}s (${s.yellowPct}%)</div></div>
+        <div class="stat-card yellow-stat"><div class="stat-label">Yellow + Red</div><div class="stat-value">${s.tYellowRed.toFixed(1)}s (${s.yellowRedPct}%)</div></div>
         <div class="stat-card red-stat"><div class="stat-label">Red Zone</div><div class="stat-value">${s.tRed.toFixed(1)}s (${s.redPct}%)</div></div>
         <div class="stat-card"><div class="stat-label">Avg Angle</div><div class="stat-value">${s.avgAngle}°</div></div>
         <div class="stat-card"><div class="stat-label">Avg Angle (Green)</div><div class="stat-value">${s.avgGreen}°</div></div>
@@ -901,8 +1299,9 @@ function evaluateAchievements(data, s) {
     return ach;
 }
 
-function renderAchievements(achievements) {
-    const el = document.getElementById('reportAchievements');
+function renderAchievements(achievements, slot) {
+    const el = document.getElementById(`reportAchievements_${slot}`);
+    if (!el) return;
     if (achievements.length === 0) {
         el.innerHTML = '<p style="color:var(--md-sys-color-on-surface-variant)">Keep practicing to unlock achievements!</p>';
         return;
@@ -936,7 +1335,16 @@ function hideError() {
 }
 
 // ─── Init ──────────────────────────────────────────────────────
-renderFileGrid();
+async function initDemoReport() {
+    await loadDemoFiles();
+    renderFileGrid();
+    initSlotToolbarEvents();
+    initThresholdInputs();
+    applyThresholdDefaultsForSlot(reportState.activeSlot);
+    renderDualSlotComparison();
+}
+
+initDemoReport();
 </script>
 </body>
 </html>

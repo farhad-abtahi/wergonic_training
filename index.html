@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="gamification.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="binary-parser.js"></script>
+    <script src="config.js"></script>
 </head>
 <body>
     <!-- Navigation -->
@@ -20,7 +21,8 @@
         <a href="demo.html" class="nav-link">Demo</a>
         <a href="demo-report.html" class="nav-link">Demo Report</a>
         <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
-        <span class="nav-version">v3.0.1</span>
+        <a href="teacher-control.html" class="nav-link">Teacher Control</a>
+        <span class="nav-version"></span>
     </nav>
 
     <div class="container">
@@ -277,6 +279,25 @@
                     <span class="icon">&#x21BB;</span> Refresh
                 </button>
             </div>
+
+            <div class="dual-report-builder" id="dualReportBuilder">
+                <div class="dual-report-builder-title">Combined Report Slots</div>
+                <div class="dual-report-slots">
+                    <div class="dual-report-slot" id="armReportSlot">
+                        <div class="slot-label">ARM CSV</div>
+                        <div class="slot-file" id="armReportSlotFile">(empty)</div>
+                        <button id="clearArmReportSlotBtn" class="btn btn-small btn-secondary" disabled>Clear</button>
+                    </div>
+                    <div class="dual-report-slot" id="trunkReportSlot">
+                        <div class="slot-label">TRUNK CSV</div>
+                        <div class="slot-file" id="trunkReportSlotFile">(empty)</div>
+                        <button id="clearTrunkReportSlotBtn" class="btn btn-small btn-secondary" disabled>Clear</button>
+                    </div>
+                </div>
+                <button id="generateDualReportBtn" class="btn btn-success" disabled>Generate Combined Report</button>
+                <!-- <div class="dual-report-hint">Use "Set ARM Slot" / "Set TRUNK Slot" from file rows after downloading CSV+Meta (or Bin+Meta).</div> -->
+            </div>
+
             <div id="fileList" class="file-list">
                 <p class="placeholder">Click "List Files" to see available sessions</p>
             </div>
@@ -290,7 +311,7 @@
 
         <!-- Group Panel (local-first, pure frontend) -->
         <section class="panel" id="groupPanel">
-            <h2>Group & Season</h2>
+            <h2>Group</h2>
             <div id="groupPanelContent">
                 <div class="gam-loading">
                     <div class="gam-loading-spinner"></div> Loading...

@@ -146,6 +146,7 @@
             border-radius:8px; padding:10px 14px; font-size:.88rem; display:none; margin-top:8px;
         }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
 
@@ -155,7 +156,8 @@
     <a href="demo.html" class="nav-link">Demo</a>
     <a href="demo-report.html" class="nav-link">Demo Report</a>
     <a href="posture-viewer.html" class="nav-link active">Posture Viewer</a>
-    <span class="nav-version">v3.0.1</span>
+    <a href="teacher-control.html" class="nav-link">Teacher Control</a>
+    <span class="nav-version"></span>
 </nav>
 
 <div class="container">
@@ -258,10 +260,45 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 // ══════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════
-const DEMO_FILES = [
-    { name:'S10.CSV', path:'demo-data/S10.CSV', label:'Session 10' },
-    { name:'S11.CSV', path:'demo-data/S11.CSV', label:'Session 11' }
+let DEMO_FILES = [];
+
+const DEMO_FILE_FALLBACK = [
+    'S10.CSV',
+    'S11.CSV',
+    'demo_arm_1_measurements_20260126_085405_rightArm_VCBC04_reformatted.csv',
+    'demo_arm_2_measurements_20260126_113637_rightArm_VCBC08_reformatted.csv',
+    'demo_trunk_1_measurements_20260126_085405_trunk_VCBC04_reformatted.csv',
+    'demo_trunk_2_measurements_20260126_113637_trunk_VCBC08_reformatted.csv'
 ];
+
+function toDemoFileEntry(name) {
+    const sessionMatch = /^S(\d+)\.CSV$/i.exec(name);
+    const label = sessionMatch ? `Session ${sessionMatch[1]}` : name;
+    return { name, path: `demo-data/${encodeURIComponent(name)}`, label };
+}
+
+async function loadDemoFiles() {
+    let names = [];
+    try {
+        const resp = await fetch('demo-data/');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const html = await resp.text();
+        const regex = /href="([^"]+\.csv)"/ig;
+        let m;
+        while ((m = regex.exec(html)) !== null) {
+            const raw = m[1] || '';
+            const name = decodeURIComponent(raw.split('/').pop() || '');
+            if (name && !names.includes(name)) names.push(name);
+        }
+    } catch (_err) {
+        // Keep fallback below.
+    }
+
+    if (names.length === 0) names = DEMO_FILE_FALLBACK.slice();
+    DEMO_FILES = names
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+        .map(toDemoFileEntry);
+}
 
 // ══════════════════════════════════════════
 //  STATE
@@ -767,7 +804,10 @@ document.querySelectorAll('.spd-btn').forEach(b => {
 // ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
-buildPicker();
+(async function init() {
+    await loadDemoFiles();
+    buildPicker();
+})();
 </script>
 </body>
 </html>

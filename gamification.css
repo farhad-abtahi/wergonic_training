@@ -511,6 +511,20 @@
 
 .profile-bests-table tr:last-child td { border-bottom: none; }
 
+.profile-timeline-wrap {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    max-height: 38vh;
+    min-height: 180px;
+}
+
+.profile-timeline-wrap canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
 /* ─────────────── 7. Group Panel ─────────────────────────── */
 
 #groupPanel .group-form {
@@ -1216,6 +1230,207 @@
     min-height: 80px;
 }
 
+/* ─────────────── Teacher Control Tab ─────────────────────── */
+
+.teacher-control-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.teacher-control-card {
+    background: var(--md-sys-color-surface-container-low);
+    border: 1.5px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-medium);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.teacher-control-full-width {
+    grid-column: 1 / -1;
+}
+
+.teacher-control-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--md-sys-color-on-surface);
+    margin-bottom: 4px;
+}
+
+.teacher-control-sub {
+    font-size: 0.78rem;
+    color: var(--md-sys-color-on-surface-variant);
+    margin-bottom: 10px;
+}
+
+.teacher-control-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.teacher-counter {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.teacher-preset-list {
+    overflow-y: auto;
+    display: grid;
+    gap: 6px;
+    padding-right: 4px;
+    flex: 1;
+    max-height: 350px;
+}
+
+.teacher-preset-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-small);
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.teacher-preset-item:hover {
+    border-color: var(--md-sys-color-primary);
+}
+
+.teacher-preset-item input {
+    margin-top: 0;
+}
+
+.teacher-preset-text {
+    min-width: 0;
+}
+
+.teacher-preset-preview-btn {
+    background: none;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-corner-small);
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+.teacher-preset-preview-btn:hover {
+    background: var(--md-sys-color-primary-container);
+}
+
+.teacher-preset-title {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--md-sys-color-on-surface);
+    line-height: 1.3;
+}
+
+.teacher-preset-meta,
+.teacher-custom-meta {
+    margin-top: 4px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.teacher-card-tag {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+.teacher-form-grid {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.teacher-input {
+    width: 100%;
+    border: 1.5px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-corner-small);
+    padding: 8px 10px;
+    font-size: 0.84rem;
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    font-family: inherit;
+}
+
+.teacher-input:focus {
+    outline: none;
+    border-color: var(--md-sys-color-primary);
+}
+
+.teacher-custom-list {
+    display: grid;
+    gap: 8px;
+}
+
+.teacher-custom-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-small);
+    background: var(--md-sys-color-surface);
+    padding: 8px 10px;
+}
+
+.teacher-custom-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.teacher-custom-title {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--md-sys-color-on-surface);
+}
+
+.teacher-assign-select {
+    min-width: 280px;
+    max-width: 100%;
+}
+
+.teacher-import-json-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.teacher-json-status {
+    margin-top: 6px;
+    font-size: 0.76rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+@media (max-width: 760px) {
+    .teacher-control-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .teacher-counter {
+        margin-left: 0;
+    }
+
+    .teacher-assign-select {
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+}
+
 /* ─────────────── Feature 14: Performance Comparison ────────── */
 
 .group-perf-section {
@@ -1314,11 +1529,6 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-}
-
-.goal-season-note {
-    font-size: 0.82rem;
-    color: var(--md-sys-color-on-surface-variant);
 }
 
 .goal-card {
@@ -1425,117 +1635,6 @@
     white-space: nowrap;
 }
 
-/* ─────────────── Feature 16: Season Card ───────────────────── */
-
-.season-card {
-    background: var(--md-sys-color-primary-container);
-    border-radius: var(--md-sys-shape-corner-medium);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.season-header {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.season-number {
-    font-size: 0.76rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--md-sys-color-on-primary-container);
-    opacity: 0.7;
-}
-
-.season-name {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--md-sys-color-on-primary-container);
-}
-
-.season-device-badge {
-    font-size: 0.78rem;
-    background: rgba(255,255,255,0.3);
-    padding: 2px 8px;
-    border-radius: 12px;
-    color: var(--md-sys-color-on-primary-container);
-}
-
-.season-description {
-    font-size: 0.88rem;
-    color: var(--md-sys-color-on-primary-container);
-    opacity: 0.85;
-}
-
-.season-timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.season-timeline-bar {
-    height: 8px;
-    background: rgba(255,255,255,0.3);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.season-timeline-fill {
-    height: 100%;
-    background: var(--md-sys-color-primary);
-    border-radius: 4px;
-    transition: width 0.5s ease;
-}
-
-.season-timeline-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.72rem;
-    color: var(--md-sys-color-on-primary-container);
-    opacity: 0.8;
-}
-
-.season-stats-row {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.season-stat {
-    flex: 1;
-    min-width: 70px;
-    text-align: center;
-    background: rgba(255,255,255,0.2);
-    border-radius: var(--md-sys-shape-corner-small);
-    padding: 8px 6px;
-}
-
-.season-stat-value {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--md-sys-color-on-primary-container);
-}
-
-.season-stat-label {
-    font-size: 0.72rem;
-    color: var(--md-sys-color-on-primary-container);
-    opacity: 0.7;
-    margin-top: 2px;
-}
-
-.season-upcoming-note {
-    font-size: 0.82rem;
-    color: var(--md-sys-color-on-surface-variant);
-    padding: 8px 12px;
-    background: var(--md-sys-color-surface-container-low);
-    border-radius: var(--md-sys-shape-corner-small);
-}
-
 /* ─────────────── Feature 17: Inter-group Leaderboard ──────── */
 
 .leaderboard-header {
@@ -1547,13 +1646,6 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-}
-
-.lb-days-left {
-    margin-left: auto;
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--md-sys-color-on-surface-variant);
 }
 
 .inter-lb-legend {

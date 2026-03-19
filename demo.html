@@ -30,13 +30,109 @@
             padding: 24px 24px 0;
         }
 
+        .slot-picker {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 12px 24px 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .record-slot-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .record-slot-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .record-slot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .slot-picker .slot-field {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .slot-picker label {
+            display: block;
+            font-size: 0.74rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+        .slot-picker select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            background: var(--surface);
+            color: var(--text);
+        }
+        .slot-picker .apply-btn { width: 100%; }
+        @media (max-width: 900px) {
+            .slot-picker {
+                grid-template-columns: 1fr;
+            }
+            .record-slot-grid {
+                grid-template-columns: 1fr;
+            }
+            .slot-picker .apply-btn {
+                width: 100%;
+            }
+        }
+
+        .record-parts {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .record-part {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            background: var(--surface);
+        }
+        .record-part h3 {
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+
+        .record-overview-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .record-overview-strip .stat-cell {
+            padding: 10px 6px;
+            margin-bottom: 0;
+        }
+        @media (max-width: 900px) {
+            .record-parts {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* ── Layout ──────────────────────────────────────── */
         .demo-container {
-            max-width: 1300px;
+            max-width: 1500px;
             margin: 0 auto;
             padding: 0 24px 48px;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(640px, 1fr));
             gap: 24px;
         }
         @media (max-width: 900px) { .demo-container { grid-template-columns: 1fr; } }
@@ -158,6 +254,7 @@
         }
         .modal .modal-content { max-height: 90vh; overflow-y: auto; }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
 
@@ -167,16 +264,50 @@
     <a href="demo.html" class="nav-link active">Demo</a>
     <a href="demo-report.html" class="nav-link">Demo Report</a>
     <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
-    <span class="nav-version">v3.0.1</span>
+    <a href="teacher-control.html" class="nav-link">Teacher Control</a>
+    <span class="nav-version"></span>
 </nav>
 
 <div class="demo-header-shell">
     <header>
         <div class="page-heading">
             <h1>Posture Session Demo</h1>
-            <p class="page-subtitle">Visual comparison of two real training sessions.</p>
+            <p class="page-subtitle">Two full records. Each record has ARM+TRUNK slots and per-part snapshots.</p>
         </div>
     </header>
+</div>
+
+<div class="slot-picker">
+    <div class="record-slot-card">
+        <div class="record-slot-title">Record A Slots</div>
+        <div class="record-slot-grid">
+            <div class="slot-field">
+                <label for="recordAArmSelect">ARM CSV Slot</label>
+                <select id="recordAArmSelect"></select>
+            </div>
+            <div class="slot-field">
+                <label for="recordATrunkSelect">TRUNK CSV Slot</label>
+                <select id="recordATrunkSelect"></select>
+            </div>
+        </div>
+    </div>
+    <div class="record-slot-card">
+        <div class="record-slot-title">Record B Slots</div>
+        <div class="record-slot-grid">
+            <div class="slot-field">
+                <label for="recordBArmSelect">ARM CSV Slot</label>
+                <select id="recordBArmSelect"></select>
+            </div>
+            <div class="slot-field">
+                <label for="recordBTrunkSelect">TRUNK CSV Slot</label>
+                <select id="recordBTrunkSelect"></select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="demo-header-shell" style="padding-top:0;padding-bottom:12px;">
+    <button id="applyDemoSlotsBtn" class="btn btn-primary apply-btn" style="max-width:220px;">Apply Two Records</button>
 </div>
 
 <!-- Session cards rendered here by JS -->
@@ -334,13 +465,82 @@ function calculateStatistics(data, metadata) {
 
 /** Session registry — keyed by sessionKey, holds data + deviceType */
 const _sessions = {};
+const _recordReplayTracks = {};
+
+function zoneLevel(zone) {
+    if (zone === 'red') return 2;
+    if (zone === 'yellow') return 1;
+    return 0;
+}
+
+function zoneFromLevel(level) {
+    if (level >= 2) return 'red';
+    if (level >= 1) return 'yellow';
+    return 'green';
+}
+
+function buildCombinedReplayTrack(armData, trunkData) {
+    const arm = Array.isArray(armData) ? armData : [];
+    const trunk = Array.isArray(trunkData) ? trunkData : [];
+
+    const msSet = new Set();
+    arm.forEach(p => msSet.add(p.adjusted_elapsed_ms));
+    trunk.forEach(p => msSet.add(p.adjusted_elapsed_ms));
+    const timeline = [...msSet].sort((a, b) => a - b);
+
+    function nearestPoint(points, ms) {
+        if (!points || points.length === 0) return null;
+        let lo = 0;
+        let hi = points.length - 1;
+
+        while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const v = points[mid].adjusted_elapsed_ms;
+            if (v === ms) return points[mid];
+            if (v < ms) lo = mid + 1;
+            else hi = mid - 1;
+        }
+
+        const left = hi >= 0 ? points[hi] : null;
+        const right = lo < points.length ? points[lo] : null;
+        if (!left) return right;
+        if (!right) return left;
+
+        const dl = Math.abs(left.adjusted_elapsed_ms - ms);
+        const dr = Math.abs(right.adjusted_elapsed_ms - ms);
+        return dl <= dr ? left : right;
+    }
+
+    return timeline.map(ms => {
+        const a = nearestPoint(arm, ms);
+        const t = nearestPoint(trunk, ms);
+        const armAngle = a ? (a.angle || 0) : 0;
+        const trunkAngle = t ? (t.angle || 0) : 0;
+        const armZone = a ? (a.zone || 'green') : 'green';
+        const trunkZone = t ? (t.zone || 'green') : 'green';
+        const mergedZone = zoneFromLevel(Math.max(zoneLevel(armZone), zoneLevel(trunkZone)));
+
+        return {
+            adjusted_elapsed_ms: ms,
+            elapsed_ms: ms,
+            timestamp: t ? t.timestamp : (a ? a.timestamp : '00:00:00.000'),
+            trunkAngle,
+            armAngle,
+            trunkZone,
+            armZone,
+            angle: trunkAngle,
+            zone: mergedZone,
+            feedback: (a && a.feedback) || (t && t.feedback) || 0
+        };
+    });
+}
 
 /**
  * After renderAvatarGrid() creates .avatar-jump-btn elements, their
  * onclick reads window._gamCurrentData. Re-bind them here so each
  * button loads the correct session's data before opening the modal.
  */
-function _bindReplayButtons(containerId, sessionKey) {
+function _bindReplayButtons(containerId, recordKey) {
     const el = document.getElementById(containerId);
     if (!el) return;
     el.querySelectorAll('.avatar-jump-btn').forEach(btn => {
@@ -349,16 +549,23 @@ function _bindReplayButtons(containerId, sessionKey) {
         const ms = match ? parseFloat(match[0]) : 0;
         btn.removeAttribute('onclick');
         btn.addEventListener('click', () => {
-            const s = _sessions[sessionKey];
-            window._gamCurrentData       = s.data;
-            window._gamCurrentDeviceType = s.deviceType;
-            showAvatarReplayModal(s.data, s.deviceType);
+            const track = _recordReplayTracks[recordKey] || [];
+            window._gamCurrentData       = track;
+            window._gamCurrentDeviceType = 'combined';
+            showAvatarReplayModal(track, 'combined');
             requestAnimationFrame(() => AvatarReplay.seekToMs(ms));
         });
     });
 }
 
-/** Open the full-session replay for a given sessionKey */
+/** Open the full-session replay for a given recordKey */
+function openRecordReplay(recordKey) {
+    const track = _recordReplayTracks[recordKey] || [];
+    window._gamCurrentData       = track;
+    window._gamCurrentDeviceType = 'combined';
+    showAvatarReplayModal(track, 'combined');
+}
+
 function openFullReplay(sessionKey) {
     const s = _sessions[sessionKey];
     window._gamCurrentData       = s.data;
@@ -410,9 +617,6 @@ function renderSessionCard(sessionKey, label, filename, summary) {
                 <span class="rula-icon">⚡</span>
                 <span>RULA Score: <strong>${summary.rulaScore.toFixed(2)}</strong> &nbsp;·&nbsp; ${rl.label}</span>
             </div>
-
-            <div class="section-title">Body Heatmap</div>
-            <div id="heatmap-${sessionKey}"></div>
 
             <div class="section-title">Posture Snapshots &amp; Feedback</div>
             <div id="anthro-${sessionKey}"></div>
@@ -483,44 +687,314 @@ function wireAvatarModal() {
 // ═══════════════════════════════════════════════════════════════════
 //  Entry point
 // ═══════════════════════════════════════════════════════════════════
-const DEMO_META = { device_type: 'trunk', threshold_yellow: '30', threshold_red: '60' };
+let DEMO_FILE_OPTIONS = [];
 
-const DEMO_SESSIONS = [
-    { key: 's10', filename: 'S10.CSV', label: '🔴 Challenging Session (S10)', path: 'demo-data/S10.CSV'  },
-    { key: 's11', filename: 'S11.CSV', label: '🟢 Good Posture Session (S11)', path: 'demo-data/S11.CSV' }
-];
+const SLOT_META = {
+    arm:   { device_type: 'arm', threshold_yellow: '30', threshold_red: '60' },
+    trunk: { device_type: 'trunk', threshold_yellow: '30', threshold_red: '60' }
+};
 
-async function initDemo() {
-    const csvTexts = await Promise.all(
-        DEMO_SESSIONS.map(s => fetch(s.path).then(r => {
-            if (!r.ok) throw new Error(`Cannot fetch ${s.path} (${r.status})`);
-            return r.text();
-        }))
+const RECORD_SLOTS = {
+    recordA: { arm: '', trunk: '' },
+    recordB: { arm: '', trunk: '' }
+};
+
+async function loadDemoFileOptions() {
+    const fallback = [
+        'S10.CSV',
+        'S11.CSV',
+        'demo_arm_1_measurements_20260126_085405_rightArm_VCBC04_reformatted.csv',
+        'demo_arm_2_measurements_20260126_113637_rightArm_VCBC08_reformatted.csv',
+        'demo_trunk_1_measurements_20260126_085405_trunk_VCBC04_reformatted.csv',
+        'demo_trunk_2_measurements_20260126_113637_trunk_VCBC08_reformatted.csv'
+    ];
+
+    try {
+        const resp = await fetch('demo-data/');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const html = await resp.text();
+        const regex = /href="([^"]+\.csv)"/ig;
+        const names = [];
+        let m;
+        while ((m = regex.exec(html)) !== null) {
+            const raw = m[1] || '';
+            const name = decodeURIComponent(raw.split('/').pop());
+            if (name && !names.includes(name)) names.push(name);
+        }
+        const finalNames = names.length > 0 ? names : fallback;
+        DEMO_FILE_OPTIONS = finalNames
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+            .map(name => ({ value: name, label: name, path: `demo-data/${encodeURIComponent(name)}` }));
+    } catch (_err) {
+        DEMO_FILE_OPTIONS = fallback
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+            .map(name => ({ value: name, label: name, path: `demo-data/${encodeURIComponent(name)}` }));
+    }
+}
+
+function assignDefaultRecordSlots() {
+    const names = DEMO_FILE_OPTIONS.map(f => f.value);
+    if (names.length === 0) return;
+
+    const arm = names.filter(n => /arm/i.test(n));
+    const trunk = names.filter(n => /trunk/i.test(n));
+
+    if (arm.length > 0 && trunk.length > 0) {
+        RECORD_SLOTS.recordA.arm = arm[0];
+        RECORD_SLOTS.recordA.trunk = trunk[0];
+        RECORD_SLOTS.recordB.arm = arm[1] || arm[0];
+        RECORD_SLOTS.recordB.trunk = trunk[1] || trunk[0];
+        return;
+    }
+
+    RECORD_SLOTS.recordA.arm = names[0];
+    RECORD_SLOTS.recordA.trunk = names[1] || names[0];
+    RECORD_SLOTS.recordB.arm = names[2] || names[0];
+    RECORD_SLOTS.recordB.trunk = names[3] || names[1] || names[0];
+}
+
+function combinedRiskLevelFromTotalScore(totalScore) {
+    if (totalScore === 1 || totalScore === 2) return 'low';
+    if (totalScore === 3 || totalScore === 4) return 'mild';
+    if (totalScore === 5 || totalScore === 6) return 'moderate';
+    return 'high';
+}
+
+function getCombinedRiskPresentation(totalScore) {
+    const level = combinedRiskLevelFromTotalScore(totalScore);
+    if (level === 'low') {
+        return { level, label: 'Low Risk (Acceptable)', color: '#2e7d32', bg: '#e8f5e9' };
+    }
+    if (level === 'mild') {
+        return { level, label: 'Mild Risk (Observe)', color: '#8d6e00', bg: '#fff8e1' };
+    }
+    if (level === 'moderate') {
+        return { level, label: 'Moderate Risk (Improve Soon)', color: '#e65100', bg: '#fff3e0' };
+    }
+    return { level, label: 'High Risk (Improve Now)', color: '#b71c1c', bg: '#ffebee' };
+}
+
+function renderCombinedOverview(summary, armFile, trunkFile, label) {
+    const risk = getCombinedRiskPresentation(summary.rulaScore);
+    return `
+    <div class="session-card">
+        <div class="session-card-header">
+            <h2>${label} · 🧩 Combined Overview</h2>
+            <span class="file-badge">${armFile} + ${trunkFile}</span>
+        </div>
+        <div class="session-card-body">
+            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="stat-cell"><div class="stat-val">${summary.rulaScore}</div><div class="stat-label">Final Score (1–7)</div></div>
+                <div class="stat-cell"><div class="stat-val c-green">${summary.greenPct.toFixed(1)}%</div><div class="stat-label">Green Avg</div></div>
+                <div class="stat-cell"><div class="stat-val c-yellow">${summary.yellowPct.toFixed(1)}%</div><div class="stat-label">Yellow Avg</div></div>
+                <div class="stat-cell"><div class="stat-val c-red">${summary.redPct.toFixed(1)}%</div><div class="stat-label">Red Avg</div></div>
+            </div>
+            <div class="rula-badge" style="background:${risk.bg};color:${risk.color};margin-bottom:0;">
+                <span class="rula-icon">⚡</span>
+                <span>Risk Level: <strong>${risk.label}</strong></span>
+            </div>
+        </div>
+    </div>`;
+}
+
+function renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary, trunkSummary, combinedSummary) {
+    const armKey = `${recordKey}-arm`;
+    const trunkKey = `${recordKey}-trunk`;
+    const risk = getCombinedRiskPresentation(combinedSummary.rulaScore);
+    return `
+    <div class="session-card">
+        <div class="session-card-header">
+            <h2>${recordLabel}</h2>
+            <span class="file-badge">${armFile} + ${trunkFile}</span>
+        </div>
+        <div class="session-card-body">
+            <div class="record-overview-strip">
+                <div class="stat-cell"><div class="stat-val">${combinedSummary.rulaScore}</div><div class="stat-label">Final Score (1–7)</div></div>
+                <div class="stat-cell"><div class="stat-val c-green">${combinedSummary.greenPct.toFixed(1)}%</div><div class="stat-label">Green Avg</div></div>
+                <div class="stat-cell"><div class="stat-val c-yellow">${combinedSummary.yellowPct.toFixed(1)}%</div><div class="stat-label">Yellow Avg</div></div>
+                <div class="stat-cell"><div class="stat-val c-red">${combinedSummary.redPct.toFixed(1)}%</div><div class="stat-label">Red Avg</div></div>
+            </div>
+
+            <div class="rula-badge" style="background:${risk.bg};color:${risk.color};margin-bottom:12px;">
+                <span class="rula-icon">⚡</span>
+                <span>Risk Level: <strong>${risk.label}</strong></span>
+            </div>
+
+            <div class="record-parts">
+                <div class="record-part">
+                    <h3>💪 ARM Session (${armFile})</h3>
+                    <div class="stats-grid">
+                        <div class="stat-cell"><div class="stat-val c-green">${armSummary.greenPct}%</div><div class="stat-label">Green</div></div>
+                        <div class="stat-cell"><div class="stat-val c-yellow">${armSummary.yellowPct}%</div><div class="stat-label">Yellow</div></div>
+                        <div class="stat-cell"><div class="stat-val c-red">${armSummary.redPct}%</div><div class="stat-label">Red</div></div>
+                    </div>
+                    <div class="section-title">Snapshots (5) & Feedback</div>
+                    <div id="anthro-${armKey}"></div>
+                </div>
+                <div class="record-part">
+                    <h3>🧍 TRUNK Session (${trunkFile})</h3>
+                    <div class="stats-grid">
+                        <div class="stat-cell"><div class="stat-val c-green">${trunkSummary.greenPct}%</div><div class="stat-label">Green</div></div>
+                        <div class="stat-cell"><div class="stat-val c-yellow">${trunkSummary.yellowPct}%</div><div class="stat-label">Yellow</div></div>
+                        <div class="stat-cell"><div class="stat-val c-red">${trunkSummary.redPct}%</div><div class="stat-label">Red</div></div>
+                    </div>
+                    <div class="section-title">Snapshots (5) & Feedback</div>
+                    <div id="anthro-${trunkKey}"></div>
+                </div>
+            </div>
+            <button class="replay-full-btn" style="margin-top:14px;" onclick="openRecordReplay('${recordKey}')">▶ Play Combined Replay</button>
+        </div>
+    </div>`;
+}
+
+async function buildRecord(recordKey, recordLabel, armFile, trunkFile) {
+    const armOpt = DEMO_FILE_OPTIONS.find(f => f.value === armFile);
+    const trunkOpt = DEMO_FILE_OPTIONS.find(f => f.value === trunkFile);
+    if (!armOpt || !trunkOpt) throw new Error('Invalid demo slot file');
+
+    const [armText, trunkText] = await Promise.all([
+        fetch(armOpt.path).then(r => { if (!r.ok) throw new Error(`Cannot fetch ${armOpt.path} (${r.status})`); return r.text(); }),
+        fetch(trunkOpt.path).then(r => { if (!r.ok) throw new Error(`Cannot fetch ${trunkOpt.path} (${r.status})`); return r.text(); })
+    ]);
+
+    const armData = parseCSVData(armText);
+    const trunkData = parseCSVData(trunkText);
+    const armStats = calculateStatistics(armData, SLOT_META.arm);
+    const trunkStats = calculateStatistics(trunkData, SLOT_META.trunk);
+
+    const armSummary = buildSessionSummary(armData, SLOT_META.arm, armStats, armFile);
+    const trunkSummary = buildSessionSummary(trunkData, SLOT_META.trunk, trunkStats, trunkFile);
+    const combinedSummary = buildCombinedSessionSummary(
+        { data: armData, metadata: SLOT_META.arm, stats: armStats, filename: armFile },
+        { data: trunkData, metadata: SLOT_META.trunk, stats: trunkStats, filename: trunkFile },
+        `${recordLabel}: ${armFile} + ${trunkFile}`
     );
 
-    // Parse data and build session summaries
-    const built = DEMO_SESSIONS.map((s, i) => {
-        const data    = parseCSVData(csvTexts[i]);
-        const stats   = calculateStatistics(data, DEMO_META);
-        const summary = buildSessionSummary(data, DEMO_META, stats, s.filename);
-        _sessions[s.key] = { data, deviceType: 'trunk', summary };
-        return { ...s, data, summary };
-    });
+    // Combined final score is ARM + TRUNK, capped to the 1-7 scale.
+    const combinedTotalScore = Math.min(7, armSummary.rulaScore + trunkSummary.rulaScore);
+    combinedSummary.rulaScore = combinedTotalScore;
+    combinedSummary.riskLevel = combinedRiskLevelFromTotalScore(combinedTotalScore);
 
-    // Inject session cards
+    const armKey = `${recordKey}-arm`;
+    const trunkKey = `${recordKey}-trunk`;
+    _sessions[armKey] = { data: armData, deviceType: 'arm', summary: armSummary };
+    _sessions[trunkKey] = { data: trunkData, deviceType: 'trunk', summary: trunkSummary };
+    _recordReplayTracks[recordKey] = buildCombinedReplayTrack(armData, trunkData);
+
+    return {
+        html: renderRecordCard(recordKey, recordLabel, armFile, trunkFile, armSummary, trunkSummary, combinedSummary),
+        parts: [
+            { key: armKey, summary: armSummary },
+            { key: trunkKey, summary: trunkSummary }
+        ]
+    };
+}
+
+async function buildTwoRecords() {
+    _sessions.recordA = undefined;
+    _sessions.recordB = undefined;
+
+    const [recordA, recordB] = await Promise.all([
+        buildRecord('recordA', 'Record A', RECORD_SLOTS.recordA.arm, RECORD_SLOTS.recordA.trunk),
+        buildRecord('recordB', 'Record B', RECORD_SLOTS.recordB.arm, RECORD_SLOTS.recordB.trunk)
+    ]);
+
     const container = document.getElementById('demoContainer');
-    container.innerHTML = built.map(s =>
-        renderSessionCard(s.key, s.label, s.filename, s.summary)
-    ).join('');
+    container.innerHTML = `${recordA.html}${recordB.html}`;
 
-    // Render gamification widgets and fix up replay button context per session
-    built.forEach(s => {
-        renderBodyHeatmap(`heatmap-${s.key}`, s.summary);
+    [...recordA.parts, ...recordB.parts].forEach(s => {
         renderAnthropomorphicFeedback(`anthro-${s.key}`, s.summary);
-        _bindReplayButtons(`anthro-${s.key}`, s.key);
+        _bindReplayButtons(`anthro-${s.key}`, s.key.startsWith('recordA-') ? 'recordA' : 'recordB');
     });
 
     wireAvatarModal();
+}
+
+function initSlotPickers() {
+    const recordAArmSelect = document.getElementById('recordAArmSelect');
+    const recordATrunkSelect = document.getElementById('recordATrunkSelect');
+    const recordBArmSelect = document.getElementById('recordBArmSelect');
+    const recordBTrunkSelect = document.getElementById('recordBTrunkSelect');
+    const applyBtn = document.getElementById('applyDemoSlotsBtn');
+
+    const optionsHtml = DEMO_FILE_OPTIONS.map(f => `<option value="${f.value}">${f.label}</option>`).join('');
+    [recordAArmSelect, recordATrunkSelect, recordBArmSelect, recordBTrunkSelect].forEach(sel => {
+        sel.innerHTML = optionsHtml;
+    });
+
+    recordAArmSelect.value = RECORD_SLOTS.recordA.arm;
+    recordATrunkSelect.value = RECORD_SLOTS.recordA.trunk;
+    recordBArmSelect.value = RECORD_SLOTS.recordB.arm;
+    recordBTrunkSelect.value = RECORD_SLOTS.recordB.trunk;
+
+    applyBtn.addEventListener('click', async () => {
+        try {
+            RECORD_SLOTS.recordA.arm = recordAArmSelect.value;
+            RECORD_SLOTS.recordA.trunk = recordATrunkSelect.value;
+            RECORD_SLOTS.recordB.arm = recordBArmSelect.value;
+            RECORD_SLOTS.recordB.trunk = recordBTrunkSelect.value;
+
+            await buildTwoRecords();
+        } catch (err) {
+            document.getElementById('demoContainer').innerHTML = `<div class="loading-state" style="color:#c62828;"><p><strong>Failed to load demo slots:</strong> ${err.message}</p></div>`;
+        }
+    });
+}
+
+function patchCombinedAvatarReplay() {
+    if (!window.AvatarReplay || window.AvatarReplay._combinedPatchApplied) return;
+
+    const originalRender3D = AvatarReplay._renderReplay3D.bind(AvatarReplay);
+    const originalDrawFigure = AvatarReplay._drawFigure.bind(AvatarReplay);
+
+    AvatarReplay._renderReplay3D = function(stage, angle, zone) {
+        if ((this.deviceType || '').toLowerCase() !== 'combined') {
+            return originalRender3D(stage, angle, zone);
+        }
+
+        const ctx = this._ensureReplay3D(stage);
+        if (!ctx) return false;
+
+        const point = (this.data && this.data[this.currentIndex]) || {};
+        const trunkDeg = Math.max(0, +point.trunkAngle || 0);
+        const armDeg = Math.max(0, +point.armAngle || 0);
+        const trunkZone = point.trunkZone || 'green';
+        const armZone = point.armZone || 'green';
+
+        if (this.viewMode === 'side') ctx.camera.position.set(1.45, 1.18, 2.25);
+        else ctx.camera.position.set(0.02, 1.18, 2.95);
+        ctx.camera.lookAt(0, 0.72, 0);
+
+        ctx.mannequin.reset();
+        ctx.mannequin.setTrunkAngle(trunkDeg);
+        ctx.mannequin.setArmAngle(armDeg, trunkDeg);
+        ctx.mannequin.setTrunkZone(trunkZone);
+        ctx.mannequin.setArmZone(armZone);
+        ctx.renderer.render(ctx.scene, ctx.camera);
+        return true;
+    };
+
+    AvatarReplay._drawFigure = function(stage) {
+        originalDrawFigure(stage);
+        if ((this.deviceType || '').toLowerCase() !== 'combined') return;
+
+        const point = (this.data && this.data[this.currentIndex]) || {};
+        const zoneColor = (point.zone === 'red') ? '#f44336' : (point.zone === 'yellow' ? '#ffc107' : '#4caf50');
+        const angleDisplay = document.getElementById('avatarCurrentAngle');
+        if (angleDisplay) {
+            angleDisplay.innerHTML = `Trunk: <strong>${(+point.trunkAngle || 0).toFixed(1)}°</strong> · Arm: <strong>${(+point.armAngle || 0).toFixed(1)}°</strong> · Zone: <strong style="color:${zoneColor}">${(point.zone || 'green').toUpperCase()}</strong>`;
+        }
+    };
+
+    AvatarReplay._combinedPatchApplied = true;
+}
+
+async function initDemo() {
+    patchCombinedAvatarReplay();
+    await loadDemoFileOptions();
+    assignDefaultRecordSlots();
+    initSlotPickers();
+    await buildTwoRecords();
 }
 
 initDemo().catch(err => {
