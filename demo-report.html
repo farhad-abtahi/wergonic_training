@@ -8,19 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         /* ─── Page-level overrides ─── */
-        .demo-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .demo-header a {
-            font-size: 0.85rem;
-            color: var(--md-sys-color-primary);
-            text-decoration: none;
-            opacity: 0.8;
-        }
-        .demo-header a:hover { opacity: 1; text-decoration: underline; }
 
         /* File picker panel */
         .file-picker-grid {
@@ -264,17 +251,16 @@
     <a href="demo.html" class="nav-link">Demo</a>
     <a href="demo-report.html" class="nav-link active">Demo Report</a>
     <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
-    <span class="nav-version">v3.0</span>
+    <span class="nav-version">v3.0.1</span>
 </nav>
 
 <div class="container">
 
     <!-- ── Header ─────────────────────────────────────────────── -->
     <header>
-        <div class="demo-header">
+        <div class="page-heading">
             <h1>Data Analysis Report</h1>
-            <a href="index.html">← Back to Home</a>
-            <a href="posture-viewer.html">🧍 Posture Viewer</a>
+            <p class="page-subtitle">Analyze demo or uploaded CSV sessions with posture risk insights.</p>
         </div>
     </header>
 

@@ -113,6 +113,18 @@ header h1 {
     letter-spacing: -0.5px;
 }
 
+.page-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.page-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
 .header-controls {
     display: flex;
     align-items: center;

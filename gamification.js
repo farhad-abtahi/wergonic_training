@@ -16,17 +16,6 @@
 const GAM = {
     DB_NAME: 'wergonic_gamification',
     DB_VERSION: 1,
-    // When served by the Express server (port 3000) use a relative path.
-    // When using a dev HTTP server (e.g. "python -m http.server 8000") point
-    // directly to the Express backend so API calls reach the right server.
-    API_BASE: (() => {
-        const p = (typeof window !== 'undefined') ? window.location.port : '3000';
-        // If on port 3000 or default port, use relative path (preserves protocol)
-        if (p === '3000' || p === '') return '/api';
-        // Otherwise, use absolute URL with correct protocol
-        const protocol = (typeof window !== 'undefined') ? window.location.protocol : 'https:';
-        return `${protocol}//localhost:3000/api`;
-    })(),
 
     RISK_LEVELS: {
         low:       { min: 1.0, max: 1.75, label: 'Low Risk',       color: '#2e7d32', bg: '#e8f5e9' },
@@ -522,7 +511,7 @@ function _syncAvatarViewButtons(scope = document) {
 }
 
 const MiniAvatar3D = {
-    _cache: new WeakMap(),
+    _sharedCtx: null,
 
     isSupported() {
         return typeof window !== 'undefined' && !!window.THREE;
@@ -635,63 +624,112 @@ const MiniAvatar3D = {
         return root;
     },
 
-    _create(canvas) {
+    _ensureShared() {
+        if (!this.isSupported()) return null;
+        if (this._sharedCtx) return this._sharedCtx;
+
         const THREE = window.THREE;
-        const rect = canvas.getBoundingClientRect();
-        const width = Math.max(70, Math.round(rect.width || canvas.width || 70));
-        const height = Math.max(110, Math.round(rect.height || canvas.height || 113));
-        canvas.width = width * Math.min(window.devicePixelRatio || 1, 2);
-        canvas.height = height * Math.min(window.devicePixelRatio || 1, 2);
+        try {
+            const glCanvas = document.createElement('canvas');
+            glCanvas.width = 140;
+            glCanvas.height = 225;
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(38, width / height, 0.05, 30);
-        camera.position.set(0.45, 1.15, 2.8);
-        camera.lookAt(0, 0.72, 0);
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(38, 140 / 225, 0.05, 30);
+            const renderer = new THREE.WebGLRenderer({
+                canvas: glCanvas,
+                antialias: true,
+                alpha: true,
+                preserveDrawingBuffer: true
+            });
+            renderer.setClearColor(0x000000, 0);
 
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        renderer.setSize(width, height, false);
-        renderer.setClearColor(0x000000, 0);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.68));
+            const sun = new THREE.DirectionalLight(0xfff8ee, 0.92);
+            sun.position.set(2, 4, 3);
+            scene.add(sun);
+            const fill = new THREE.DirectionalLight(0x94a8c6, 0.34);
+            fill.position.set(-2, 2, -1);
+            scene.add(fill);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.68));
-        const sun = new THREE.DirectionalLight(0xfff8ee, 0.92);
-        sun.position.set(2, 4, 3);
-        scene.add(sun);
-        const fill = new THREE.DirectionalLight(0x94a8c6, 0.34);
-        fill.position.set(-2, 2, -1);
-        scene.add(fill);
-
-        const mannequin = this._buildMannequin(scene, THREE);
-        const ctx = { scene, camera, renderer, mannequin };
-        this._cache.set(canvas, ctx);
-        return ctx;
+            const mannequin = this._buildMannequin(scene, THREE);
+            this._sharedCtx = { glCanvas, scene, camera, renderer, mannequin };
+            return this._sharedCtx;
+        } catch (err) {
+            console.warn('[MiniAvatar3D] shared renderer init failed, fallback to SVG:', err);
+            this._sharedCtx = null;
+            return null;
+        }
     },
 
     render(canvas, { deviceType, angle, zone }) {
         if (!this.isSupported() || !canvas) return false;
-        const ctx = this._cache.get(canvas) || this._create(canvas);
-        const kind = (deviceType || 'trunk').toLowerCase();
-        const rawAngle = Math.max(0, +angle || 0);
-        const trunkDeg = kind === 'trunk' ? rawAngle : Math.min(18, rawAngle * 0.22);
-        const armDeg = kind === 'arm' ? rawAngle : Math.max(8, rawAngle * 0.6);
 
-        ctx.mannequin.reset();
-        ctx.mannequin.setTrunkAngle(trunkDeg);
-        ctx.mannequin.setArmAngle(armDeg, trunkDeg);
-        ctx.mannequin.setTrunkZone(kind === 'trunk' ? zone : 'green');
-        ctx.mannequin.setArmZone(kind === 'arm' ? zone : 'green');
-        ctx.renderer.render(ctx.scene, ctx.camera);
-        return true;
+        const ctx2d = canvas.getContext('2d');
+        if (!ctx2d) return false;
+
+        const shared = this._ensureShared();
+        if (!shared) return false;
+
+        try {
+            const rect = canvas.getBoundingClientRect();
+            const width = Math.max(70, Math.round(rect.width || canvas.width || 70));
+            const height = Math.max(110, Math.round(rect.height || canvas.height || 113));
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const pxW = Math.max(1, Math.round(width * dpr));
+            const pxH = Math.max(1, Math.round(height * dpr));
+
+            if (canvas.width !== pxW || canvas.height !== pxH) {
+                canvas.width = pxW;
+                canvas.height = pxH;
+            }
+
+            const kind = (deviceType || 'trunk').toLowerCase();
+            const rawAngle = Math.max(0, +angle || 0);
+            const trunkDeg = kind === 'trunk' ? rawAngle : Math.min(18, rawAngle * 0.22);
+            const armDeg = kind === 'arm' ? rawAngle : Math.max(8, rawAngle * 0.6);
+
+            shared.renderer.setPixelRatio(dpr);
+            shared.renderer.setSize(width, height, false);
+            shared.camera.aspect = width / height;
+            shared.camera.updateProjectionMatrix();
+            shared.camera.position.set(0.45, 1.15, 2.8);
+            shared.camera.lookAt(0, 0.72, 0);
+
+            shared.mannequin.reset();
+            shared.mannequin.setTrunkAngle(trunkDeg);
+            shared.mannequin.setArmAngle(armDeg, trunkDeg);
+            shared.mannequin.setTrunkZone(kind === 'trunk' ? zone : 'green');
+            shared.mannequin.setArmZone(kind === 'arm' ? zone : 'green');
+            shared.renderer.render(shared.scene, shared.camera);
+
+            ctx2d.clearRect(0, 0, pxW, pxH);
+            ctx2d.drawImage(shared.renderer.domElement, 0, 0, pxW, pxH);
+            return true;
+        } catch (err) {
+            console.warn('[MiniAvatar3D] render failed, fallback to SVG:', err);
+            return false;
+        }
     }
 };
 
+function _shouldUseMiniAvatar3D() {
+    if (!MiniAvatar3D.isSupported()) return false;
+    return true;
+}
+
 function _renderAvatarGridMini3D(rootEl) {
-    if (!MiniAvatar3D.isSupported() || !rootEl) return;
+    if (!_shouldUseMiniAvatar3D() || !rootEl) return;
     rootEl.querySelectorAll('.avatar-mini-canvas').forEach(canvas => {
         const deviceType = canvas.dataset.deviceType || 'trunk';
         const angle = parseFloat(canvas.dataset.angle || '0');
         const zone = canvas.dataset.zone || 'green';
-        MiniAvatar3D.render(canvas, { deviceType, angle, zone });
+        const ok = MiniAvatar3D.render(canvas, { deviceType, angle, zone });
+        if (!ok) {
+            const color = zone === 'red' ? '#f44336' : (zone === 'yellow' ? '#ffc107' : '#4caf50');
+            const svgInner = _composePostureViewerSvg(angle, color, deviceType, true);
+            canvas.outerHTML = `<svg viewBox="0 0 140 225" width="70" height="113" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`;
+        }
     });
 }
 
@@ -840,10 +878,11 @@ function renderAvatarGrid(containerId, summary) {
     if (segs.best_60s)  avatars.push({ label: 'Best 60s',  badge: '🏆', avgAngle: segs.best_60s.avgAngle,  zone: 'green', timeMs: segs.best_60s.startMs });
     if (segs.worst_60s) avatars.push({ label: 'Worst 60s', badge: '⚠️', avgAngle: segs.worst_60s.avgAngle, zone: 'red',   timeMs: segs.worst_60s.startMs });
 
+    const useMini3D = _shouldUseMiniAvatar3D();
     const cards = avatars.map(av => {
         const color = zoneCol(av.zone);
         const svgInner = svgFn(av.avgAngle, color);
-        const figure = MiniAvatar3D.isSupported()
+        const figure = useMini3D
             ? `<canvas class="avatar-mini-canvas" width="70" height="113" data-device-type="${deviceType}" data-angle="${av.avgAngle}" data-zone="${av.zone}"></canvas>`
             : `<svg viewBox="0 0 140 225" width="70" height="113" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`;
         const angleLabel = av.avgAngle === 0 ? 'Neutral' : `${av.avgAngle}°`;
@@ -885,124 +924,244 @@ function openAvatarReplayAtMs(ms) {
 // ═══════════════════════════════════════════════════════════
 
 const GroupAPI = {
-    _serverAvailable: null,
-
-    // Central fetch helper – always sends cookies so Express sessions work
-    // cross-origin (e.g. Python dev server on :8000 → Express on :3000).
-    async _fetch(url, opts = {}) {
-        return fetch(url, { credentials: 'include', ...opts });
-    },
+    _GROUPS_KEY: 'wergonic_local_groups_v1',
+    _SESSIONS_KEY: 'wergonic_local_group_sessions_v1',
+    _GOALS_KEY: 'wergonic_local_group_goals_v1',
 
     async checkServerAvailable() {
-        if (this._serverAvailable !== null) return this._serverAvailable;
+        // Pure frontend mode: group features are always available locally.
+        return true;
+    },
+
+    _readJSON(key, fallback) {
         try {
-            const res = await this._fetch(`${GAM.API_BASE}/auth-status`);
-            // 200 = server up (may or may not be authenticated – both are fine)
-            // 401 = server up but not authenticated
-            this._serverAvailable = res.ok || res.status === 401;
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            const parsed = JSON.parse(raw);
+            return parsed || fallback;
         } catch {
-            this._serverAvailable = false;
+            return fallback;
         }
-        return this._serverAvailable;
+    },
+
+    _writeJSON(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    },
+
+    _generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    },
+
+    _getCurrentSeasonObject() {
+        const THEMES = [
+            { name: 'Back Awareness',       description: 'Focus on reducing trunk forward bend', deviceFocus: 'trunk', metricFocus: 'redPct' },
+            { name: 'Arm Precision',        description: 'Keep your arm close and controlled', deviceFocus: 'arm', metricFocus: 'redPct' },
+            { name: 'Recovery Sprint',      description: 'Improve how quickly you return to good posture', deviceFocus: 'both', metricFocus: 'recoveryTime' },
+            { name: 'Consistency Challenge',description: 'Complete a session every training day', deviceFocus: 'both', metricFocus: 'sessionCount' },
+            { name: 'Total Wellness',       description: 'Reduce overall posture risk this fortnight', deviceFocus: 'both', metricFocus: 'rulaScore' }
+        ];
+        const epoch = new Date('2026-01-01T00:00:00Z');
+        const now = new Date();
+        const seasonLen = 14 * 24 * 60 * 60 * 1000;
+        const seasonIndex = Math.floor((now - epoch) / seasonLen);
+        const theme = THEMES[((seasonIndex % THEMES.length) + THEMES.length) % THEMES.length];
+        const startDate = new Date(epoch.getTime() + seasonIndex * seasonLen);
+        const endDate = new Date(startDate.getTime() + seasonLen);
+        const daysRemaining = Math.max(0, Math.ceil((endDate - now) / (24 * 60 * 60 * 1000)));
+        return {
+            seasonNumber: seasonIndex + 1,
+            ...theme,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            daysRemaining
+        };
     },
 
     async createGroup(name) {
         const userId = getUserId();
         const displayName = getDisplayName();
-        const res = await this._fetch(`${GAM.API_BASE}/groups`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, userId, displayName })
-        });
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
+        const db = this._readJSON(this._GROUPS_KEY, { groups: [] });
+        const group = {
+            groupId: this._generateId(),
+            name: String(name || '').trim().slice(0, 60),
+            memberIds: [userId],
+            members: [{ userId, displayName: displayName || userId }],
+            createdAt: new Date().toISOString()
+        };
+        db.groups.push(group);
+        this._writeJSON(this._GROUPS_KEY, db);
+        return group;
     },
 
     async listGroups() {
-        const res = await this._fetch(`${GAM.API_BASE}/groups`);
-        if (!res.ok) throw new Error('Failed to list groups');
-        return res.json();
+        const db = this._readJSON(this._GROUPS_KEY, { groups: [] });
+        return db.groups || [];
     },
 
     async getGroup(groupId) {
-        const res = await this._fetch(`${GAM.API_BASE}/groups/${encodeURIComponent(groupId)}`);
-        if (!res.ok) throw new Error('Group not found');
-        return res.json();
+        const groups = await this.listGroups();
+        const group = groups.find(g => g.groupId === groupId);
+        if (!group) throw new Error('Group not found');
+        return group;
     },
 
     async joinGroup(groupId) {
         const userId = getUserId();
         const displayName = getDisplayName();
-        const res = await this._fetch(`${GAM.API_BASE}/groups/${encodeURIComponent(groupId)}/join`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, displayName })
-        });
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
+        const db = this._readJSON(this._GROUPS_KEY, { groups: [] });
+        const group = (db.groups || []).find(g => g.groupId === groupId);
+        if (!group) throw new Error('Group not found');
+        group.memberIds = group.memberIds || [];
+        group.members = group.members || [];
+        if (!group.memberIds.includes(userId)) {
+            group.memberIds.push(userId);
+            group.members.push({ userId, displayName: displayName || userId });
+            this._writeJSON(this._GROUPS_KEY, db);
+        }
+        return group;
     },
 
     async leaveGroup(groupId) {
         const userId = getUserId();
-        const res = await this._fetch(`${GAM.API_BASE}/groups/${encodeURIComponent(groupId)}/leave`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId })
-        });
-        if (!res.ok) throw new Error(await res.text());
-        return res.ok;
+        const db = this._readJSON(this._GROUPS_KEY, { groups: [] });
+        const group = (db.groups || []).find(g => g.groupId === groupId);
+        if (!group) throw new Error('Group not found');
+        group.memberIds = (group.memberIds || []).filter(id => id !== userId);
+        group.members = (group.members || []).filter(m => m.userId !== userId);
+        this._writeJSON(this._GROUPS_KEY, db);
+        return true;
     },
 
     async uploadSession(summary, groupId) {
-        const res = await this._fetch(`${GAM.API_BASE}/sessions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...summary, groupId })
-        });
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
+        const db = this._readJSON(this._SESSIONS_KEY, { sessions: [] });
+        const session = {
+            ...summary,
+            id: summary.id || this._generateId(),
+            groupId: groupId || null,
+            timestamp: summary.timestamp || new Date().toISOString()
+        };
+        const idx = (db.sessions || []).findIndex(s => s.id === session.id);
+        if (idx >= 0) db.sessions[idx] = session;
+        else db.sessions.push(session);
+        if (db.sessions.length > 10000) db.sessions = db.sessions.slice(-10000);
+        this._writeJSON(this._SESSIONS_KEY, db);
+        return session;
     },
 
     async getGroupSessions(groupId) {
-        const res = await this._fetch(`${GAM.API_BASE}/sessions?groupId=${encodeURIComponent(groupId)}`);
-        if (!res.ok) throw new Error('Failed to get group sessions');
-        return res.json();
+        const db = this._readJSON(this._SESSIONS_KEY, { sessions: [] });
+        return (db.sessions || []).filter(s => s.groupId === groupId);
     },
 
     async getGroupStats(groupId) {
-        const res = await this._fetch(`${GAM.API_BASE}/groups/${encodeURIComponent(groupId)}/stats`);
-        if (!res.ok) throw new Error('Failed to get group stats');
-        return res.json();
+        const group = await this.getGroup(groupId);
+        const db = this._readJSON(this._SESSIONS_KEY, { sessions: [] });
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const members = (group.members || []).map(member => {
+            const userSessions = (db.sessions || []).filter(s =>
+                s.userId === member.userId &&
+                s.groupId === groupId &&
+                new Date(s.timestamp) >= sevenDaysAgo
+            );
+            const avgRula = userSessions.length > 0
+                ? userSessions.reduce((sum, s) => sum + (s.rulaScore || 0), 0) / userSessions.length
+                : null;
+            return { ...member, avgRula, sessionCount: userSessions.length };
+        });
+        members.sort((a, b) => {
+            if (a.avgRula === null && b.avgRula === null) return 0;
+            if (a.avgRula === null) return 1;
+            if (b.avgRula === null) return -1;
+            return a.avgRula - b.avgRula;
+        });
+        return { ...group, members };
     },
 
     // ── Goals API ──────────────────────────────────────────
     async setGroupGoal(groupId, type, target, description) {
-        const res = await this._fetch(`${GAM.API_BASE}/groups/${encodeURIComponent(groupId)}/goals`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type, target, description })
-        });
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
+        const season = this._getCurrentSeasonObject();
+        const db = this._readJSON(this._GOALS_KEY, { goals: [] });
+        db.goals = (db.goals || []).filter(g => !(g.groupId === groupId && g.seasonNumber === season.seasonNumber));
+        const goal = {
+            id: this._generateId(),
+            groupId,
+            type,
+            target: parseFloat(target),
+            description: String(description || '').slice(0, 100),
+            createdAt: new Date().toISOString(),
+            seasonNumber: season.seasonNumber
+        };
+        db.goals.push(goal);
+        this._writeJSON(this._GOALS_KEY, db);
+        return goal;
     },
 
     async getGroupGoals(groupId) {
-        const res = await this._fetch(`${GAM.API_BASE}/groups/${encodeURIComponent(groupId)}/goals`);
-        if (!res.ok) throw new Error('Failed to get group goals');
-        return res.json();
+        const group = await this.getGroup(groupId);
+        const season = this._getCurrentSeasonObject();
+        const goalsDb = this._readJSON(this._GOALS_KEY, { goals: [] });
+        const sessionDb = this._readJSON(this._SESSIONS_KEY, { sessions: [] });
+
+        const goal = (goalsDb.goals || []).find(g => g.groupId === groupId && g.seasonNumber === season.seasonNumber);
+        if (!goal) return { goal: null, season };
+
+        const memberIds = group.memberIds || [];
+        const seasonSessions = (sessionDb.sessions || []).filter(s =>
+            s.groupId === groupId &&
+            s.timestamp >= season.startDate &&
+            s.timestamp <= season.endDate
+        );
+
+        let progress = {};
+        let progressPct = 0;
+        if (goal.type === 'reduce_risk') {
+            const avgRula = seasonSessions.length > 0
+                ? seasonSessions.reduce((sum, s) => sum + (s.rulaScore || 0), 0) / seasonSessions.length
+                : null;
+            progressPct = avgRula !== null && goal.target > 0
+                ? Math.max(0, Math.min(100, Math.round((1 - avgRula / goal.target) * 100)))
+                : 0;
+            progress = {
+                avgRula: avgRula !== null ? Math.round(avgRula * 10) / 10 : null,
+                targetRula: goal.target
+            };
+        } else {
+            const membersReached = memberIds.filter(uid =>
+                seasonSessions.filter(s => s.userId === uid).length >= goal.target
+            ).length;
+            progressPct = memberIds.length > 0 ? Math.round((membersReached / memberIds.length) * 100) : 0;
+            progress = { membersReached, totalMembers: memberIds.length, targetSessions: goal.target };
+        }
+        return { goal, progress, progressPct, season };
     },
 
     // ── Season & Leaderboard API ───────────────────────────
     async getCurrentSeason() {
-        const res = await this._fetch(`${GAM.API_BASE}/seasons/current`);
-        if (!res.ok) throw new Error('Failed to get season');
-        return res.json();
+        return this._getCurrentSeasonObject();
     },
 
     async getLeaderboard() {
-        const res = await this._fetch(`${GAM.API_BASE}/leaderboard`);
-        if (!res.ok) throw new Error('Failed to get leaderboard');
-        return res.json();
+        const groupsDb = this._readJSON(this._GROUPS_KEY, { groups: [] });
+        const sessionsDb = this._readJSON(this._SESSIONS_KEY, { sessions: [] });
+        const season = this._getCurrentSeasonObject();
+        const leaderboard = (groupsDb.groups || []).map(group => {
+            const groupSessions = (sessionsDb.sessions || []).filter(s =>
+                s.groupId === group.groupId &&
+                s.timestamp >= season.startDate
+            );
+            const avgRula = groupSessions.length > 0
+                ? Math.round(groupSessions.reduce((sum, s) => sum + (s.rulaScore || 0), 0) / groupSessions.length * 10) / 10
+                : null;
+            return {
+                groupId: group.groupId,
+                name: group.name,
+                memberCount: (group.memberIds || []).length,
+                avgRula,
+                totalSessions: groupSessions.length
+            };
+        }).filter(g => g.avgRula !== null);
+        leaderboard.sort((a, b) => a.avgRula - b.avgRula);
+        return { leaderboard, season };
     }
 };
 
@@ -1748,12 +1907,6 @@ function drawProfileTimeline(canvasId, sessions) {
 async function renderGroupPanel() {
     const container = document.getElementById('groupPanelContent');
     if (!container) return;
-
-    const serverOk = await GroupAPI.checkServerAvailable().catch(() => false);
-    if (!serverOk) {
-        container.innerHTML = `<div class="group-offline-notice">Server not running. Group features require a connection to the production server.</div>`;
-        return;
-    }
 
     container.innerHTML = '<div class="gam-loading"><div class="gam-loading-spinner"></div> Loading...</div>';
 

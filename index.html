@@ -20,12 +20,15 @@
         <a href="demo.html" class="nav-link">Demo</a>
         <a href="demo-report.html" class="nav-link">Demo Report</a>
         <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
-        <span class="nav-version">v3.0</span>
+        <span class="nav-version">v3.0.1</span>
     </nav>
 
     <div class="container">
         <header>
-            <h1>Wergonic Device Manager</h1>
+            <div class="page-heading">
+                <h1>Wergonic Device Manager</h1>
+                <p class="page-subtitle">Connect devices, train posture, and review progress in one place.</p>
+            </div>
             <div class="header-controls">
                 <button id="openProgressProfileBtn" class="btn btn-small btn-secondary" title="My Training Profile">📊 My Progress</button>
                 <label class="mode-toggle">
@@ -285,7 +288,7 @@
             </div>
         </section>
 
-        <!-- Group Panel (requires production server) -->
+        <!-- Group Panel (local-first, pure frontend) -->
         <section class="panel" id="groupPanel">
             <h2>Group & Season</h2>
             <div id="groupPanelContent">
@@ -537,7 +540,7 @@
         </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="mission-cards-data.js"></script>
-    <script src="gamification.js"></script>
+    <script src="mission-cards-data.js?v=20260319"></script>
+    <script src="gamification.js?v=20260319"></script>
 </body>
 </html>

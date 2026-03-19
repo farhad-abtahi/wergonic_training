@@ -10,45 +10,31 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --surface: #f5f7fa;
-            --card:    #ffffff;
-            --border:  #e0e4ea;
-            --text:    #1a1a2e;
-            --muted:   #6b7280;
-            --accent:  #3b82f6;
+            --surface: var(--md-sys-color-surface-container-low);
+            --card:    var(--md-sys-color-surface);
+            --border:  var(--md-sys-color-outline-variant);
+            --text:    var(--md-sys-color-on-surface);
+            --muted:   var(--md-sys-color-on-surface-variant);
+            --accent:  var(--md-sys-color-primary);
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--surface);
+            background: var(--md-sys-color-surface);
             color: var(--text);
             min-height: 100vh;
         }
 
-        /* ── Header ──────────────────────────────────────── */
-        .demo-header {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            color: white;
-            padding: 36px 24px 28px;
-            text-align: center;
-        }
-        .demo-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
-        .demo-header p  { opacity: 0.75; font-size: 1rem; }
-        .demo-badge {
-            display: inline-block;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 20px;
-            padding: 4px 16px;
-            font-size: 0.8rem;
-            margin-top: 14px;
+        .demo-header-shell {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 24px 24px 0;
         }
 
         /* ── Layout ──────────────────────────────────────── */
         .demo-container {
             max-width: 1300px;
-            margin: 32px auto;
-            padding: 0 16px 48px;
+            margin: 0 auto;
+            padding: 0 24px 48px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 24px;
@@ -181,15 +167,17 @@
     <a href="demo.html" class="nav-link active">Demo</a>
     <a href="demo-report.html" class="nav-link">Demo Report</a>
     <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
-    <span class="nav-version">v3.0</span>
+    <span class="nav-version">v3.0.1</span>
 </nav>
 
-<header class="demo-header">
-    <h1>🏃 Posture Session Demo</h1>
-    <p>Visual comparison of two real training sessions</p>
-    <div class="demo-badge">No device pairing required &nbsp;·&nbsp; Data from demo-data/</div>
-    <div class="demo-badge">Posture Viewer Renderer Enabled</div>
-</header>
+<div class="demo-header-shell">
+    <header>
+        <div class="page-heading">
+            <h1>Posture Session Demo</h1>
+            <p class="page-subtitle">Visual comparison of two real training sessions.</p>
+        </div>
+    </header>
+</div>
 
 <!-- Session cards rendered here by JS -->
 <div class="demo-container" id="demoContainer">
@@ -240,8 +228,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="mission-cards-data.js?v=20260318"></script>
-<script src="gamification.js?v=20260318"></script>
+<script src="mission-cards-data.js?v=20260319"></script>
+<script src="gamification.js?v=20260319"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════
 //  Inline helpers — extracted from app.js, no BLE/DOM dependencies
