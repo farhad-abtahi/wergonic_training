@@ -4,15 +4,19 @@
 // ═══════════════════════════════════════════════════════════════
 
 const APP_CONFIG = {
-    version: '3.0.5',
+    version: '3.0.6',
     name: 'Wergonic Training',
     demoDataFiles: [
-        '1_arm.csv',
-        '1_trunk.csv',
-        '2_arm.csv',
-        '2_trunk.csv',
+        // '1_arm.csv',
+        // '1_trunk.csv',
+        // '2_arm.csv',
+        // '2_trunk.csv',
         'S10.CSV',
-        'S11.CSV'
+        'S11.CSV',
+        'rightArm_VCBC04_reformatted.csv',
+        'rightArm_VCBC08_reformatted.csv',
+        'trunk_VCBC04_reformatted.csv',
+        'trunk_VCBC08_reformatted.csv'
     ]
 };
 
