@@ -133,3 +133,58 @@ webapp/
 ## License
 
 MIT License - Part of the Wergonic project.
+
+## Participant Availability Form (Standalone)
+
+Added a standalone page for collecting participants' available experiment time slots:
+
+- `availability-form.html`
+- `availability-form.css`
+- `availability-form.js`
+
+This page is intentionally not linked from `index.html`.
+
+### Backend Email API
+
+Added backend files:
+
+- `server.js` (Express API + Nodemailer)
+- `package.json`
+- `.env.example`
+
+API endpoint:
+
+- `POST /api/participant-availability`
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and set real values:
+
+```bash
+PORT=3000
+SMTP_HOST=smtp.example.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+MAIL_FROM="Wergonic Scheduler <no-reply@example.com>"
+MAIL_TO=yixiaoh@kth.se
+```
+
+Note: recipient email is backend-controlled only. The API ignores/rejects recipient fields from client requests.
+
+### Run
+
+```bash
+npm install
+npm start
+```
+
+Then open:
+
+- `https://<your-domain>/availability-form`
+- `https://<your-domain>/availability`
+
+If you are running locally without a reverse proxy, you can still use:
+
+- `http://localhost:3000/availability-form`
