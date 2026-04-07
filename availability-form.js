@@ -21,6 +21,7 @@ const slotList = document.getElementById('slotList');
 const selectionSummary = document.getElementById('selectionSummary');
 const statusMsg = document.getElementById('statusMsg');
 const form = document.getElementById('availabilityForm');
+const STATIC_EMAIL_TARGET = 'yixiaoh@kth.se';
 
 initWeekSelector();
 renderWeek();
@@ -119,21 +120,7 @@ form.addEventListener('submit', async (event) => {
   setStatus('Submitting, please wait...');
 
   try {
-    const resp = await fetch('/api/participant-availability', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        participantName,
-        participantEmail,
-        note,
-        slots
-      })
-    });
-
-    const data = await resp.json();
-    if (!resp.ok) {
-      throw new Error(data.error || 'Submission failed');
-    }
+    await submitAvailability({ participantName, participantEmail, note, slots });
 
     setStatus('Submitted successfully. Email has been sent.');
     form.reset();
@@ -145,6 +132,56 @@ form.addEventListener('submit', async (event) => {
     setStatus(`Submission failed: ${err.message}`, true);
   }
 });
+
+async function submitAvailability(payload) {
+  try {
+    await submitToBackend(payload);
+  } catch (backendError) {
+    // Static hosting (e.g., GitHub Pages) has no Node backend. Fall back to FormSubmit.
+    await submitToFormSubmit(payload, backendError);
+  }
+}
+
+async function submitToBackend(payload) {
+  const resp = await fetch('/api/participant-availability', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(data.error || `Backend submission failed (${resp.status})`);
+  }
+}
+
+async function submitToFormSubmit(payload, backendError) {
+  const slotsText = payload.slots
+    .map((slot, index) => `${index + 1}. ${slot.date} ${slot.start}-${slot.end}`)
+    .join('\n');
+
+  const formData = new FormData();
+  formData.append('name', payload.participantName);
+  formData.append('email', payload.participantEmail);
+  formData.append('note', payload.note || 'N/A');
+  formData.append('slots', slotsText);
+  formData.append('_subject', `Experiment Availability - ${payload.participantName}`);
+  formData.append('_captcha', 'false');
+
+  const resp = await fetch(`https://formsubmit.co/ajax/${STATIC_EMAIL_TARGET}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+    body: formData
+  });
+
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.success === 'false') {
+    throw new Error(
+      data.message ||
+      `${backendError?.message ? `${backendError.message}; ` : ''}FormSubmit fallback failed`
+    );
+  }
+}
 
 function initWeekSelector() {
   weekStarts.forEach((start, index) => {

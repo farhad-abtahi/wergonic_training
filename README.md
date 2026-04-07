@@ -173,6 +173,18 @@ MAIL_TO=yixiaoh@kth.se
 
 Note: recipient email is backend-controlled only. The API ignores/rejects recipient fields from client requests.
 
+### Static Hosting (GitHub Repo Mode)
+
+If your deployment is static-only (no backend process, no dashboard access for env vars),
+the form automatically falls back to FormSubmit and sends to:
+
+- `yixiaoh@kth.se`
+
+Important:
+
+- On first submission, FormSubmit will send a confirmation email to activate this address.
+- Until confirmation is completed, submissions may not be delivered.
+
 ### Run
 
 ```bash
