@@ -1077,18 +1077,7 @@
     font-style: italic;
 }
 
-/* ─────────────── Feature 13+: Avatar Grid & Narrative ─────── */
-
-.anthro-narrative {
-    font-size: 0.92rem;
-    line-height: 1.65;
-    color: var(--md-sys-color-on-surface-variant);
-    margin: 0 0 12px;
-    padding: 10px 14px;
-    background: var(--md-sys-color-surface-container-low);
-    border-radius: var(--md-sys-shape-corner-medium);
-    border-left: 3px solid var(--md-sys-color-primary);
-}
+/* ─────────────── Feature 13+: Avatar Grid ─────── */
 
 .avatar-grid-section {
     margin-top: 16px;

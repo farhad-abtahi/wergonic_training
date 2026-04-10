@@ -1,0 +1,2287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Landscape Dashboard - Wergonic</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="gamification.css">
+    <script src="config.js"></script>
+    <script src="gamification.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+
+        :root {
+            --dash-bg: #07131f;
+            --dash-bg-2: #0d1f30;
+            --dash-surface: rgba(12, 24, 38, 0.84);
+            --dash-surface-2: rgba(18, 34, 53, 0.92);
+            --dash-border: rgba(255, 255, 255, 0.08);
+            --dash-text: #f5f8ff;
+            --dash-muted: rgba(233, 240, 255, 0.7);
+            --dash-good: #4caf50;
+            --dash-warning: #ffc107;
+            --dash-risk: #f44336;
+            --dash-good-soft: rgba(76, 175, 80, 0.18);
+            --dash-warning-soft: rgba(255, 193, 7, 0.18);
+            --dash-risk-soft: rgba(244, 67, 54, 0.18);
+            --dash-shadow: 0 22px 55px rgba(0, 0, 0, 0.36);
+        }
+
+        html {
+            font-size: clamp(16px, 0.35vw + 13px, 19px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top left, rgba(76, 175, 80, 0.16), transparent 32%),
+                radial-gradient(circle at top right, rgba(255, 193, 7, 0.12), transparent 26%),
+                linear-gradient(135deg, var(--dash-bg) 0%, var(--dash-bg-2) 100%);
+        }
+
+        body {
+            margin: 0;
+            color: var(--dash-text);
+            font-family: 'Roboto Flex', 'Space Grotesk', system-ui, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .screen-shell {
+            width: min(100vw, calc(100vh * 16 / 9));
+            height: min(100vh, calc(100vw * 9 / 16));
+            margin: auto;
+            padding: 16px;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 16px;
+        }
+
+        .hero-header {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.95fr);
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .glass-card {
+            border: 1px solid var(--dash-border);
+            border-radius: 24px;
+            background: linear-gradient(180deg, rgba(18, 31, 48, 0.94) 0%, rgba(11, 22, 36, 0.86) 100%);
+            box-shadow: var(--dash-shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .score-card {
+            padding: 16px 18px;
+            display: grid;
+            grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+            gap: 18px;
+            align-items: center;
+        }
+
+        .score-main {
+            position: relative;
+            padding-right: 8px;
+        }
+
+        .score-title {
+            font-size: 0.95rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--dash-muted);
+            margin-bottom: 10px;
+        }
+
+        .score-value-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            line-height: 1;
+        }
+
+        .score-value {
+            font-family: 'Space Grotesk', 'Roboto Flex', sans-serif;
+            font-size: 58px;
+            font-weight: 700;
+            letter-spacing: -0.08em;
+            color: var(--dash-text);
+        }
+
+        .score-subtitle {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--dash-muted);
+        }
+
+        .score-tooltip {
+            position: relative;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dash-muted);
+            background: rgba(255, 255, 255, 0.06);
+            cursor: help;
+            margin-bottom: 10px;
+        }
+
+        .score-tooltip:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: 0;
+            bottom: -4px;
+            transform: translateY(100%);
+            z-index: 10;
+            min-width: 220px;
+            max-width: 280px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #101925;
+            color: #f6fbff;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+        }
+
+        .score-range {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .score-grade-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .score-grade {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .level-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--dash-text);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .level-chip strong {
+            font-size: 1rem;
+        }
+
+        .progress-shell {
+            position: relative;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .progress-fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 0;
+            background: linear-gradient(90deg, var(--dash-good) 0%, var(--dash-warning) 54%, var(--dash-risk) 100%);
+            border-radius: inherit;
+            transition: width 1200ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .progress-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            mix-blend-mode: screen;
+        }
+
+        .score-footnote {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            color: var(--dash-muted);
+        }
+
+        .achievement-panel {
+            padding: 14px;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 12px;
+        }
+
+        .panel-label {
+            font-size: 0.78rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--dash-muted);
+        }
+
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .achievement-chip {
+            border-radius: 18px;
+            padding: 12px 12px 10px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            min-height: 92px;
+        }
+
+        .achievement-chip .icon {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        .achievement-chip .name {
+            font-size: 0.86rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .achievement-chip .value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+        }
+
+        .achievement-chip .hint {
+            margin-top: 4px;
+            font-size: 0.72rem;
+            color: var(--dash-muted);
+        }
+
+        .achievement-chip.active {
+            border-color: rgba(76, 175, 80, 0.42);
+            box-shadow: inset 0 0 0 1px rgba(76, 175, 80, 0.18);
+            background: linear-gradient(180deg, rgba(76, 175, 80, 0.16), rgba(255, 255, 255, 0.03));
+        }
+
+        .body-grid {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
+            gap: 16px;
+        }
+
+        .left-stack,
+        .right-stack {
+            min-height: 0;
+            display: grid;
+            gap: 16px;
+        }
+
+        .left-stack {
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+        }
+
+        .part-card {
+            padding: 16px 16px 14px;
+            display: grid;
+            grid-template-rows: auto auto auto 1fr;
+            gap: 12px;
+        }
+
+        .part-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .part-title {
+            font-family: 'Space Grotesk', 'Roboto Flex', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .part-state {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--dash-muted);
+        }
+
+        .state-pill {
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--dash-muted);
+            white-space: nowrap;
+        }
+
+        .state-pill.good {
+            color: var(--dash-good);
+            background: var(--dash-good-soft);
+            border-color: rgba(76, 175, 80, 0.2);
+        }
+
+        .state-pill.warning {
+            color: var(--dash-warning);
+            background: var(--dash-warning-soft);
+            border-color: rgba(255, 193, 7, 0.2);
+        }
+
+        .state-pill.risk {
+            color: var(--dash-risk);
+            background: var(--dash-risk-soft);
+            border-color: rgba(244, 67, 54, 0.22);
+        }
+
+        .bar-stack {
+            display: grid;
+            gap: 8px;
+        }
+
+        .stack-track {
+            display: flex;
+            height: 18px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .stack-track span {
+            display: block;
+            height: 100%;
+            transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .stack-track .good { background: linear-gradient(90deg, #62d46b, #40ad45); }
+        .stack-track .warning { background: linear-gradient(90deg, #ffd95a, #f4b400); }
+        .stack-track .risk { background: linear-gradient(90deg, #ff7b6e, #f44336); }
+
+        .stack-legend {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            color: var(--dash-muted);
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .feedback-line {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--dash-text);
+        }
+
+        .feedback-line.muted {
+            color: var(--dash-muted);
+        }
+
+        .warning-box {
+            padding: 12px;
+            border-radius: 16px;
+            background: rgba(244, 67, 54, 0.12);
+            border: 1px solid rgba(244, 67, 54, 0.22);
+            color: #ffcfcb;
+            font-size: 0.92rem;
+        }
+
+        .player-card {
+            padding: 16px;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto auto;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        .player-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .player-top h2 {
+            margin: 0;
+            font-family: 'Space Grotesk', 'Roboto Flex', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.02em;
+        }
+
+        .player-top p {
+            margin: 4px 0 0;
+            font-size: 0.82rem;
+            color: var(--dash-muted);
+        }
+
+        .player-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .meta-pill {
+            padding: 7px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--dash-text);
+            font-size: 0.76rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .video-shell {
+            position: relative;
+            min-height: 0;
+            height: 100%;
+            min-height: 280px;
+            aspect-ratio: 16 / 9;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+
+        .session-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: #04111a;
+        }
+
+        .session-canvas {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            opacity: 1;
+            display: block;
+            pointer-events: auto;
+        }
+
+        .video-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 14px;
+            background: linear-gradient(180deg, rgba(3, 10, 18, 0.26) 0%, rgba(3, 10, 18, 0.04) 52%, rgba(3, 10, 18, 0.32) 100%);
+        }
+
+        .video-stage-badges {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .video-chip {
+            padding: 8px 11px;
+            border-radius: 999px;
+            background: rgba(10, 17, 27, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .video-stage-badges .video-chip:last-child {
+            margin-left: auto;
+        }
+
+        .video-play-state {
+            align-self: flex-end;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(10, 17, 27, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.76rem;
+            font-weight: 700;
+        }
+
+        .player-controls {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-btn {
+            width: 42px;
+            height: 42px;
+            border: 0;
+            border-radius: 50%;
+            color: #06111b;
+            background: linear-gradient(180deg, #eff6ff, #dce9ff);
+            font-size: 1rem;
+            font-weight: 700;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+            cursor: pointer;
+        }
+
+        .seek-range {
+            width: 100%;
+            accent-color: var(--dash-good);
+        }
+
+        .seek-tip {
+            font-size: 0.78rem;
+            color: var(--dash-muted);
+            text-align: right;
+        }
+
+        .timeline-shell {
+            display: grid;
+            gap: 10px;
+        }
+
+        .timeline-track {
+            position: relative;
+            display: flex;
+            gap: 2px;
+            height: 20px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .timeline-slice {
+            flex: 1 1 0;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+            transition: transform 140ms ease, filter 140ms ease;
+            position: relative;
+        }
+
+        .timeline-slice:hover {
+            transform: scaleY(1.15);
+            filter: brightness(1.08);
+            z-index: 1;
+        }
+
+        .timeline-slice.good { background: linear-gradient(90deg, #62d46b, #40ad45); }
+        .timeline-slice.warning { background: linear-gradient(90deg, #ffd95a, #f4b400); }
+        .timeline-slice.risk { background: linear-gradient(90deg, #ff7b6e, #f44336); }
+
+        .timeline-markers {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.78rem;
+            color: var(--dash-muted);
+        }
+
+        .timeline-marker {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .footer-bar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .footer-card {
+            padding: 14px 16px;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 12px;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .footer-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 1.2rem;
+        }
+
+        .footer-text h3 {
+            margin: 0 0 4px;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--dash-muted);
+        }
+
+        .feedback-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .feedback-card {
+            border-radius: 16px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .feedback-card .label {
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--dash-muted);
+            margin-bottom: 4px;
+        }
+
+        .feedback-card .msg {
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
+        .expand-btn {
+            justify-self: end;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+            color: var(--dash-text);
+            border-radius: 16px;
+            padding: 14px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .analysis-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 10, 17, 0.68);
+            backdrop-filter: blur(16px);
+            display: grid;
+            place-items: center;
+            z-index: 30;
+            padding: 20px;
+        }
+
+        .analysis-overlay.hidden {
+            display: none;
+        }
+
+        .analysis-sheet {
+            width: min(1400px, 94vw);
+            max-height: 90vh;
+            overflow: hidden;
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(180deg, rgba(15, 26, 40, 0.98), rgba(8, 16, 26, 0.98));
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+        }
+
+        .analysis-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 18px 22px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .analysis-head h3 {
+            margin: 0;
+            font-size: 1.15rem;
+        }
+
+        .analysis-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 0;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--dash-text);
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+
+        .analysis-body {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            padding: 18px 22px 22px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .analysis-panel {
+            min-height: 0;
+            border-radius: 22px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 10px;
+        }
+
+        .analysis-panel h4 {
+            margin: 0;
+            font-size: 0.82rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--dash-muted);
+        }
+
+        .snapshot-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .snapshot-card {
+            border-radius: 18px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .snapshot-card .t {
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .snapshot-card .m {
+            font-size: 0.9rem;
+            line-height: 1.45;
+            color: var(--dash-muted);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .metric-card {
+            border-radius: 18px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .metric-card .k {
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--dash-muted);
+            margin-bottom: 6px;
+        }
+
+        .metric-card .v {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .raw-table-wrap {
+            min-height: 0;
+            overflow: auto;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .raw-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+        }
+
+        .raw-table th,
+        .raw-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            white-space: nowrap;
+        }
+
+        .raw-table th {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 18, 29, 0.98);
+            z-index: 1;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.68rem;
+            color: var(--dash-muted);
+        }
+
+        .expert-source-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .expert-source-row .field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .expert-source-row label {
+            font-size: 0.74rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--dash-muted);
+        }
+
+        .expert-source-row select {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--dash-text);
+            padding: 10px 12px;
+        }
+
+        @media (max-width: 1300px) {
+            .screen-shell {
+                width: 100vw;
+                height: 100vh;
+                padding: 12px;
+            }
+
+            .hero-header,
+            .body-grid,
+            .footer-bar,
+            .analysis-body {
+                grid-template-columns: 1fr;
+            }
+
+            .score-card {
+                grid-template-columns: 1fr;
+            }
+
+            .left-stack {
+                grid-template-rows: repeat(2, minmax(180px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+<main class="screen-shell" id="appShell">
+    <header class="hero-header">
+        <section class="glass-card score-card">
+            <div class="score-main">
+                <div class="score-title">Performance Score</div>
+                <div class="score-value-row">
+                    <div class="score-value" id="scoreValue">78</div>
+                    <div class="score-tooltip" data-tip="80+ Excellent / 60-79 Improving / <60 Needs Attention">i</div>
+                </div>
+                <div class="score-subtitle" id="scoreSubtitle">Quick read: solid session quality with clear room to level up.</div>
+            </div>
+            <div class="score-range">
+                <div class="score-grade-row">
+                    <div class="score-grade" id="scoreGrade">Improving 🟡</div>
+                    <div class="level-chip" id="levelChip">Level <strong>2</strong> → Level 3 🔓</div>
+                </div>
+                <div class="progress-shell" aria-label="score progress">
+                    <div class="progress-fill" id="scoreFill"></div>
+                    <div class="progress-overlay" id="scoreProgressText">8 / 10 to unlock next level</div>
+                </div>
+                <div class="score-footnote">
+                    <span id="sessionStamp">Loading session...</span>
+                    <span id="unlockHint">Improve 10 points to unlock Level 3</span>
+                </div>
+            </div>
+        </section>
+
+        <aside class="glass-card achievement-panel">
+            <div class="panel-label">Achievements</div>
+            <div class="achievement-grid" id="achievementGrid"></div>
+        </aside>
+    </header>
+
+    <section class="body-grid">
+        <div class="left-stack">
+            <article class="glass-card part-card" id="armCard">
+                <div class="part-header">
+                    <div>
+                        <div class="part-state">Body Left</div>
+                        <div class="part-title">🦾 Arm</div>
+                    </div>
+                    <div class="state-pill" id="armStatePill">Loading</div>
+                </div>
+                <div class="bar-stack">
+                    <div class="stack-track" aria-label="arm posture distribution">
+                        <span class="good" id="armGoodBar"></span>
+                        <span class="warning" id="armWarningBar"></span>
+                        <span class="risk" id="armRiskBar"></span>
+                    </div>
+                    <div class="stack-legend">
+                            <span class="legend-item"><i class="legend-dot" style="background:var(--dash-good)"></i><span id="armGoodText">Good</span></span>
+                            <span class="legend-item"><i class="legend-dot" style="background:var(--dash-warning)"></i><span id="armWarningText">Warning</span></span>
+                            <span class="legend-item"><i class="legend-dot" style="background:var(--dash-risk)"></i><span id="armRiskText">Risk</span></span>
+                    </div>
+                </div>
+                <div class="feedback-line" id="armFeedback">Control is stable. Keep the arm slightly closer to your torso.</div>
+                <div class="feedback-line muted" id="armSourceHint">🦾 Arm Coach</div>
+            </article>
+
+            <article class="glass-card part-card" id="trunkCard">
+                <div class="part-header">
+                    <div>
+                        <div class="part-state">Body Left</div>
+                        <div class="part-title">🧍 Trunk</div>
+                    </div>
+                    <div class="state-pill" id="trunkStatePill">Loading</div>
+                </div>
+                <div class="bar-stack" id="trunkBarsWrap">
+                    <div class="stack-track" aria-label="trunk posture distribution">
+                        <span class="good" id="trunkGoodBar"></span>
+                        <span class="warning" id="trunkWarningBar"></span>
+                        <span class="risk" id="trunkRiskBar"></span>
+                    </div>
+                    <div class="stack-legend">
+                        <span class="legend-item"><i class="legend-dot" style="background:var(--dash-good)"></i><span id="trunkGoodText">Good</span></span>
+                        <span class="legend-item"><i class="legend-dot" style="background:var(--dash-warning)"></i><span id="trunkWarningText">Warning</span></span>
+                        <span class="legend-item"><i class="legend-dot" style="background:var(--dash-risk)"></i><span id="trunkRiskText">Risk</span></span>
+                    </div>
+                </div>
+                <div class="warning-box hidden" id="trunkUnavailableBox">Data unavailable</div>
+                <div class="feedback-line" id="trunkFeedback">Trunk Guardian is analyzing posture quality.</div>
+                <div class="feedback-line muted" id="trunkSourceHint">🧍 Trunk Guardian</div>
+            </article>
+        </div>
+
+        <div class="right-stack">
+            <article class="glass-card player-card">
+                <div class="player-top">
+                    <div>
+                        <h2>Postural Viewer + Timeline</h2>
+                        <p id="playerSubtitle">Starts from the best posture segment. Click timeline slices to jump.</p>
+                    </div>
+                    <div class="player-meta">
+                        <span class="meta-pill" id="bestTag">Best</span>
+                        <span class="meta-pill" id="worstTag">Worst</span>
+                        <span class="meta-pill" id="durationTag">0.0s</span>
+                    </div>
+                </div>
+
+                <div class="video-shell">
+                    <canvas id="sessionCanvas" class="session-canvas" width="1280" height="720"></canvas>
+                    <div class="video-overlay">
+                        <div class="video-stage-badges">
+                            <div class="video-chip" id="stageStateChip">GOOD</div>
+                            <div class="video-chip" id="stageTimeChip">00:00.0</div>
+                        </div>
+                        <div class="video-play-state" id="playStateText">Paused</div>
+                    </div>
+                </div>
+
+                <div class="player-controls">
+                    <button class="control-btn" id="playPauseBtn" aria-label="play or pause">▶</button>
+                    <input class="seek-range" id="seekRange" type="range" min="0" max="100" value="0" aria-label="seek through the session">
+                    <div class="seek-tip">Drag or click timeline</div>
+                </div>
+
+                <div class="timeline-shell">
+                    <div class="timeline-track" id="timelineTrack"></div>
+                    <div class="timeline-markers" id="timelineMarkers"></div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <footer class="footer-bar">
+        <section class="glass-card footer-card">
+            <div class="footer-icon">🧠</div>
+            <div class="footer-text">
+                <h3>Coaching Feedback</h3>
+                <div class="feedback-row" id="feedbackRow"></div>
+            </div>
+        </section>
+        <button class="expand-btn" id="expandBtn">View More Analysis ▼</button>
+    </footer>
+</main>
+
+<div class="analysis-overlay hidden" id="analysisOverlay" aria-hidden="true">
+    <div class="analysis-sheet">
+        <div class="analysis-head">
+            <h3>Expert Analysis</h3>
+            <button class="analysis-close" id="closeOverlayBtn" aria-label="close expert analysis">×</button>
+        </div>
+        <div class="analysis-body">
+            <section class="analysis-panel">
+                <h4>Posture Snapshots</h4>
+                <div class="snapshot-grid" id="snapshotGrid"></div>
+            </section>
+            <section class="analysis-panel">
+                <h4>Detailed Metrics</h4>
+                <div class="metric-grid" id="metricGrid"></div>
+                <div class="expert-source-row">
+                    <div class="field">
+                        <label for="expertArmSelect">Arm source</label>
+                        <select id="expertArmSelect"></select>
+                    </div>
+                    <div class="field">
+                        <label for="expertTrunkSelect">Trunk source</label>
+                        <select id="expertTrunkSelect"></select>
+                    </div>
+                </div>
+            </section>
+            <section class="analysis-panel">
+                <h4>Raw Data</h4>
+                <div class="raw-table-wrap">
+                    <table class="raw-table" id="rawDataTable"></table>
+                </div>
+            </section>
+            <section class="analysis-panel">
+                <h4>Session Notes</h4>
+                <div class="warning-box" id="overlayNote">Expanded view shows posture snapshots, detailed metrics, and raw data.</div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+const DEFAULT_SESSION = {
+    arm: 'rightArm_VCBC04_reformatted.csv',
+    trunk: 'trunk_VCBC04_reformatted.csv'
+};
+
+const SLOT_META = {
+    arm: { device_type: 'arm', threshold_yellow: 30, threshold_red: 60 },
+    trunk: { device_type: 'trunk', threshold_yellow: 20, threshold_red: 45 }
+};
+
+const APP_STATE = {
+    files: [],
+    session: {
+        armFile: DEFAULT_SESSION.arm,
+        trunkFile: DEFAULT_SESSION.trunk,
+        arm: null,
+        trunk: null,
+        armData: [],
+        trunkData: [],
+        combined: [],
+        score: 78,
+        level: 2,
+        bestMs: 0,
+        worstMs: 0,
+        playMs: 0,
+        playing: false,
+        lastFrameTs: 0,
+        timelineSlices: []
+    }
+};
+
+const UI = {};
+let animationHandle = 0;
+let timelineClickCount = 0;
+let viewerScene = null;
+let viewerCamera = null;
+let viewerRenderer = null;
+let viewerOrbit = null;
+let viewerMannequin = null;
+let viewerReady = false;
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function formatSeconds(ms) {
+    return (Math.max(0, ms) / 1000).toFixed(1);
+}
+
+function formatTimecode(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const minutes = String(Math.floor(total / 60)).padStart(2, '0');
+    const seconds = String(total % 60).padStart(2, '0');
+    const tenths = String(Math.floor((ms % 1000) / 100));
+    return `${minutes}:${seconds}.${tenths}`;
+}
+
+function parseCSVData(csvText) {
+    if (!csvText) return [];
+    const lines = csvText.trim().split(/\r?\n/);
+    const data = [];
+    let timeOffset = 0;
+    let previousElapsed = 0;
+    let sequenceCount = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const parts = line.split(',');
+        if (parts.length < 5) continue;
+
+        const elapsedMs = parseInt(parts[0], 10);
+        const angle = parseFloat(parts[2]);
+        const feedback = parseInt(parts[3], 10);
+        if (!Number.isFinite(elapsedMs) || !Number.isFinite(angle) || !Number.isFinite(feedback)) continue;
+
+        if (i > 1 && elapsedMs < previousElapsed) {
+            timeOffset += previousElapsed;
+            sequenceCount++;
+        }
+
+        data.push({
+            elapsed_ms: elapsedMs,
+            adjusted_elapsed_ms: elapsedMs + timeOffset,
+            timestamp: parts[1],
+            angle,
+            feedback,
+            zone: String(parts[4] || '').trim().toLowerCase(),
+            sequence: sequenceCount
+        });
+        previousElapsed = elapsedMs;
+    }
+
+    return data;
+}
+
+function calculateStatistics(data, metadata) {
+    const yellowThreshold = parseFloat(metadata.threshold_yellow) || 30;
+    const redThreshold = parseFloat(metadata.threshold_red) || 60;
+    let totalGreenTime = 0;
+    let totalYellowTime = 0;
+    let totalRedTime = 0;
+    const recoveryEvents = [];
+    let currentBadZoneStart = null;
+    let currentBadZone = null;
+    const greenStreaks = [];
+    let currentGreenStreak = 0;
+
+    for (let i = 0; i < data.length; i++) {
+        const point = data[i];
+        const prevPoint = i > 0 ? data[i - 1] : null;
+        const timeStep = prevPoint ? (point.adjusted_elapsed_ms - prevPoint.adjusted_elapsed_ms) / 1000 : 0;
+
+        if (point.zone === 'green') {
+            totalGreenTime += timeStep;
+            currentGreenStreak += timeStep;
+            if (prevPoint && (prevPoint.zone === 'yellow' || prevPoint.zone === 'red') && currentBadZoneStart !== null) {
+                recoveryEvents.push({
+                    fromZone: currentBadZone,
+                    recoveryTime: (point.adjusted_elapsed_ms - currentBadZoneStart) / 1000
+                });
+                currentBadZoneStart = null;
+                currentBadZone = null;
+            }
+        } else {
+            if (currentGreenStreak > 0) {
+                greenStreaks.push(currentGreenStreak);
+                currentGreenStreak = 0;
+            }
+            if (point.zone === 'yellow') {
+                totalYellowTime += timeStep;
+                if (prevPoint && prevPoint.zone === 'green') {
+                    currentBadZoneStart = point.adjusted_elapsed_ms;
+                    currentBadZone = 'yellow';
+                }
+            } else if (point.zone === 'red') {
+                totalYellowTime += timeStep;
+                totalRedTime += timeStep;
+                if (prevPoint && prevPoint.zone === 'green') {
+                    currentBadZoneStart = point.adjusted_elapsed_ms;
+                    currentBadZone = 'red';
+                } else if (currentBadZone === 'yellow') {
+                    currentBadZone = 'red';
+                }
+            }
+        }
+    }
+
+    if (currentGreenStreak > 0) greenStreaks.push(currentGreenStreak);
+
+    const totalTime = data.length > 1 ? (data[data.length - 1].adjusted_elapsed_ms - data[0].adjusted_elapsed_ms) / 1000 : 0;
+    const halfIdx = Math.floor(data.length / 2);
+    const avgFirst = data.slice(0, halfIdx).reduce((sum, item) => sum + item.angle, 0) / Math.max(1, halfIdx);
+    const avgSecond = data.slice(halfIdx).reduce((sum, item) => sum + item.angle, 0) / Math.max(1, data.length - halfIdx);
+    const fastestRec = recoveryEvents.length > 0 ? Math.min(...recoveryEvents.map(entry => entry.recoveryTime)) : null;
+
+    return {
+        totalTime,
+        totalGreenTime,
+        totalYellowTime,
+        totalRedTime,
+        yellowThreshold,
+        redThreshold,
+        greenPercentage: (totalGreenTime / Math.max(totalTime, 0.001) * 100).toFixed(1),
+        yellowPercentage: (totalYellowTime / Math.max(totalTime, 0.001) * 100).toFixed(1),
+        redPercentage: (totalRedTime / Math.max(totalTime, 0.001) * 100).toFixed(1),
+        averageAngle: (data.reduce((sum, item) => sum + item.angle, 0) / Math.max(1, data.length)).toFixed(2),
+        recoveryCount: recoveryEvents.length,
+        fastestRecovery: fastestRec ? fastestRec.toFixed(1) : 'N/A',
+        longestGreenStreak: greenStreaks.length > 0 ? Math.max(...greenStreaks).toFixed(1) : 0,
+        avgFirst: avgFirst.toFixed(2),
+        avgSecond: avgSecond.toFixed(2),
+        improvement: avgFirst > avgSecond
+    };
+}
+
+function getRiskBandFromPercentages(greenPct, yellowPct, redPct) {
+    const score = Math.round((greenPct * 0.7) + (yellowPct * 0.2) + (redPct * 0.1));
+    if (score >= 80) return { key: 'excellent', label: 'Excellent 🟢', color: 'var(--dash-good)' };
+    if (score >= 60) return { key: 'improving', label: 'Improving 🟡', color: 'var(--dash-warning)' };
+    return { key: 'attention', label: 'Needs Attention 🔴', color: 'var(--dash-risk)' };
+}
+
+function buildCombinedReplayTrack(armData, trunkData) {
+    const arm = Array.isArray(armData) ? armData : [];
+    const trunk = Array.isArray(trunkData) ? trunkData : [];
+    const msSet = new Set();
+    arm.forEach(point => msSet.add(point.adjusted_elapsed_ms));
+    trunk.forEach(point => msSet.add(point.adjusted_elapsed_ms));
+    const timeline = [...msSet].sort((a, b) => a - b);
+
+    function nearestPoint(points, ms) {
+        if (!points || points.length === 0) return null;
+        let lo = 0;
+        let hi = points.length - 1;
+        while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const value = points[mid].adjusted_elapsed_ms;
+            if (value === ms) return points[mid];
+            if (value < ms) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        const left = hi >= 0 ? points[hi] : null;
+        const right = lo < points.length ? points[lo] : null;
+        if (!left) return right;
+        if (!right) return left;
+        return Math.abs(left.adjusted_elapsed_ms - ms) <= Math.abs(right.adjusted_elapsed_ms - ms) ? left : right;
+    }
+
+    function zoneLevel(zone) {
+        if (zone === 'red') return 2;
+        if (zone === 'yellow') return 1;
+        return 0;
+    }
+
+    function zoneFromLevel(level) {
+        if (level >= 2) return 'risk';
+        if (level >= 1) return 'warning';
+        return 'good';
+    }
+
+    return timeline.map(ms => {
+        const armPoint = nearestPoint(arm, ms);
+        const trunkPoint = nearestPoint(trunk, ms);
+        const armZone = armPoint ? (armPoint.zone || 'green') : 'green';
+        const trunkZone = trunkPoint ? (trunkPoint.zone || 'green') : 'green';
+        return {
+            adjusted_elapsed_ms: ms,
+            elapsed_ms: ms,
+            timestamp: trunkPoint ? trunkPoint.timestamp : (armPoint ? armPoint.timestamp : '00:00:00.000'),
+            trunkAngle: trunkPoint ? (trunkPoint.angle || 0) : 0,
+            armAngle: armPoint ? (armPoint.angle || 0) : 0,
+            trunkZone,
+            armZone,
+            angle: trunkPoint ? (trunkPoint.angle || 0) : (armPoint ? (armPoint.angle || 0) : 0),
+            zone: zoneFromLevel(Math.max(zoneLevel(armZone), zoneLevel(trunkZone))),
+            feedback: (armPoint && armPoint.feedback) || (trunkPoint && trunkPoint.feedback) || 0
+        };
+    });
+}
+
+function summarisePartFeedback(part, summary, unavailable) {
+    if (unavailable) {
+        return 'Data unavailable';
+    }
+
+    const green = parseFloat(summary.greenPercentage) || 0;
+    const yellow = parseFloat(summary.yellowPercentage) || 0;
+    const red = parseFloat(summary.redPercentage) || 0;
+
+    if (part === 'arm') {
+        if (green >= 70) return 'Good control. Keep your arm a little closer to your body.';
+        if (yellow >= red) return 'There is some extra reach. Try to keep arm motion more compact.';
+        return 'Arm load is high. Prioritize reducing distance from the torso.';
+    }
+
+    if (green >= 70) return 'Trunk alignment is steady. Keep a neutral posture.';
+    if (yellow >= red) return 'The trunk leans forward at times. Stay a bit more upright.';
+    return 'Trunk risk is elevated. Bring your torso back to neutral first.';
+}
+
+function getSnapshotLabel(point, fallbackLabel) {
+    if (!point) return fallbackLabel;
+    const zone = String(point.zone || 'green').toLowerCase();
+    const label = zone === 'red' ? 'Risk' : (zone === 'yellow' ? 'Warning' : 'Good');
+    return `${fallbackLabel} · ${label}`;
+}
+
+function makeSnapshotText(point, fallbackLabel) {
+    if (!point) {
+        return 'Data unavailable';
+    }
+    const arm = Number(point.armAngle || 0).toFixed(1);
+    const trunk = Number(point.trunkAngle || 0).toFixed(1);
+    const zone = String(point.zone || 'good').toUpperCase();
+    return `${formatTimecode(point.adjusted_elapsed_ms)} · Arm ${arm}° · Trunk ${trunk}° · ${zone}`;
+}
+
+async function loadDemoFileOptions() {
+    const fallback = Array.isArray(APP_CONFIG && APP_CONFIG.demoDataFiles) ? APP_CONFIG.demoDataFiles.slice() : [];
+
+    try {
+        const response = await fetch('demo-data/');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const html = await response.text();
+        const regex = /href="([^"]+\.csv)"/ig;
+        const names = [];
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+            const raw = match[1] || '';
+            const name = decodeURIComponent(raw.split('/').pop());
+            if (name && !names.includes(name)) names.push(name);
+        }
+        const finalNames = names.length > 0 ? names : fallback;
+        APP_STATE.files = finalNames.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    } catch (_error) {
+        APP_STATE.files = fallback.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    }
+}
+
+function populateExpertSelectors() {
+    const armSelect = document.getElementById('expertArmSelect');
+    const trunkSelect = document.getElementById('expertTrunkSelect');
+
+    const allFiles = Array.isArray(APP_STATE.files) ? APP_STATE.files : [];
+    const armFiles = allFiles.filter(name => /arm/i.test(name));
+    const trunkFiles = allFiles.filter(name => /trunk/i.test(name));
+    const armOptions = armFiles.length > 0 ? armFiles : allFiles;
+    const trunkOptions = trunkFiles.length > 0 ? trunkFiles : allFiles;
+
+    if (armOptions.length > 0 && !armOptions.includes(APP_STATE.session.armFile)) {
+        APP_STATE.session.armFile = armOptions[0];
+    }
+    if (trunkOptions.length > 0 && !trunkOptions.includes(APP_STATE.session.trunkFile)) {
+        APP_STATE.session.trunkFile = trunkOptions[0];
+    }
+
+    if (armSelect) {
+        armSelect.innerHTML = armOptions.map(name => `<option value="${name}">${name}</option>`).join('');
+        armSelect.value = APP_STATE.session.armFile;
+    }
+    if (trunkSelect) {
+        trunkSelect.innerHTML = trunkOptions.map(name => `<option value="${name}">${name}</option>`).join('');
+        trunkSelect.value = APP_STATE.session.trunkFile;
+    }
+}
+
+function initDom() {
+    UI.scoreValue = document.getElementById('scoreValue');
+    UI.scoreSubtitle = document.getElementById('scoreSubtitle');
+    UI.scoreGrade = document.getElementById('scoreGrade');
+    UI.levelChip = document.getElementById('levelChip');
+    UI.scoreFill = document.getElementById('scoreFill');
+    UI.scoreProgressText = document.getElementById('scoreProgressText');
+    UI.unlockHint = document.getElementById('unlockHint');
+    UI.sessionStamp = document.getElementById('sessionStamp');
+    UI.achievementGrid = document.getElementById('achievementGrid');
+    UI.armGoodBar = document.getElementById('armGoodBar');
+    UI.armWarningBar = document.getElementById('armWarningBar');
+    UI.armRiskBar = document.getElementById('armRiskBar');
+    UI.armGoodText = document.getElementById('armGoodText');
+    UI.armWarningText = document.getElementById('armWarningText');
+    UI.armRiskText = document.getElementById('armRiskText');
+    UI.armStatePill = document.getElementById('armStatePill');
+    UI.armFeedback = document.getElementById('armFeedback');
+    UI.trunkBarsWrap = document.getElementById('trunkBarsWrap');
+    UI.trunkGoodBar = document.getElementById('trunkGoodBar');
+    UI.trunkWarningBar = document.getElementById('trunkWarningBar');
+    UI.trunkRiskBar = document.getElementById('trunkRiskBar');
+    UI.trunkGoodText = document.getElementById('trunkGoodText');
+    UI.trunkWarningText = document.getElementById('trunkWarningText');
+    UI.trunkRiskText = document.getElementById('trunkRiskText');
+    UI.trunkStatePill = document.getElementById('trunkStatePill');
+    UI.trunkFeedback = document.getElementById('trunkFeedback');
+    UI.trunkUnavailableBox = document.getElementById('trunkUnavailableBox');
+    UI.playerSubtitle = document.getElementById('playerSubtitle');
+    UI.bestTag = document.getElementById('bestTag');
+    UI.worstTag = document.getElementById('worstTag');
+    UI.durationTag = document.getElementById('durationTag');
+    UI.sessionVideo = document.getElementById('sessionVideo');
+    UI.sessionCanvas = document.getElementById('sessionCanvas');
+    UI.stageStateChip = document.getElementById('stageStateChip');
+    UI.stageTimeChip = document.getElementById('stageTimeChip');
+    UI.playStateText = document.getElementById('playStateText');
+    UI.playPauseBtn = document.getElementById('playPauseBtn');
+    UI.seekRange = document.getElementById('seekRange');
+    UI.timelineTrack = document.getElementById('timelineTrack');
+    UI.timelineMarkers = document.getElementById('timelineMarkers');
+    UI.feedbackRow = document.getElementById('feedbackRow');
+    UI.expandBtn = document.getElementById('expandBtn');
+    UI.analysisOverlay = document.getElementById('analysisOverlay');
+    UI.closeOverlayBtn = document.getElementById('closeOverlayBtn');
+    UI.snapshotGrid = document.getElementById('snapshotGrid');
+    UI.metricGrid = document.getElementById('metricGrid');
+    UI.rawDataTable = document.getElementById('rawDataTable');
+    UI.overlayNote = document.getElementById('overlayNote');
+    UI.expertArmSelect = document.getElementById('expertArmSelect');
+    UI.expertTrunkSelect = document.getElementById('expertTrunkSelect');
+}
+
+function computeCombinedRula(armSummary, trunkSummary) {
+    const armRula = armSummary ? Number(armSummary.rulaScore || 4) : 4;
+    if (!trunkSummary) return clamp(Math.round(armRula), 1, 7);
+    const trunkRula = Number(trunkSummary.rulaScore || 4);
+    return clamp(Math.round(armRula + trunkRula), 1, 7);
+}
+
+function computeScoreFromSummary(armSummary, trunkSummary) {
+    if (armSummary && typeof armSummary.rulaScore !== 'undefined') {
+        return computeCombinedRula(armSummary, trunkSummary);
+    }
+
+    const green = parseFloat(armSummary && armSummary.greenPercentage) || 0;
+    const yellow = parseFloat(armSummary && armSummary.yellowPercentage) || 0;
+    const red = parseFloat(armSummary && armSummary.redPercentage) || 0;
+    const composite = clamp(Math.round((green * 0.7) + (yellow * 0.2) + (red * 0.1)), 0, 100);
+
+    return clamp(7 - Math.round((composite / 100) * 6), 1, 7);
+}
+
+function createLevelState(rula) {
+    const postureScore = clamp(100 - Math.round(((rula - 1) / 6) * 100), 0, 100);
+    if (postureScore >= 80) {
+        return {
+            level: 3,
+            nextLevel: 4,
+            progressText: `RULA ${rula} - Level 3 unlocked`,
+            unlockHint: 'Excellent tier reached',
+            progress: 100,
+            remaining: 0
+        };
+    }
+    if (postureScore >= 70) {
+        return {
+            level: 2,
+            nextLevel: 3,
+            progressText: `RULA ${rula} - ${postureScore - 70} / 10 to unlock next level`,
+            unlockHint: 'Improve 10 points to unlock Level 3',
+            progress: ((postureScore - 70) / 10) * 100,
+            remaining: 80 - postureScore
+        };
+    }
+    if (postureScore >= 60) {
+        return {
+            level: 1,
+            nextLevel: 2,
+            progressText: `RULA ${rula} - ${postureScore - 60} / 10 to unlock next level`,
+            unlockHint: 'Improve 10 points to reach Level 2',
+            progress: ((postureScore - 60) / 10) * 100,
+            remaining: 70 - postureScore
+        };
+    }
+    return {
+        level: 1,
+        nextLevel: 2,
+        progressText: `RULA ${rula} - ${postureScore} / 60 to unlock Level 2`,
+        unlockHint: 'Stabilize core posture first',
+        progress: (postureScore / 60) * 100,
+        remaining: 60 - postureScore
+    };
+}
+
+function buildTimelineSlices(track) {
+    if (!track || track.length === 0) return [];
+    const targetSlices = Math.min(44, Math.max(18, Math.ceil(track.length / 3)));
+    const sliceSize = Math.max(1, Math.ceil(track.length / targetSlices));
+    const slices = [];
+
+    for (let index = 0; index < track.length; index += sliceSize) {
+        const chunk = track.slice(index, index + sliceSize);
+        const first = chunk[0];
+        const last = chunk[chunk.length - 1];
+        const severity = chunk.reduce((max, item) => {
+            const zone = String(item.zone || 'good').toLowerCase();
+            return Math.max(max, zone === 'risk' || zone === 'red' ? 2 : zone === 'warning' || zone === 'yellow' ? 1 : 0);
+        }, 0);
+        const zone = severity >= 2 ? 'risk' : severity >= 1 ? 'warning' : 'good';
+        slices.push({
+            zone,
+            startMs: first.adjusted_elapsed_ms,
+            endMs: last.adjusted_elapsed_ms,
+            midMs: Math.round((first.adjusted_elapsed_ms + last.adjusted_elapsed_ms) / 2),
+            points: chunk
+        });
+    }
+
+    return slices;
+}
+
+function chooseBestAndWorst(track, armSummary, trunkSummary) {
+    const candidates = [];
+    if (armSummary && armSummary.segments && armSummary.segments.best_60s) candidates.push({ type: 'arm', zone: 'good', ...armSummary.segments.best_60s });
+    if (trunkSummary && trunkSummary.segments && trunkSummary.segments.best_60s) candidates.push({ type: 'trunk', zone: 'good', ...trunkSummary.segments.best_60s });
+    const worstCandidates = [];
+    if (armSummary && armSummary.segments && armSummary.segments.worst_60s) worstCandidates.push({ type: 'arm', zone: 'risk', ...armSummary.segments.worst_60s });
+    if (trunkSummary && trunkSummary.segments && trunkSummary.segments.worst_60s) worstCandidates.push({ type: 'trunk', zone: 'risk', ...trunkSummary.segments.worst_60s });
+
+    const best = candidates.sort((a, b) => a.avgAngle - b.avgAngle)[0] || null;
+    const worst = worstCandidates.sort((a, b) => b.avgAngle - a.avgAngle)[0] || null;
+
+    const bestMs = best ? best.startMs : (track[0] ? track[0].adjusted_elapsed_ms : 0);
+    const worstMs = worst ? worst.startMs : (track[track.length - 1] ? track[track.length - 1].adjusted_elapsed_ms : 0);
+    return { bestMs, worstMs, best, worst };
+}
+
+function nearestPoint(track, ms) {
+    if (!track || track.length === 0) return null;
+    let lo = 0;
+    let hi = track.length - 1;
+    while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const value = track[mid].adjusted_elapsed_ms;
+        if (value === ms) return track[mid];
+        if (value < ms) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    const left = hi >= 0 ? track[hi] : null;
+    const right = lo < track.length ? track[lo] : null;
+    if (!left) return right;
+    if (!right) return left;
+    return Math.abs(left.adjusted_elapsed_ms - ms) <= Math.abs(right.adjusted_elapsed_ms - ms) ? left : right;
+}
+
+function interpolateChannel(data, ms) {
+    if (!Array.isArray(data) || data.length === 0) return null;
+    if (ms <= data[0].adjusted_elapsed_ms) return data[0];
+    const last = data[data.length - 1];
+    if (ms >= last.adjusted_elapsed_ms) return last;
+
+    let lo = 0;
+    let hi = data.length - 1;
+    while (lo < hi - 1) {
+        const mid = (lo + hi) >> 1;
+        if (data[mid].adjusted_elapsed_ms <= ms) lo = mid;
+        else hi = mid;
+    }
+
+    const a = data[lo];
+    const b = data[hi];
+    const denom = Math.max(1, b.adjusted_elapsed_ms - a.adjusted_elapsed_ms);
+    const ratio = (ms - a.adjusted_elapsed_ms) / denom;
+    return {
+        adjusted_elapsed_ms: ms,
+        angle: a.angle + (b.angle - a.angle) * ratio,
+        zone: ratio < 0.5 ? a.zone : b.zone
+    };
+}
+
+class PostureMannequin {
+    constructor(scene) {
+        this.root = new THREE.Group();
+        scene.add(this.root);
+        this.initMaterials();
+        this.build();
+    }
+
+    initMaterials() {
+        const toon = hex => new THREE.MeshToonMaterial({ color: hex });
+        this.mats = {
+            skin: toon(0xf5c5a3),
+            clothing: toon(0x546e7a),
+            joint: toon(0x78909c),
+            pelvis: toon(0x455a64)
+        };
+    }
+
+    add(geo, mat, parent, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1) {
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, z);
+        mesh.scale.set(sx, sy, sz);
+        mesh.castShadow = true;
+        parent.add(mesh);
+        return mesh;
+    }
+
+    build() {
+        const { skin, clothing, joint, pelvis } = this.mats;
+        this.add(new THREE.CylinderGeometry(0.15, 0.13, 0.22, 18), pelvis, this.root, 0, 0.11, 0);
+
+        this.spinePivot = new THREE.Group();
+        this.spinePivot.position.set(0, 0.22, 0);
+        this.root.add(this.spinePivot);
+
+        this.add(new THREE.CylinderGeometry(0.185, 0.155, 0.6, 18), clothing, this.spinePivot, 0, 0.30, 0);
+
+        this.chestGroup = new THREE.Group();
+        this.chestGroup.position.set(0, 0.62, 0);
+        this.spinePivot.add(this.chestGroup);
+
+        this.add(new THREE.CylinderGeometry(0.065, 0.085, 0.2, 12), skin, this.chestGroup, 0, 0.10, 0);
+        this.add(new THREE.SphereGeometry(0.155, 22, 16), skin, this.chestGroup, 0, 0.37, 0);
+
+        this.buildArm('left', joint, skin, clothing);
+        this.buildArm('right', joint, skin, clothing);
+    }
+
+    buildArm(side, joint, skin, clothing) {
+        const sign = side === 'left' ? -1 : 1;
+        const shoulder = new THREE.Group();
+        shoulder.position.set(sign * 0.37, -0.04, 0);
+        this.chestGroup.add(shoulder);
+        this.add(new THREE.SphereGeometry(0.10, 14, 10), joint, shoulder);
+
+        const upperPivot = new THREE.Group();
+        shoulder.add(upperPivot);
+        if (side === 'left') this.leftArmPivot = upperPivot;
+        else this.rightArmPivot = upperPivot;
+
+        this.add(new THREE.CylinderGeometry(0.072, 0.060, 0.30, 14), skin, upperPivot, 0, -0.15, 0);
+        this.add(new THREE.CylinderGeometry(0.082, 0.068, 0.20, 14), clothing, upperPivot, 0, -0.08, 0);
+        this.add(new THREE.SphereGeometry(0.066, 12, 8), joint, upperPivot, 0, -0.30, 0);
+
+        const forearmPivot = new THREE.Group();
+        forearmPivot.position.set(0, -0.30, 0);
+        forearmPivot.rotation.x = THREE.MathUtils.degToRad(-12);
+        upperPivot.add(forearmPivot);
+        this.add(new THREE.CylinderGeometry(0.060, 0.046, 0.28, 14), skin, forearmPivot, 0, -0.14, 0);
+    }
+
+    setTrunkAngle(deg) {
+        this.spinePivot.rotation.x = THREE.MathUtils.degToRad(Math.max(0, deg));
+    }
+
+    setArmAngle(deg, trunkDeg = 0) {
+        const rad = -THREE.MathUtils.degToRad(Math.max(0, deg)) - THREE.MathUtils.degToRad(trunkDeg);
+        this.leftArmPivot.rotation.x = rad;
+        this.rightArmPivot.rotation.x = rad;
+    }
+
+    setTrunkZone(zone) {
+        const color = zone === 'red' ? 0xe53935 : zone === 'yellow' ? 0xfb8c00 : 0x546e7a;
+        this.mats.clothing.color.setHex(color);
+        this.mats.pelvis.color.setHex(zone === 'red' ? 0xb71c1c : zone === 'yellow' ? 0xe65100 : 0x455a64);
+    }
+
+    setArmZone(zone) {
+        const color = zone === 'red' ? 0xef5350 : zone === 'yellow' ? 0xffa726 : 0x78909c;
+        this.mats.joint.color.setHex(color);
+    }
+}
+
+function initPostureViewer() {
+    if (viewerReady || !UI.sessionCanvas || !window.THREE) return;
+    const wrap = UI.sessionCanvas.parentElement;
+    const width = Math.max(600, wrap.clientWidth || 600);
+    const height = Math.max(400, wrap.clientHeight || 400);
+
+    viewerScene = new THREE.Scene();
+    viewerScene.background = new THREE.Color(0xe4eaef);
+    viewerScene.fog = new THREE.FogExp2(0xe4eaef, 0.08);
+
+    viewerCamera = new THREE.PerspectiveCamera(42, width / height, 0.05, 40);
+    viewerCamera.position.set(1.3, 1.5, 3.4);
+    viewerCamera.lookAt(0, 0.75, 0);
+
+    viewerRenderer = new THREE.WebGLRenderer({ canvas: UI.sessionCanvas, antialias: true });
+    viewerRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    viewerRenderer.setSize(width, height, false);
+    viewerRenderer.shadowMap.enabled = true;
+    viewerRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    viewerScene.add(new THREE.AmbientLight(0xffffff, 0.60));
+    const sun = new THREE.DirectionalLight(0xfff8ee, 0.95);
+    sun.position.set(2, 5, 3);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 18;
+    viewerScene.add(sun);
+
+    const fill = new THREE.DirectionalLight(0x8898cc, 0.35);
+    fill.position.set(-2, 2, -1);
+    viewerScene.add(fill);
+
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, 8),
+        new THREE.MeshLambertMaterial({ color: 0xd0d8e0 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.15;
+    ground.receiveShadow = true;
+    viewerScene.add(ground);
+
+    const grid = new THREE.GridHelper(5, 20, 0xb0b8c0, 0xc4cdd4);
+    grid.position.y = -0.148;
+    viewerScene.add(grid);
+
+    if (THREE.OrbitControls) {
+        viewerOrbit = new THREE.OrbitControls(viewerCamera, viewerRenderer.domElement);
+        viewerOrbit.target.set(0, 0.75, 0);
+        viewerOrbit.enableDamping = true;
+        viewerOrbit.dampingFactor = 0.07;
+        viewerOrbit.minDistance = 1.2;
+        viewerOrbit.maxDistance = 8;
+        viewerOrbit.maxPolarAngle = Math.PI * 0.88;
+        viewerOrbit.update();
+    }
+
+    viewerMannequin = new PostureMannequin(viewerScene);
+    viewerReady = true;
+
+    const drawLoop = () => {
+        if (viewerOrbit) viewerOrbit.update();
+        viewerRenderer.render(viewerScene, viewerCamera);
+        requestAnimationFrame(drawLoop);
+    };
+    drawLoop();
+}
+
+function updatePostureViewer(ms) {
+    if (!viewerReady || !viewerMannequin) return;
+    const armPt = interpolateChannel(APP_STATE.session.armData, ms);
+    const trunkPt = interpolateChannel(APP_STATE.session.trunkData, ms);
+
+    const trunkAngle = trunkPt ? Number(trunkPt.angle || 0) : 0;
+    const armAngle = armPt ? Number(armPt.angle || 0) : 0;
+
+    viewerMannequin.setTrunkAngle(trunkAngle);
+    viewerMannequin.setArmAngle(armAngle, trunkAngle);
+    viewerMannequin.setTrunkZone((trunkPt && trunkPt.zone) || 'green');
+    viewerMannequin.setArmZone((armPt && armPt.zone) || 'green');
+}
+
+class SessionVideoController {
+    constructor(videoEl, canvasEl) {
+        this.videoEl = videoEl;
+        this.canvasEl = canvasEl;
+        this.stream = null;
+        this.track = [];
+        this.durationMs = 0;
+        this.currentMs = 0;
+        this.playing = false;
+        this.speed = 1;
+        this.lastTs = 0;
+        this.bestMs = 0;
+        this.worstMs = 0;
+        this.onFrame = null;
+    }
+
+    attach() {
+        if (this.canvasEl && typeof this.canvasEl.captureStream === 'function' && this.videoEl) {
+            this.stream = this.canvasEl.captureStream(30);
+            this.videoEl.srcObject = this.stream;
+            this.videoEl.muted = true;
+            this.videoEl.playsInline = true;
+            this.videoEl.play().catch(() => {});
+        } else if (this.videoEl) {
+            this.videoEl.style.display = 'none';
+            this.canvasEl.style.opacity = '1';
+        }
+    }
+
+    setTrack(track, bestMs, worstMs) {
+        this.track = Array.isArray(track) ? track : [];
+        this.bestMs = bestMs || 0;
+        this.worstMs = worstMs || 0;
+        this.durationMs = this.track.length > 1 ? (this.track[this.track.length - 1].adjusted_elapsed_ms - this.track[0].adjusted_elapsed_ms) : 0;
+        this.currentMs = this.bestMs || (this.track[0] ? this.track[0].adjusted_elapsed_ms : 0);
+        this.lastTs = 0;
+        this.render();
+    }
+
+    play() {
+        if (this.track.length === 0) return;
+        this.playing = true;
+        this.lastTs = 0;
+        this.loop();
+    }
+
+    pause() {
+        this.playing = false;
+    }
+
+    toggle() {
+        if (this.playing) this.pause();
+        else this.play();
+    }
+
+    seekTo(ms) {
+        this.currentMs = clamp(ms, this.track[0]?.adjusted_elapsed_ms || 0, this.track[this.track.length - 1]?.adjusted_elapsed_ms || 0);
+        this.lastTs = 0;
+        this.render();
+    }
+
+    seekToRatio(ratio) {
+        if (this.track.length === 0) return;
+        const start = this.track[0].adjusted_elapsed_ms;
+        const end = this.track[this.track.length - 1].adjusted_elapsed_ms;
+        this.seekTo(start + clamp(ratio, 0, 1) * Math.max(0, end - start));
+    }
+
+    loop(ts = 0) {
+        if (!this.playing) return;
+        if (!this.lastTs) this.lastTs = ts;
+        const delta = (ts - this.lastTs) * this.speed;
+        this.lastTs = ts;
+        this.currentMs += delta;
+        const start = this.track[0]?.adjusted_elapsed_ms || 0;
+        const end = this.track[this.track.length - 1]?.adjusted_elapsed_ms || start;
+        if (this.currentMs > end) {
+            this.currentMs = this.bestMs || start;
+        }
+        this.render();
+        animationHandle = requestAnimationFrame(nextTs => this.loop(nextTs));
+    }
+
+    render() {
+        if (this.track.length === 0) return;
+        const point = nearestPoint(this.track, this.currentMs) || this.track[0];
+        if (typeof this.onFrame === 'function') this.onFrame(point, this.currentMs);
+    }
+}
+
+function renderScore(rula, levelState) {
+    const postureScore = clamp(100 - Math.round(((rula - 1) / 6) * 100), 0, 100);
+    UI.scoreValue.textContent = String(rula);
+    const band = rula <= 2 ? { label: 'Excellent 🟢', color: 'var(--dash-good)' } : rula <= 4 ? { label: 'Improving 🟡', color: 'var(--dash-warning)' } : { label: 'Needs Attention 🔴', color: 'var(--dash-risk)' };
+    UI.scoreGrade.textContent = band.label;
+    UI.scoreGrade.style.color = band.color;
+    UI.scoreSubtitle.textContent = rula <= 2
+        ? 'Quick read: low ergonomic risk with stable posture control.'
+        : rula <= 4
+            ? 'Quick read: moderate ergonomic load. Keep improving consistency.'
+            : 'Quick read: high ergonomic risk. Correct posture earlier in the cycle.';
+    UI.levelChip.innerHTML = `RULA <strong>${rula}</strong> · Level <strong>${levelState.level}</strong> → Level ${levelState.nextLevel} ${postureScore >= 80 ? '🔓' : '🔒'}`;
+    UI.scoreFill.style.width = `${postureScore}%`;
+    UI.scoreProgressText.textContent = levelState.progressText;
+    UI.unlockHint.textContent = levelState.unlockHint;
+    UI.sessionStamp.textContent = `Session · ${APP_STATE.session.armFile}${APP_STATE.session.trunkFile ? ' / ' + APP_STATE.session.trunkFile : ''}`;
+
+    UI.achievementGrid.innerHTML = [
+        {
+            icon: '🏅',
+            name: 'Good Posture Streak',
+            value: `${Math.round(parseFloat(APP_STATE.session.arm?.longestGreenStreak || 0))}s`,
+            hint: 'Longest green-zone streak',
+            active: parseFloat(APP_STATE.session.arm?.longestGreenStreak || 0) >= 8
+        },
+        {
+            icon: '🏆',
+            name: 'Best Today',
+            value: APP_STATE.session.bestTag || 'Best',
+            hint: 'Tap timeline to revisit the best segment',
+            active: true
+        },
+        {
+            icon: '⬆️',
+            name: 'Top Improvement',
+            value: APP_STATE.session.arm && APP_STATE.session.trunk ? `${Math.max(0, Math.round((parseFloat(APP_STATE.session.arm.avgFirst) || 0) - (parseFloat(APP_STATE.session.arm.avgSecond) || 0)))}°` : '—',
+            hint: 'First vs second half',
+            active: !!(APP_STATE.session.arm && APP_STATE.session.arm.improvement)
+        }
+    ].map(item => `
+        <div class="achievement-chip ${item.active ? 'active' : ''}">
+            <div class="icon">${item.icon}</div>
+            <div class="name">${item.name}</div>
+            <div class="value">${item.value}</div>
+            <div class="hint">${item.hint}</div>
+        </div>
+    `).join('');
+}
+
+function renderPartCard(part, summary, unavailable) {
+    const good = unavailable ? 0 : parseFloat(summary.greenPercentage) || 0;
+    const warning = unavailable ? 0 : parseFloat(summary.yellowPercentage) || 0;
+    const risk = unavailable ? 0 : parseFloat(summary.redPercentage) || 0;
+    const band = unavailable ? { key: 'attention', label: 'Data unavailable', color: 'var(--dash-risk)' } : getRiskBandFromPercentages(good, warning, risk);
+    const isArm = part === 'arm';
+    const feedback = summarisePartFeedback(part, summary, unavailable);
+
+    document.getElementById(`${part}GoodBar`).style.width = `${good}%`;
+    document.getElementById(`${part}WarningBar`).style.width = `${warning}%`;
+    document.getElementById(`${part}RiskBar`).style.width = `${risk}%`;
+    document.getElementById(`${part}GoodText`).textContent = unavailable ? '--' : 'Good';
+    document.getElementById(`${part}WarningText`).textContent = unavailable ? '--' : 'Warning';
+    document.getElementById(`${part}RiskText`).textContent = unavailable ? '--' : 'Risk';
+    document.getElementById(`${part}StatePill`).textContent = band.label;
+    document.getElementById(`${part}StatePill`).className = `state-pill ${band.key === 'excellent' ? 'good' : band.key === 'improving' ? 'warning' : 'risk'}`;
+    document.getElementById(`${part}Feedback`).textContent = feedback;
+
+    const unavailableBox = document.getElementById(`${part}UnavailableBox`);
+    if (unavailableBox) {
+        unavailableBox.classList.toggle('hidden', !unavailable);
+    }
+
+    if (!unavailable) {
+        const feedbackModel = (window.AnthropomorphicFeedback && typeof window.AnthropomorphicFeedback.generate === 'function')
+            ? window.AnthropomorphicFeedback.generate({
+                deviceType: isArm ? 'arm' : 'trunk',
+                riskLevel: band.key === 'excellent' ? 'low' : band.key === 'improving' ? 'moderate' : 'high',
+                rulaScore: scoreFromPart(summary),
+                filename: isArm ? APP_STATE.session.armFile : APP_STATE.session.trunkFile
+            })
+            : null;
+        document.getElementById(`${part}SourceHint`).textContent = feedbackModel ? `${feedbackModel.icon} ${feedbackModel.partLabel} Coach` : (isArm ? '🦾 Arm Coach' : '🧍 Trunk Guardian');
+    } else {
+        document.getElementById(`${part}SourceHint`).textContent = isArm ? '🦾 Arm Coach' : '🧍 Trunk Guardian';
+    }
+}
+
+function scoreFromPart(summary) {
+    return clamp(Math.round((parseFloat(summary.greenPercentage) || 0) * 0.7 + (parseFloat(summary.yellowPercentage) || 0) * 0.2 + (parseFloat(summary.redPercentage) || 0) * 0.1), 0, 100);
+}
+
+function renderTimeline(track) {
+    const slices = buildTimelineSlices(track);
+    APP_STATE.session.timelineSlices = slices;
+    UI.timelineTrack.innerHTML = slices.map(slice => `
+        <button class="timeline-slice ${slice.zone}" title="${formatTimecode(slice.startMs)} · ${slice.zone}" data-ms="${slice.midMs}"></button>
+    `).join('');
+    UI.timelineMarkers.innerHTML = [
+        `<span class="timeline-marker">⭐ Best ${formatTimecode(APP_STATE.session.bestMs)}</span>`,
+        `<span class="timeline-marker">⚠️ Worst ${formatTimecode(APP_STATE.session.worstMs)}</span>`
+    ].join('');
+
+    UI.timelineTrack.querySelectorAll('.timeline-slice').forEach(button => {
+        button.addEventListener('click', () => {
+            timelineClickCount++;
+            player.pause();
+            UI.playPauseBtn.textContent = '▶';
+            player.seekTo(parseFloat(button.dataset.ms || '0'));
+            updatePlayerState();
+        });
+    });
+}
+
+function renderFeedback(armSummary, trunkSummary) {
+    const armData = window.AnthropomorphicFeedback && typeof window.AnthropomorphicFeedback.generate === 'function'
+        ? window.AnthropomorphicFeedback.generate({
+            deviceType: 'arm',
+            riskLevel: getRiskBandFromPercentages(parseFloat(armSummary.greenPercentage) || 0, parseFloat(armSummary.yellowPercentage) || 0, parseFloat(armSummary.redPercentage) || 0).key === 'excellent' ? 'low' : getRiskBandFromPercentages(parseFloat(armSummary.greenPercentage) || 0, parseFloat(armSummary.yellowPercentage) || 0, parseFloat(armSummary.redPercentage) || 0).key === 'improving' ? 'moderate' : 'high',
+            rulaScore: scoreFromPart(armSummary),
+            filename: APP_STATE.session.armFile
+        }) : { icon: '🦾', partLabel: 'Arm', message: summarisePartFeedback('arm', armSummary, false) };
+
+    const trunkUnavailable = !trunkSummary;
+    const trunkData = trunkUnavailable ? {
+        icon: '🧍',
+        partLabel: 'Trunk',
+        message: 'Data unavailable'
+    } : (window.AnthropomorphicFeedback && typeof window.AnthropomorphicFeedback.generate === 'function'
+        ? window.AnthropomorphicFeedback.generate({
+            deviceType: 'trunk',
+            riskLevel: getRiskBandFromPercentages(parseFloat(trunkSummary.greenPercentage) || 0, parseFloat(trunkSummary.yellowPercentage) || 0, parseFloat(trunkSummary.redPercentage) || 0).key === 'excellent' ? 'low' : getRiskBandFromPercentages(parseFloat(trunkSummary.greenPercentage) || 0, parseFloat(trunkSummary.yellowPercentage) || 0, parseFloat(trunkSummary.redPercentage) || 0).key === 'improving' ? 'moderate' : 'high',
+            rulaScore: scoreFromPart(trunkSummary),
+            filename: APP_STATE.session.trunkFile
+        }) : { icon: '🧍', partLabel: 'Trunk', message: summarisePartFeedback('trunk', trunkSummary, false) });
+
+    UI.feedbackRow.innerHTML = [armData, trunkData].map(item => `
+        <div class="feedback-card">
+            <div class="label">${item.icon} ${item.partLabel}</div>
+            <div class="msg">${item.message}</div>
+        </div>
+    `).join('');
+}
+
+function renderOverlay(armSummary, trunkSummary, combinedTrack) {
+    const bestPoint = combinedTrack.find(item => item.adjusted_elapsed_ms === APP_STATE.session.bestMs) || nearestPoint(combinedTrack, APP_STATE.session.bestMs) || combinedTrack[0];
+    const midPoint = combinedTrack[Math.floor(combinedTrack.length / 2)] || bestPoint;
+    const worstPoint = combinedTrack.find(item => item.adjusted_elapsed_ms === APP_STATE.session.worstMs) || nearestPoint(combinedTrack, APP_STATE.session.worstMs) || combinedTrack[combinedTrack.length - 1];
+
+    UI.snapshotGrid.innerHTML = [
+        { title: getSnapshotLabel(bestPoint, 'Start'), text: makeSnapshotText(bestPoint, 'Start') },
+        { title: getSnapshotLabel(midPoint, 'Mid'), text: makeSnapshotText(midPoint, 'Mid') },
+        { title: getSnapshotLabel(worstPoint, 'End'), text: makeSnapshotText(worstPoint, 'End') }
+    ].map(item => `
+        <div class="snapshot-card">
+            <div class="t">${item.title}</div>
+            <div class="m">${item.text}</div>
+        </div>
+    `).join('');
+
+    const metrics = [
+        ['Score', `${APP_STATE.session.score}`],
+        ['Level', `${APP_STATE.session.level} → ${APP_STATE.session.level + 1}`],
+        ['Arm green', `${(parseFloat(armSummary.greenPercentage) || 0).toFixed(1)}%`],
+        ['Arm red', `${(parseFloat(armSummary.redPercentage) || 0).toFixed(1)}%`],
+        ['Trunk green', trunkSummary ? `${(parseFloat(trunkSummary.greenPercentage) || 0).toFixed(1)}%` : 'Data unavailable'],
+        ['Best 60s', formatTimecode(APP_STATE.session.bestMs)],
+        ['Worst 60s', formatTimecode(APP_STATE.session.worstMs)],
+        ['Recovery', `${armSummary.recoveryCount || 0}${trunkSummary ? ' + ' + (trunkSummary.recoveryCount || 0) : ''}`]
+    ];
+
+    UI.metricGrid.innerHTML = metrics.map(([key, value]) => `
+        <div class="metric-card">
+            <div class="k">${key}</div>
+            <div class="v">${value}</div>
+        </div>
+    `).join('');
+
+    const rows = combinedTrack.slice(0, 12).map(point => `
+        <tr>
+            <td>${formatTimecode(point.adjusted_elapsed_ms)}</td>
+            <td>${Number(point.armAngle || 0).toFixed(1)}°</td>
+            <td>${Number(point.trunkAngle || 0).toFixed(1)}°</td>
+            <td>${String(point.armZone || 'good').toUpperCase()}</td>
+            <td>${String(point.trunkZone || 'good').toUpperCase()}</td>
+            <td>${String(point.zone || 'good').toUpperCase()}</td>
+        </tr>
+    `).join('');
+
+    UI.rawDataTable.innerHTML = `
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Arm</th>
+                <th>Trunk</th>
+                <th>Arm Zone</th>
+                <th>Trunk Zone</th>
+                <th>Mixed</th>
+            </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+    `;
+
+    UI.overlayNote.textContent = 'The expert panel opens as an overlay and keeps the page height fixed.';
+}
+
+function updatePlayerState() {
+    const point = nearestPoint(APP_STATE.session.combined, player.currentMs) || APP_STATE.session.combined[0];
+    if (!point) return;
+    const zone = String(point.zone || 'good').toLowerCase();
+    const startMs = APP_STATE.session.combined[0]?.adjusted_elapsed_ms || 0;
+    const endMs = APP_STATE.session.combined.at(-1)?.adjusted_elapsed_ms || startMs;
+    const spanMs = Math.max(1, endMs - startMs);
+    UI.stageStateChip.textContent = zone.toUpperCase();
+    UI.stageStateChip.style.color = zone === 'risk' ? 'var(--dash-risk)' : zone === 'warning' ? 'var(--dash-warning)' : 'var(--dash-good)';
+    UI.stageTimeChip.textContent = formatTimecode(point.adjusted_elapsed_ms);
+    UI.playStateText.textContent = player.playing ? 'Playing' : 'Paused';
+    UI.seekRange.value = String(clamp((point.adjusted_elapsed_ms - startMs) / spanMs, 0, 1) * 100);
+}
+
+async function loadSession() {
+    const armOpt = APP_STATE.files.find(name => name === APP_STATE.session.armFile) || APP_STATE.session.armFile;
+    const trunkOpt = APP_STATE.files.find(name => name === APP_STATE.session.trunkFile) || APP_STATE.session.trunkFile;
+
+    const fetchCsv = async name => {
+        if (!name) return '';
+        const response = await fetch(`demo-data/${encodeURIComponent(name)}`);
+        if (!response.ok) throw new Error(`Cannot fetch ${name}`);
+        return response.text();
+    };
+
+    const [armText, trunkText] = await Promise.all([
+        fetchCsv(armOpt).catch(() => ''),
+        fetchCsv(trunkOpt).catch(() => '')
+    ]);
+
+    const armData = parseCSVData(armText);
+    const trunkData = parseCSVData(trunkText);
+    const armStats = armData.length > 0 ? calculateStatistics(armData, SLOT_META.arm) : null;
+    const trunkStats = trunkData.length > 0 ? calculateStatistics(trunkData, SLOT_META.trunk) : null;
+
+    const armSummary = armData.length > 0 && typeof buildSessionSummary === 'function'
+        ? buildSessionSummary(armData, SLOT_META.arm, armStats, APP_STATE.session.armFile)
+        : null;
+    const trunkSummary = trunkData.length > 0 && typeof buildSessionSummary === 'function'
+        ? buildSessionSummary(trunkData, SLOT_META.trunk, trunkStats, APP_STATE.session.trunkFile)
+        : null;
+
+    if (armSummary && armSummary.segments && !APP_STATE.session.bestMs) {
+        APP_STATE.session.bestMs = armSummary.segments.best_60s ? armSummary.segments.best_60s.startMs : (armData[0] ? armData[0].adjusted_elapsed_ms : 0);
+        APP_STATE.session.worstMs = armSummary.segments.worst_60s ? armSummary.segments.worst_60s.startMs : (armData.at(-1) ? armData.at(-1).adjusted_elapsed_ms : 0);
+    }
+
+    const combinedTrack = buildCombinedReplayTrack(armData, trunkData);
+    const bestWorst = chooseBestAndWorst(combinedTrack, armSummary, trunkSummary);
+
+    APP_STATE.session.arm = armSummary;
+    APP_STATE.session.trunk = trunkSummary;
+    APP_STATE.session.armData = armData;
+    APP_STATE.session.trunkData = trunkData;
+    APP_STATE.session.combined = combinedTrack;
+    APP_STATE.session.score = combinedTrack.length > 0 ? computeScoreFromSummary(armSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0 }, trunkSummary || null) : 0;
+    APP_STATE.session.level = createLevelState(APP_STATE.session.score).level;
+    APP_STATE.session.bestMs = bestWorst.bestMs;
+    APP_STATE.session.worstMs = bestWorst.worstMs;
+    APP_STATE.session.playMs = bestWorst.bestMs;
+    APP_STATE.session.timelineSlices = buildTimelineSlices(combinedTrack);
+    APP_STATE.session.bestTag = bestWorst.best ? `${bestWorst.best.type.toUpperCase()} Best` : 'Best';
+    APP_STATE.session.worstTag = bestWorst.worst ? `${bestWorst.worst.type.toUpperCase()} Worst` : 'Worst';
+
+    renderScore(APP_STATE.session.score, createLevelState(APP_STATE.session.score));
+    renderPartCard('arm', armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, longestGreenStreak: 0 }, false);
+    renderPartCard('trunk', trunkSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0 }, !trunkSummary);
+    renderFeedback(armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, recoveryCount: 0, rulaScore: 3 }, trunkSummary);
+    renderTimeline(combinedTrack);
+    renderOverlay(armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, recoveryCount: 0 }, trunkSummary, combinedTrack);
+
+    UI.bestTag.textContent = `⭐ ${APP_STATE.session.bestTag}`;
+    UI.worstTag.textContent = `⚠️ ${APP_STATE.session.worstTag}`;
+    UI.durationTag.textContent = `${formatSeconds(combinedTrack.length > 1 ? combinedTrack.at(-1).adjusted_elapsed_ms - combinedTrack[0].adjusted_elapsed_ms : 0)}s`;
+    UI.playerSubtitle.textContent = trunkSummary ? 'Starts at the best posture segment. Click timeline slices to jump. Expand for expert details.' : 'Trunk data is missing. Viewer is running in arm-only fallback mode.';
+    UI.trunkUnavailableBox.classList.toggle('hidden', !!trunkSummary);
+    UI.trunkBarsWrap.style.opacity = trunkSummary ? '1' : '0.45';
+    UI.trunkBarsWrap.style.pointerEvents = trunkSummary ? 'auto' : 'none';
+
+    if (APP_STATE.session.combined.length > 0) {
+        player.setTrack(APP_STATE.session.combined, APP_STATE.session.bestMs, APP_STATE.session.worstMs);
+        player.seekTo(APP_STATE.session.bestMs);
+        updatePlayerState();
+        updatePostureViewer(player.currentMs);
+    }
+
+    populateExpertSelectors();
+}
+
+function bindUi() {
+    UI.playPauseBtn.addEventListener('click', () => {
+        player.toggle();
+        UI.playPauseBtn.textContent = player.playing ? '⏸' : '▶';
+        updatePlayerState();
+    });
+
+    UI.seekRange.addEventListener('input', () => {
+        const ratio = parseFloat(UI.seekRange.value) / 100;
+        player.pause();
+        UI.playPauseBtn.textContent = '▶';
+        player.seekToRatio(ratio);
+        updatePlayerState();
+    });
+
+    UI.expandBtn.addEventListener('click', () => {
+        UI.analysisOverlay.classList.remove('hidden');
+        UI.analysisOverlay.setAttribute('aria-hidden', 'false');
+    });
+
+    UI.closeOverlayBtn.addEventListener('click', () => {
+        UI.analysisOverlay.classList.add('hidden');
+        UI.analysisOverlay.setAttribute('aria-hidden', 'true');
+    });
+
+    UI.analysisOverlay.addEventListener('click', event => {
+        if (event.target === UI.analysisOverlay) {
+            UI.analysisOverlay.classList.add('hidden');
+            UI.analysisOverlay.setAttribute('aria-hidden', 'true');
+        }
+    });
+
+    UI.expertArmSelect.addEventListener('change', async () => {
+        APP_STATE.session.armFile = UI.expertArmSelect.value;
+        await loadSession();
+    });
+
+    UI.expertTrunkSelect.addEventListener('change', async () => {
+        APP_STATE.session.trunkFile = UI.expertTrunkSelect.value;
+        await loadSession();
+    });
+
+    window.addEventListener('resize', () => {
+        if (viewerRenderer && viewerCamera && UI.sessionCanvas) {
+            const rect = UI.sessionCanvas.parentElement.getBoundingClientRect();
+            const width = Math.max(600, Math.round(rect.width));
+            const height = Math.max(400, Math.round(rect.height));
+            viewerRenderer.setSize(width, height, false);
+            viewerCamera.aspect = width / height;
+            viewerCamera.updateProjectionMatrix();
+            player.render();
+        }
+    }, { passive: true });
+}
+
+const player = new SessionVideoController(null, document.getElementById('sessionCanvas'));
+
+async function initPage() {
+    initDom();
+    bindUi();
+    player.attach();
+    initPostureViewer();
+    player.onFrame = (_point, ms) => {
+        updatePostureViewer(ms);
+        updatePlayerState();
+    };
+
+    await loadDemoFileOptions();
+    populateExpertSelectors();
+
+    await loadSession();
+
+    UI.scoreFill.style.width = '0';
+    requestAnimationFrame(() => {
+        const levelState = createLevelState(APP_STATE.session.score);
+        UI.scoreFill.style.width = `${clamp(APP_STATE.session.score, 0, 100)}%`;
+        UI.scoreProgressText.textContent = levelState.progressText;
+    });
+
+    window._gamCurrentData = APP_STATE.session.combined;
+    window._gamCurrentDeviceType = 'combined';
+    window._gamSessions = [
+        ...(APP_STATE.session.arm ? [APP_STATE.session.arm] : []),
+        ...(APP_STATE.session.trunk ? [APP_STATE.session.trunk] : [])
+    ];
+}
+
+initPage().catch(error => {
+    console.error('Dashboard init failed:', error);
+    UI.sessionStamp.textContent = `Initialization failed: ${error.message}`;
+});
+</script>
+</body>
+</html>

@@ -565,38 +565,6 @@ const AnthropomorphicFeedback = {
         };
     },
 
-    /**
-     * Generate a session-arc narrative based on segment progression.
-     * @returns {string|null}
-     */
-    generateNarrative(summary) {
-        const deviceType = (summary.deviceType || 'trunk').toLowerCase();
-        const partLabel  = deviceType === 'arm' ? 'arm' : 'trunk';
-        const segs = summary.segments;
-        if (!segs) return null;
-
-        const ft = segs.first_third, mt = segs.middle_third, lt = segs.last_third;
-        const trend = (lt.greenPct > ft.greenPct + 10) ? 'improving'
-                    : (lt.greenPct < ft.greenPct - 10) ? 'declining'
-                    : 'stable';
-
-        let narrative;
-        if (trend === 'improving') {
-            narrative = `The ${partLabel} warmed up as the session progressed — I finished stronger (${lt.greenPct}% green) than I started (${ft.greenPct}% green).`;
-        } else if (trend === 'declining') {
-            narrative = `The ${partLabel} started well (${ft.greenPct}% green) but fatigued toward the end (${lt.greenPct}% green). Try to maintain focus in the final stretch!`;
-        } else {
-            narrative = `The ${partLabel} stayed at a consistent level throughout — ${ft.greenPct}% → ${mt.greenPct}% → ${lt.greenPct}% green across thirds.`;
-        }
-
-        if (segs.best_60s && segs.worst_60s) {
-            const swing = (segs.worst_60s.avgAngle - segs.best_60s.avgAngle).toFixed(1);
-            if (parseFloat(swing) > 15) {
-                narrative += ` There was a ${swing}° swing between my best and worst moments — working on consistency will really pay off!`;
-            }
-        }
-        return narrative;
-    }
 };
 
 function renderAnthropomorphicFeedback(containerId, summary) {
@@ -604,10 +572,8 @@ function renderAnthropomorphicFeedback(containerId, summary) {
     if (!el) return;
     const { message, icon, partLabel, riskLevel } = AnthropomorphicFeedback.generate(summary);
     const level = GAM.RISK_LEVELS[riskLevel] || GAM.RISK_LEVELS.moderate;
-    const narrative = AnthropomorphicFeedback.generateNarrative(summary);
 
     el.innerHTML = `
-        ${narrative ? `<p class="anthro-narrative">${escapeHtml(narrative)}</p>` : ''}
         <div class="anthro-feedback-card" style="border-left:4px solid ${level.color};background:${level.bg};">
             <div class="anthro-feedback-icon">${icon}</div>
             <div class="anthro-feedback-content">
