@@ -937,20 +937,19 @@
                     <div class="score-value" id="scoreValue">78</div>
                     <div class="score-tooltip" data-tip="80+ Excellent / 60-79 Improving / <60 Needs Attention">i</div>
                 </div>
-                <div class="score-subtitle" id="scoreSubtitle">Quick read: solid session quality with clear room to level up.</div>
+                <div class="score-subtitle" id="scoreSubtitle">Quick read: solid session quality with clear room to improve.</div>
             </div>
             <div class="score-range">
                 <div class="score-grade-row">
                     <div class="score-grade" id="scoreGrade">Improving 🟡</div>
-                    <div class="level-chip" id="levelChip">Level <strong>2</strong> → Level 3 🔓</div>
                 </div>
                 <div class="progress-shell" aria-label="score progress">
                     <div class="progress-fill" id="scoreFill"></div>
-                    <div class="progress-overlay" id="scoreProgressText">8 / 10 to unlock next level</div>
+                    <div class="progress-overlay" id="scoreProgressText">Current score: 78 / 100</div>
                 </div>
                 <div class="score-footnote">
                     <span id="sessionStamp">Loading session...</span>
-                    <span id="unlockHint">Improve 10 points to unlock Level 3</span>
+                    <span id="unlockHint">Target: keep score above 80</span>
                 </div>
             </div>
         </section>
@@ -1125,7 +1124,6 @@ const APP_STATE = {
         trunkData: [],
         combined: [],
         score: 78,
-        level: 2,
         bestMs: 0,
         worstMs: 0,
         playMs: 0,
@@ -1435,7 +1433,6 @@ function initDom() {
     UI.scoreValue = document.getElementById('scoreValue');
     UI.scoreSubtitle = document.getElementById('scoreSubtitle');
     UI.scoreGrade = document.getElementById('scoreGrade');
-    UI.levelChip = document.getElementById('levelChip');
     UI.scoreFill = document.getElementById('scoreFill');
     UI.scoreProgressText = document.getElementById('scoreProgressText');
     UI.unlockHint = document.getElementById('unlockHint');
@@ -1484,65 +1481,58 @@ function initDom() {
     UI.expertTrunkSelect = document.getElementById('expertTrunkSelect');
 }
 
-function computeCombinedRula(armSummary, trunkSummary) {
-    const armRula = armSummary ? Number(armSummary.rulaScore || 4) : 4;
-    if (!trunkSummary) return clamp(Math.round(armRula), 1, 7);
-    const trunkRula = Number(trunkSummary.rulaScore || 4);
-    return clamp(Math.round(armRula + trunkRula), 1, 7);
+function angleToRulaScoreLocal(angle, deviceType) {
+    const type = String(deviceType || '').toLowerCase();
+    if (type.includes('arm')) {
+        if (angle <= 20) return 1;
+        if (angle <= 45) return 2;
+        if (angle <= 90) return 3;
+        return 4;
+    }
+    if (angle > -10 && angle <= 10) return 1;
+    if (angle > 10 && angle <= 20) return 2;
+    if (angle > 20 && angle <= 60) return 3;
+    return 4;
 }
 
-function computeScoreFromSummary(armSummary, trunkSummary) {
-    if (armSummary && typeof armSummary.rulaScore !== 'undefined') {
-        return computeCombinedRula(armSummary, trunkSummary);
+function computeScoreFromSummary(armSummary, trunkSummary, combinedTrack) {
+    const track = Array.isArray(combinedTrack) ? combinedTrack : [];
+    if (track.length > 0) {
+        let pointRulaSum = 0;
+        for (const point of track) {
+            const armRula = angleToRulaScoreLocal(Number(point.armAngle || 0), 'arm');
+            const trunkRula = angleToRulaScoreLocal(Number(point.trunkAngle || 0), 'trunk');
+            const combinedRula = clamp(Math.round(armRula + trunkRula), 1, 7);
+            pointRulaSum += (armRula + trunkRula + combinedRula) / 3;
+        }
+        const meanRula = pointRulaSum / track.length;
+        return clamp(Math.round(((8 - meanRula) / 6) * 100), 0, 100);
     }
 
-    const green = parseFloat(armSummary && armSummary.greenPercentage) || 0;
-    const yellow = parseFloat(armSummary && armSummary.yellowPercentage) || 0;
-    const red = parseFloat(armSummary && armSummary.redPercentage) || 0;
-    const composite = clamp(Math.round((green * 0.7) + (yellow * 0.2) + (red * 0.1)), 0, 100);
-
-    return clamp(7 - Math.round((composite / 100) * 6), 1, 7);
+    const armRula = Number(armSummary && armSummary.rulaScore) || 4;
+    const trunkRula = Number(trunkSummary && trunkSummary.rulaScore) || 4;
+    const combinedRula = clamp(Math.round(armRula + trunkRula), 1, 7);
+    const meanRula = (armRula + trunkRula + combinedRula) / 3;
+    return clamp(Math.round(((8 - meanRula) / 6) * 100), 0, 100);
 }
 
-function createLevelState(rula) {
-    const postureScore = clamp(100 - Math.round(((rula - 1) / 6) * 100), 0, 100);
-    if (postureScore >= 80) {
+function createScoreState(postureScore) {
+    const score = clamp(Math.round(postureScore), 0, 100);
+    if (score >= 80) {
         return {
-            level: 3,
-            nextLevel: 4,
-            progressText: `RULA ${rula} - Level 3 unlocked`,
-            unlockHint: 'Excellent tier reached',
-            progress: 100,
-            remaining: 0
+            progressText: `Excellent zone: ${score} / 100`,
+            hint: 'Low ergonomic risk. Keep this consistency.'
         };
     }
-    if (postureScore >= 70) {
+    if (score >= 60) {
         return {
-            level: 2,
-            nextLevel: 3,
-            progressText: `RULA ${rula} - ${postureScore - 70} / 10 to unlock next level`,
-            unlockHint: 'Improve 10 points to unlock Level 3',
-            progress: ((postureScore - 70) / 10) * 100,
-            remaining: 80 - postureScore
-        };
-    }
-    if (postureScore >= 60) {
-        return {
-            level: 1,
-            nextLevel: 2,
-            progressText: `RULA ${rula} - ${postureScore - 60} / 10 to unlock next level`,
-            unlockHint: 'Improve 10 points to reach Level 2',
-            progress: ((postureScore - 60) / 10) * 100,
-            remaining: 70 - postureScore
+            progressText: `Improving zone: ${score} / 100`,
+            hint: `Raise ${80 - score} more points to reach Excellent.`
         };
     }
     return {
-        level: 1,
-        nextLevel: 2,
-        progressText: `RULA ${rula} - ${postureScore} / 60 to unlock Level 2`,
-        unlockHint: 'Stabilize core posture first',
-        progress: (postureScore / 60) * 100,
-        remaining: 60 - postureScore
+        progressText: `Needs attention: ${score} / 100`,
+        hint: 'Reduce high-risk posture time first.'
     };
 }
 
@@ -1897,21 +1887,21 @@ class SessionVideoController {
     }
 }
 
-function renderScore(rula, levelState) {
-    const postureScore = clamp(100 - Math.round(((rula - 1) / 6) * 100), 0, 100);
-    UI.scoreValue.textContent = String(rula);
-    const band = rula <= 2 ? { label: 'Excellent 🟢', color: 'var(--dash-good)' } : rula <= 4 ? { label: 'Improving 🟡', color: 'var(--dash-warning)' } : { label: 'Needs Attention 🔴', color: 'var(--dash-risk)' };
+function renderScore(postureScore) {
+    const score = clamp(Math.round(postureScore), 0, 100);
+    const scoreState = createScoreState(score);
+    UI.scoreValue.textContent = String(score);
+    const band = score >= 80 ? { label: 'Excellent 🟢', color: 'var(--dash-good)' } : score >= 60 ? { label: 'Improving 🟡', color: 'var(--dash-warning)' } : { label: 'Needs Attention 🔴', color: 'var(--dash-risk)' };
     UI.scoreGrade.textContent = band.label;
     UI.scoreGrade.style.color = band.color;
-    UI.scoreSubtitle.textContent = rula <= 2
+    UI.scoreSubtitle.textContent = score >= 80
         ? 'Quick read: low ergonomic risk with stable posture control.'
-        : rula <= 4
+        : score >= 60
             ? 'Quick read: moderate ergonomic load. Keep improving consistency.'
             : 'Quick read: high ergonomic risk. Correct posture earlier in the cycle.';
-    UI.levelChip.innerHTML = `RULA <strong>${rula}</strong> · Level <strong>${levelState.level}</strong> → Level ${levelState.nextLevel} ${postureScore >= 80 ? '🔓' : '🔒'}`;
-    UI.scoreFill.style.width = `${postureScore}%`;
-    UI.scoreProgressText.textContent = levelState.progressText;
-    UI.unlockHint.textContent = levelState.unlockHint;
+    UI.scoreFill.style.width = `${score}%`;
+    UI.scoreProgressText.textContent = scoreState.progressText;
+    UI.unlockHint.textContent = scoreState.hint;
     UI.sessionStamp.textContent = `Session · ${APP_STATE.session.armFile}${APP_STATE.session.trunkFile ? ' / ' + APP_STATE.session.trunkFile : ''}`;
 
     UI.achievementGrid.innerHTML = [
@@ -2058,7 +2048,6 @@ function renderOverlay(armSummary, trunkSummary, combinedTrack) {
 
     const metrics = [
         ['Score', `${APP_STATE.session.score}`],
-        ['Level', `${APP_STATE.session.level} → ${APP_STATE.session.level + 1}`],
         ['Arm green', `${(parseFloat(armSummary.greenPercentage) || 0).toFixed(1)}%`],
         ['Arm red', `${(parseFloat(armSummary.redPercentage) || 0).toFixed(1)}%`],
         ['Trunk green', trunkSummary ? `${(parseFloat(trunkSummary.greenPercentage) || 0).toFixed(1)}%` : 'Data unavailable'],
@@ -2157,8 +2146,7 @@ async function loadSession() {
     APP_STATE.session.armData = armData;
     APP_STATE.session.trunkData = trunkData;
     APP_STATE.session.combined = combinedTrack;
-    APP_STATE.session.score = combinedTrack.length > 0 ? computeScoreFromSummary(armSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0 }, trunkSummary || null) : 0;
-    APP_STATE.session.level = createLevelState(APP_STATE.session.score).level;
+    APP_STATE.session.score = combinedTrack.length > 0 ? computeScoreFromSummary(armSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0 }, trunkSummary || null, combinedTrack) : 0;
     APP_STATE.session.bestMs = bestWorst.bestMs;
     APP_STATE.session.worstMs = bestWorst.worstMs;
     APP_STATE.session.playMs = bestWorst.bestMs;
@@ -2166,7 +2154,7 @@ async function loadSession() {
     APP_STATE.session.bestTag = bestWorst.best ? `${bestWorst.best.type.toUpperCase()} Best` : 'Best';
     APP_STATE.session.worstTag = bestWorst.worst ? `${bestWorst.worst.type.toUpperCase()} Worst` : 'Worst';
 
-    renderScore(APP_STATE.session.score, createLevelState(APP_STATE.session.score));
+    renderScore(APP_STATE.session.score);
     renderPartCard('arm', armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, longestGreenStreak: 0 }, false);
     renderPartCard('trunk', trunkSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0 }, !trunkSummary);
     renderFeedback(armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, recoveryCount: 0, rulaScore: 3 }, trunkSummary);
@@ -2265,9 +2253,9 @@ async function initPage() {
 
     UI.scoreFill.style.width = '0';
     requestAnimationFrame(() => {
-        const levelState = createLevelState(APP_STATE.session.score);
+        const scoreState = createScoreState(APP_STATE.session.score);
         UI.scoreFill.style.width = `${clamp(APP_STATE.session.score, 0, 100)}%`;
-        UI.scoreProgressText.textContent = levelState.progressText;
+        UI.scoreProgressText.textContent = scoreState.progressText;
     });
 
     window._gamCurrentData = APP_STATE.session.combined;
