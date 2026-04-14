@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Compare - Wergonic</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+
+        :root {
+            --cmp-bg: #07131f;
+            --cmp-bg-2: #0d1f30;
+            --cmp-surface: rgba(12, 24, 38, 0.86);
+            --cmp-surface-2: rgba(17, 29, 46, 0.9);
+            --cmp-border: rgba(255, 255, 255, 0.08);
+            --cmp-text: #f5f8ff;
+            --cmp-muted: rgba(233, 240, 255, 0.7);
+            --cmp-good: #4caf50;
+            --cmp-warning: #ffc107;
+            --cmp-risk: #f44336;
+        }
+
+        html, body {
+            min-height: 100%;
+            background:
+                radial-gradient(circle at top left, rgba(76, 175, 80, 0.14), transparent 30%),
+                radial-gradient(circle at top right, rgba(255, 193, 7, 0.1), transparent 24%),
+                linear-gradient(135deg, var(--cmp-bg) 0%, var(--cmp-bg-2) 100%);
+        }
+
+        body {
+            color: var(--cmp-text);
+            font-family: 'Roboto Flex', 'Space Grotesk', system-ui, sans-serif;
+        }
+
+        .compare-shell {
+            max-width: 1720px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .compare-hero,
+        .compare-card,
+        .timeline-card {
+            border: 1px solid var(--cmp-border);
+            border-radius: 24px;
+            background: linear-gradient(180deg, var(--cmp-surface) 0%, rgba(9, 18, 29, 0.9) 100%);
+            box-shadow: 0 22px 55px rgba(0, 0, 0, 0.34);
+            backdrop-filter: blur(18px);
+        }
+
+        .compare-hero {
+            padding: 20px 22px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .compare-hero h1 {
+            margin: 0 0 8px;
+            font-size: clamp(2rem, 2.5vw, 3rem);
+            letter-spacing: -0.05em;
+        }
+
+        .compare-hero p {
+            margin: 0;
+            color: var(--cmp-muted);
+            max-width: 72ch;
+        }
+
+        .compare-hero-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .badge {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--cmp-text);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .timeline-card {
+            padding: 18px 20px 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .timeline-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .timeline-head h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--cmp-muted);
+        }
+
+        .timeline-label {
+            color: var(--cmp-muted);
+            font-size: 0.82rem;
+        }
+
+        .minute-track {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 2px;
+            height: 20px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .minute-segment {
+            border: 0;
+            background: linear-gradient(90deg, rgba(76, 175, 80, 0.5), rgba(255, 193, 7, 0.5), rgba(244, 67, 54, 0.5));
+            min-width: 0;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .minute-segment::after {
+            content: attr(data-label);
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            font-size: 0.66rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.84);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+        }
+
+        .minute-slider-row {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .minute-slider {
+            width: 100%;
+            accent-color: var(--cmp-good);
+        }
+
+        .minute-value {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--cmp-text);
+            white-space: nowrap;
+        }
+
+        .compare-toolbar {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .selection-card {
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .selection-card h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--cmp-muted);
+        }
+
+        .selection-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 0.74rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--cmp-muted);
+        }
+
+        .field select {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--cmp-text);
+            padding: 10px 12px;
+            font: inherit;
+        }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            align-items: start;
+        }
+
+        .compare-card {
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .compare-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .compare-card-title {
+            display: grid;
+            gap: 4px;
+        }
+
+        .compare-card-title h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-family: 'Space Grotesk', 'Roboto Flex', sans-serif;
+        }
+
+        .compare-card-title p {
+            margin: 0;
+            font-size: 0.82rem;
+            color: var(--cmp-muted);
+            word-break: break-word;
+        }
+
+        .compare-frame {
+            width: 100%;
+            min-height: 1600px;
+            border: 0;
+            border-radius: 18px;
+            background: rgba(0, 0, 0, 0.18);
+            overflow: hidden;
+        }
+
+        @media (max-width: 1180px) {
+            .compare-toolbar,
+            .compare-grid,
+            .selection-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .compare-frame {
+                min-height: 1500px;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .compare-shell {
+                padding: 14px;
+            }
+
+            .minute-slider-row {
+                grid-template-columns: 1fr;
+            }
+
+            .minute-value {
+                order: 3;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navigation">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="demo-report.html" class="nav-link">Session Report</a>
+        <a href="compare-report.html" class="nav-link active">Compare Reports</a>
+        <a href="session-comparison-landscape.html" class="nav-link">Landscape Report</a>
+        <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
+        <a href="teacher-control.html" class="nav-link">Teacher Control</a>
+        <span class="nav-version"></span>
+    </nav>
+
+    <main class="compare-shell">
+        <section class="compare-hero">
+            <div>
+                <h1>Report Compare</h1>
+                <p>Load two complete posture reports side by side. The page keeps the focus on the minute timeline and avoids the separate posture viewer surface.</p>
+            </div>
+            <div class="compare-hero-badges">
+                <span class="badge">Full report A</span>
+                <span class="badge">Full report B</span>
+                <span class="badge">Minute timeline</span>
+            </div>
+        </section>
+
+        <section class="timeline-card">
+            <div class="timeline-head">
+                <h2>Minute Timeline</h2>
+                <div class="timeline-label" id="timelineLabel">0 min selected</div>
+            </div>
+            <div class="minute-track" id="minuteTrack"></div>
+            <div class="minute-slider-row">
+                <span class="minute-value">0m</span>
+                <input class="minute-slider" id="minuteSlider" type="range" min="0" max="60" value="0" step="1" aria-label="compare timeline minute">
+                <span class="minute-value">60m</span>
+            </div>
+        </section>
+
+        <section class="compare-toolbar">
+            <article class="compare-card selection-card">
+                <div class="compare-card-head">
+                    <div class="compare-card-title">
+                        <h3>Report A</h3>
+                        <p id="reportALabel">Default session</p>
+                    </div>
+                    <button class="btn btn-small btn-secondary" id="reloadA">Reload</button>
+                </div>
+                <div class="selection-grid">
+                    <div class="field">
+                        <label for="reportAArm">Arm file</label>
+                        <select id="reportAArm"></select>
+                    </div>
+                    <div class="field">
+                        <label for="reportATrunk">Trunk file</label>
+                        <select id="reportATrunk"></select>
+                    </div>
+                </div>
+            </article>
+
+            <article class="compare-card selection-card">
+                <div class="compare-card-head">
+                    <div class="compare-card-title">
+                        <h3>Report B</h3>
+                        <p id="reportBLabel">Default session</p>
+                    </div>
+                    <button class="btn btn-small btn-secondary" id="reloadB">Reload</button>
+                </div>
+                <div class="selection-grid">
+                    <div class="field">
+                        <label for="reportBArm">Arm file</label>
+                        <select id="reportBArm"></select>
+                    </div>
+                    <div class="field">
+                        <label for="reportBTrunk">Trunk file</label>
+                        <select id="reportBTrunk"></select>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <section class="compare-grid">
+            <article class="compare-card">
+                <div class="compare-card-head">
+                    <div class="compare-card-title">
+                        <h3>Complete Report A</h3>
+                        <p id="reportAMeta">Waiting for session selection.</p>
+                    </div>
+                </div>
+                <iframe id="reportAFrame" class="compare-frame" title="Report A"></iframe>
+            </article>
+
+            <article class="compare-card">
+                <div class="compare-card-head">
+                    <div class="compare-card-title">
+                        <h3>Complete Report B</h3>
+                        <p id="reportBMeta">Waiting for session selection.</p>
+                    </div>
+                </div>
+                <iframe id="reportBFrame" class="compare-frame" title="Report B"></iframe>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        const DEFAULT_FILES = Array.isArray(window.APP_CONFIG && APP_CONFIG.demoDataFiles)
+            ? APP_CONFIG.demoDataFiles.slice()
+            : [
+                '1_arm.csv',
+                '1_trunk.csv',
+                '2_arm.csv',
+                '2_trunk.csv',
+                'S10.CSV',
+                'S11.CSV'
+            ];
+
+        const compareState = {
+            files: [],
+            reportA: { arm: '', trunk: '' },
+            reportB: { arm: '', trunk: '' },
+            minute: 0
+        };
+
+        function splitFiles() {
+            const armFiles = DEFAULT_FILES.filter(name => /arm/i.test(name));
+            const trunkFiles = DEFAULT_FILES.filter(name => /trunk/i.test(name));
+            return {
+                armFiles: armFiles.length > 0 ? armFiles : DEFAULT_FILES,
+                trunkFiles: trunkFiles.length > 0 ? trunkFiles : DEFAULT_FILES
+            };
+        }
+
+        function optionMarkup(files, selected) {
+            return files.map(name => `<option value="${name}" ${name === selected ? 'selected' : ''}>${name}</option>`).join('');
+        }
+
+        function sessionLabel(session) {
+            if (!session.arm && !session.trunk) return 'No files selected';
+            return `${session.arm || '—'} + ${session.trunk || '—'}`;
+        }
+
+        function buildIframeSrc(session) {
+            const params = new URLSearchParams();
+            params.set('autoload', '1');
+            params.set('embed', '1');
+            if (session.arm) params.set('arm', session.arm);
+            if (session.trunk) params.set('trunk', session.trunk);
+            return `demo-report.html?${params.toString()}`;
+        }
+
+        function syncReportFrame(which) {
+            const session = compareState[which];
+            const frame = document.getElementById(which === 'reportA' ? 'reportAFrame' : 'reportBFrame');
+            const label = document.getElementById(which === 'reportA' ? 'reportALabel' : 'reportBLabel');
+            const meta = document.getElementById(which === 'reportA' ? 'reportAMeta' : 'reportBMeta');
+            if (!frame || !label || !meta) return;
+            label.textContent = sessionLabel(session);
+            meta.textContent = `Arm: ${session.arm || '—'} · Trunk: ${session.trunk || '—'}`;
+            frame.src = buildIframeSrc(session);
+        }
+
+        function populateSelectors() {
+            const { armFiles, trunkFiles } = splitFiles();
+            const presets = [
+                ['reportAArm', armFiles, compareState.reportA.arm || armFiles[0]],
+                ['reportATrunk', trunkFiles, compareState.reportA.trunk || trunkFiles[0]],
+                ['reportBArm', armFiles, compareState.reportB.arm || armFiles[1] || armFiles[0]],
+                ['reportBTrunk', trunkFiles, compareState.reportB.trunk || trunkFiles[1] || trunkFiles[0]]
+            ];
+
+            presets.forEach(([id, files, selected]) => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                select.innerHTML = optionMarkup(files, selected);
+            });
+        }
+
+        function setDefaultSessions() {
+            const { armFiles, trunkFiles } = splitFiles();
+            compareState.reportA.arm = armFiles[0] || '';
+            compareState.reportA.trunk = trunkFiles[0] || '';
+            compareState.reportB.arm = armFiles[1] || armFiles[0] || '';
+            compareState.reportB.trunk = trunkFiles[1] || trunkFiles[0] || '';
+        }
+
+        function renderMinuteTrack() {
+            const track = document.getElementById('minuteTrack');
+            if (!track) return;
+            track.innerHTML = Array.from({ length: 12 }, (_, index) => {
+                const minute = index * 5;
+                return `<button class="minute-segment" type="button" data-label="${minute}m" aria-label="minute ${minute}"></button>`;
+            }).join('');
+        }
+
+        function updateMinuteLabel(value) {
+            const label = document.getElementById('timelineLabel');
+            if (label) label.textContent = `${value} min selected`;
+        }
+
+        function bindEvents() {
+            document.getElementById('reportAArm').addEventListener('change', event => {
+                compareState.reportA.arm = event.target.value;
+                syncReportFrame('reportA');
+            });
+            document.getElementById('reportATrunk').addEventListener('change', event => {
+                compareState.reportA.trunk = event.target.value;
+                syncReportFrame('reportA');
+            });
+            document.getElementById('reportBArm').addEventListener('change', event => {
+                compareState.reportB.arm = event.target.value;
+                syncReportFrame('reportB');
+            });
+            document.getElementById('reportBTrunk').addEventListener('change', event => {
+                compareState.reportB.trunk = event.target.value;
+                syncReportFrame('reportB');
+            });
+
+            document.getElementById('reloadA').addEventListener('click', () => syncReportFrame('reportA'));
+            document.getElementById('reloadB').addEventListener('click', () => syncReportFrame('reportB'));
+
+            const slider = document.getElementById('minuteSlider');
+            slider.addEventListener('input', () => {
+                compareState.minute = Number(slider.value);
+                updateMinuteLabel(compareState.minute);
+            });
+        }
+
+        function init() {
+            setDefaultSessions();
+            populateSelectors();
+            renderMinuteTrack();
+            bindEvents();
+            syncReportFrame('reportA');
+            syncReportFrame('reportB');
+            updateMinuteLabel(0);
+        }
+
+        init();
+    </script>
+</body>
+</html>

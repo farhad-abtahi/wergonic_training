@@ -312,14 +312,166 @@
         }
 
         .left-stack {
-            grid-template-rows: repeat(2, minmax(0, 1fr));
+            grid-template-rows: minmax(0, 1fr);
+        }
+
+        .merged-panel {
+            padding: 16px;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .merged-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .merged-title {
+            display: grid;
+            gap: 4px;
+        }
+
+        .merged-title .part-title {
+            font-size: 1.1rem;
+        }
+
+        .merged-summary-note {
+            font-size: 0.8rem;
+            color: var(--dash-muted);
+        }
+
+        .merged-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .merged-parts {
+            display: grid;
+            gap: 12px;
+            min-height: 0;
         }
 
         .part-card {
-            padding: 16px 16px 14px;
+            padding: 14px 14px 12px;
             display: grid;
             grid-template-rows: auto auto auto 1fr;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .part-card.compact {
+            padding: 12px 12px 10px;
+        }
+
+        .part-card.compact .part-title {
+            font-size: 1rem;
+        }
+
+        .ring-grid {
+            display: grid;
             gap: 12px;
+            align-content: start;
+        }
+
+        .ring-card {
+            border-radius: 20px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: grid;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .ring-card h3 {
+            margin: 0;
+            font-size: 0.86rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--dash-muted);
+        }
+
+        .ring-chart-wrap {
+            display: grid;
+            place-items: center;
+            min-height: 180px;
+        }
+
+        .ring-chart {
+            width: 180px;
+            height: 180px;
+            display: block;
+        }
+
+        .ring-center {
+            text-anchor: middle;
+            font-family: 'Space Grotesk', 'Roboto Flex', sans-serif;
+        }
+
+        .ring-total {
+            fill: var(--dash-text);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .ring-label {
+            fill: var(--dash-muted);
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .ring-legend {
+            display: grid;
+            gap: 6px;
+            font-size: 0.76rem;
+            color: var(--dash-muted);
+        }
+
+        .ring-legend-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .ring-legend-left {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ring-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex: 0 0 auto;
+        }
+
+        .ring-legend .good .ring-dot { background: var(--dash-good); }
+        .ring-legend .warning .ring-dot { background: var(--dash-warning); }
+        .ring-legend .risk .ring-dot { background: var(--dash-risk); }
+
+        @media (max-width: 1180px) {
+            .merged-body {
+                grid-template-columns: 1fr;
+            }
+
+            .ring-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 760px) {
+            .ring-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .part-header {
@@ -962,53 +1114,79 @@
 
     <section class="body-grid">
         <div class="left-stack">
-            <article class="glass-card part-card" id="armCard">
-                <div class="part-header">
-                    <div>
-                        <div class="part-state">Body Left</div>
-                        <div class="part-title">🦾 Arm</div>
+            <article class="glass-card merged-panel">
+                <div class="merged-head">
+                    <div class="merged-title">
+                        <div class="panel-label">Combined posture block</div>
+                        <div class="part-title">Arm + Trunk</div>
+                        <div class="merged-summary-note">Two body regions are stacked into one report block.</div>
                     </div>
-                    <div class="state-pill" id="armStatePill">Loading</div>
+                    <div class="state-pill" id="combinedStatePill">Loading</div>
                 </div>
-                <div class="bar-stack">
-                    <div class="stack-track" aria-label="arm posture distribution">
-                        <span class="good" id="armGoodBar"></span>
-                        <span class="warning" id="armWarningBar"></span>
-                        <span class="risk" id="armRiskBar"></span>
-                    </div>
-                    <div class="stack-legend">
-                            <span class="legend-item"><i class="legend-dot" style="background:var(--dash-good)"></i><span id="armGoodText">Good</span></span>
-                            <span class="legend-item"><i class="legend-dot" style="background:var(--dash-warning)"></i><span id="armWarningText">Warning</span></span>
-                            <span class="legend-item"><i class="legend-dot" style="background:var(--dash-risk)"></i><span id="armRiskText">Risk</span></span>
-                    </div>
-                </div>
-                <div class="feedback-line" id="armFeedback">Control is stable. Keep the arm slightly closer to your torso.</div>
-                <div class="feedback-line muted" id="armSourceHint">🦾 Arm Coach</div>
-            </article>
 
-            <article class="glass-card part-card" id="trunkCard">
-                <div class="part-header">
-                    <div>
-                        <div class="part-state">Body Left</div>
-                        <div class="part-title">🧍 Trunk</div>
+                <div class="merged-body">
+                    <div class="merged-parts">
+                        <article class="glass-card part-card compact" id="armCard">
+                            <div class="part-header">
+                                <div>
+                                    <div class="part-state">Body Left</div>
+                                    <div class="part-title">🦾 Arm</div>
+                                </div>
+                                <div class="state-pill" id="armStatePill">Loading</div>
+                            </div>
+                            <div class="bar-stack">
+                                <div class="stack-track" aria-label="arm posture distribution">
+                                    <span class="good" id="armGoodBar"></span>
+                                    <span class="warning" id="armWarningBar"></span>
+                                    <span class="risk" id="armRiskBar"></span>
+                                </div>
+                                <div class="stack-legend">
+                                    <span class="legend-item"><i class="legend-dot" style="background:var(--dash-good)"></i><span id="armGoodText">Good</span></span>
+                                    <span class="legend-item"><i class="legend-dot" style="background:var(--dash-warning)"></i><span id="armWarningText">Warning</span></span>
+                                    <span class="legend-item"><i class="legend-dot" style="background:var(--dash-risk)"></i><span id="armRiskText">Risk</span></span>
+                                </div>
+                            </div>
+                            <div class="feedback-line" id="armFeedback">Control is stable. Keep the arm slightly closer to your torso.</div>
+                            <div class="feedback-line muted" id="armSourceHint">🦾 Arm Coach</div>
+                        </article>
+
+                        <article class="glass-card part-card compact" id="trunkCard">
+                            <div class="part-header">
+                                <div>
+                                    <div class="part-state">Body Left</div>
+                                    <div class="part-title">🧍 Trunk</div>
+                                </div>
+                                <div class="state-pill" id="trunkStatePill">Loading</div>
+                            </div>
+                            <div class="bar-stack" id="trunkBarsWrap">
+                                <div class="stack-track" aria-label="trunk posture distribution">
+                                    <span class="good" id="trunkGoodBar"></span>
+                                    <span class="warning" id="trunkWarningBar"></span>
+                                    <span class="risk" id="trunkRiskBar"></span>
+                                </div>
+                                <div class="stack-legend">
+                                    <span class="legend-item"><i class="legend-dot" style="background:var(--dash-good)"></i><span id="trunkGoodText">Good</span></span>
+                                    <span class="legend-item"><i class="legend-dot" style="background:var(--dash-warning)"></i><span id="trunkWarningText">Warning</span></span>
+                                    <span class="legend-item"><i class="legend-dot" style="background:var(--dash-risk)"></i><span id="trunkRiskText">Risk</span></span>
+                                </div>
+                            </div>
+                            <div class="warning-box hidden" id="trunkUnavailableBox">Data unavailable</div>
+                            <div class="feedback-line" id="trunkFeedback">Trunk Guardian is analyzing posture quality.</div>
+                            <div class="feedback-line muted" id="trunkSourceHint">🧍 Trunk Guardian</div>
+                        </article>
                     </div>
-                    <div class="state-pill" id="trunkStatePill">Loading</div>
+
+                    <div class="ring-grid">
+                        <div class="ring-card">
+                            <h3>Arm Zone Split</h3>
+                            <div class="ring-chart-wrap" id="armRingChart"></div>
+                        </div>
+                        <div class="ring-card">
+                            <h3>Trunk Zone Split</h3>
+                            <div class="ring-chart-wrap" id="trunkRingChart"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="bar-stack" id="trunkBarsWrap">
-                    <div class="stack-track" aria-label="trunk posture distribution">
-                        <span class="good" id="trunkGoodBar"></span>
-                        <span class="warning" id="trunkWarningBar"></span>
-                        <span class="risk" id="trunkRiskBar"></span>
-                    </div>
-                    <div class="stack-legend">
-                        <span class="legend-item"><i class="legend-dot" style="background:var(--dash-good)"></i><span id="trunkGoodText">Good</span></span>
-                        <span class="legend-item"><i class="legend-dot" style="background:var(--dash-warning)"></i><span id="trunkWarningText">Warning</span></span>
-                        <span class="legend-item"><i class="legend-dot" style="background:var(--dash-risk)"></i><span id="trunkRiskText">Risk</span></span>
-                    </div>
-                </div>
-                <div class="warning-box hidden" id="trunkUnavailableBox">Data unavailable</div>
-                <div class="feedback-line" id="trunkFeedback">Trunk Guardian is analyzing posture quality.</div>
-                <div class="feedback-line muted" id="trunkSourceHint">🧍 Trunk Guardian</div>
             </article>
         </div>
 
@@ -1456,6 +1634,7 @@ function initDom() {
     UI.trunkStatePill = document.getElementById('trunkStatePill');
     UI.trunkFeedback = document.getElementById('trunkFeedback');
     UI.trunkUnavailableBox = document.getElementById('trunkUnavailableBox');
+    UI.combinedStatePill = document.getElementById('combinedStatePill');
     UI.playerSubtitle = document.getElementById('playerSubtitle');
     UI.bestTag = document.getElementById('bestTag');
     UI.worstTag = document.getElementById('worstTag');
@@ -1972,10 +2151,57 @@ function renderPartCard(part, summary, unavailable) {
     } else {
         document.getElementById(`${part}SourceHint`).textContent = isArm ? '🦾 Arm Coach' : '🧍 Trunk Guardian';
     }
+
+    renderZoneRing(part, good, warning, risk, unavailable);
 }
 
 function scoreFromPart(summary) {
     return clamp(Math.round((parseFloat(summary.greenPercentage) || 0) * 0.7 + (parseFloat(summary.yellowPercentage) || 0) * 0.2 + (parseFloat(summary.redPercentage) || 0) * 0.1), 0, 100);
+}
+
+function renderZoneRing(part, good, warning, risk, unavailable) {
+    const container = document.getElementById(`${part}RingChart`);
+    if (!container) return;
+
+    const segments = [
+        { key: 'good', value: unavailable ? 0 : Math.max(0, Number(good) || 0), color: 'var(--dash-good)' },
+        { key: 'warning', value: unavailable ? 0 : Math.max(0, Number(warning) || 0), color: 'var(--dash-warning)' },
+        { key: 'risk', value: unavailable ? 0 : Math.max(0, Number(risk) || 0), color: 'var(--dash-risk)' }
+    ];
+    const total = segments.reduce((sum, segment) => sum + segment.value, 0) || 1;
+    let offset = 0;
+
+    const arcs = segments.map(segment => {
+        const pct = (segment.value / total) * 100;
+        const dash = `${pct} ${100 - pct}`;
+        const svg = `<circle cx="60" cy="60" r="40" pathLength="100" fill="none" stroke="${segment.color}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${dash}" stroke-dashoffset="${-offset}" />`;
+        offset += pct;
+        return svg;
+    }).join('');
+
+    const displayPct = unavailable ? '--' : `${Math.round((segments[0].value / total) * 100)}%`;
+    const legendRows = segments.map(segment => {
+        const pct = unavailable ? '--' : `${segment.value.toFixed(1)}%`;
+        return `<div class="ring-legend-row ${segment.key}"><span class="ring-legend-left"><i class="ring-dot"></i>${segment.key[0].toUpperCase() + segment.key.slice(1)}</span><span>${pct}</span></div>`;
+    }).join('');
+
+    container.innerHTML = `
+        <svg class="ring-chart" viewBox="0 0 120 120" role="img" aria-label="${part} zone split">
+            <circle cx="60" cy="60" r="40" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12"></circle>
+            <g transform="rotate(-90 60 60)">${arcs}</g>
+            <text x="60" y="56" class="ring-center ring-total">${displayPct}</text>
+            <text x="60" y="74" class="ring-center ring-label">${part.toUpperCase()} GOOD</text>
+        </svg>
+        <div class="ring-legend">${legendRows}</div>
+    `;
+}
+
+function updateCombinedStatePill(score) {
+    const pill = document.getElementById('combinedStatePill');
+    if (!pill) return;
+    const band = score >= 80 ? { label: 'Excellent', className: 'good' } : score >= 60 ? { label: 'Improving', className: 'warning' } : { label: 'Needs attention', className: 'risk' };
+    pill.textContent = `${band.label} · ${Math.round(score)}`;
+    pill.className = `state-pill ${band.className}`;
 }
 
 function renderTimeline(track) {
@@ -2155,6 +2381,7 @@ async function loadSession() {
     APP_STATE.session.worstTag = bestWorst.worst ? `${bestWorst.worst.type.toUpperCase()} Worst` : 'Worst';
 
     renderScore(APP_STATE.session.score);
+    updateCombinedStatePill(APP_STATE.session.score);
     renderPartCard('arm', armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, longestGreenStreak: 0 }, false);
     renderPartCard('trunk', trunkSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0 }, !trunkSummary);
     renderFeedback(armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, recoveryCount: 0, rulaScore: 3 }, trunkSummary);

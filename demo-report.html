@@ -471,6 +471,7 @@
 <nav class="navigation">
     <a href="index.html" class="nav-link">Home</a>
     <a href="demo-report.html" class="nav-link active">Session Report</a>
+    <a href="compare-report.html" class="nav-link">Compare Reports</a>
     <a href="demo.html" class="nav-link">Comparison</a>
     <a href="session-comparison-landscape.html" class="nav-link">Landscape Report</a>
     <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
@@ -557,6 +558,13 @@
 //  DEMO FILES – auto-discover all CSV in demo-data/
 // ═══════════════════════════════════════════════════════════════
 let DEMO_FILES = [];
+const REPORT_PARAMS = new URLSearchParams(window.location.search);
+const REPORT_EMBED_MODE = REPORT_PARAMS.get('embed') === '1' || REPORT_PARAMS.get('mode') === 'embed';
+const REPORT_AUTOLOAD = REPORT_PARAMS.get('autoload') === '1' || REPORT_EMBED_MODE;
+const REPORT_PRESET = {
+    arm: REPORT_PARAMS.get('arm') || '',
+    trunk: REPORT_PARAMS.get('trunk') || ''
+};
 
 async function loadDemoFiles() {
     const fallbackNames = Array.isArray(window.APP_CONFIG && APP_CONFIG.demoDataFiles)
@@ -852,6 +860,21 @@ async function loadDemoFileToSlot(file, slot) {
     } catch (err) {
         showError(`Failed to load "${file.path}": ${err.message}. Please serve via HTTP server or upload the file directly.`);
     }
+}
+
+function findDemoFileByName(name) {
+    if (!name) return null;
+    return DEMO_FILES.find(file => file.name === name) || null;
+}
+
+async function loadPresetReport() {
+    const armFile = findDemoFileByName(REPORT_PRESET.arm) || DEMO_FILES.find(file => /arm/i.test(file.name)) || DEMO_FILES[0];
+    const trunkFile = findDemoFileByName(REPORT_PRESET.trunk) || DEMO_FILES.find(file => /trunk/i.test(file.name)) || DEMO_FILES[1] || DEMO_FILES[0];
+
+    const tasks = [];
+    if (armFile) tasks.push(loadDemoFileToSlot(armFile, 'arm'));
+    if (trunkFile) tasks.push(loadDemoFileToSlot(trunkFile, 'trunk'));
+    await Promise.all(tasks);
 }
 
 // ─── Process CSV ───────────────────────────────────────────────
@@ -1411,6 +1434,17 @@ async function initDemoReport() {
     renderSourcePicker();
     initThresholdInputs();
     renderDualSlotComparison();
+
+    if (REPORT_EMBED_MODE) {
+        const pickerPanel = document.getElementById('pickerPanel');
+        if (pickerPanel) pickerPanel.style.display = 'none';
+        const reportArea = document.getElementById('reportArea');
+        if (reportArea) reportArea.classList.add('visible');
+    }
+
+    if (REPORT_AUTOLOAD) {
+        await loadPresetReport();
+    }
 }
 
 initDemoReport();

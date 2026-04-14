@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="config.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+
+        :root {
+            --bg-0: #041120;
+            --bg-1: #081b30;
+            --bg-2: #0a2644;
+            --surface: rgba(9, 28, 50, 0.86);
+            --border: rgba(173, 211, 255, 0.16);
+            --text-main: #e8f3ff;
+            --text-muted: rgba(228, 241, 255, 0.7);
+            --good: #44cf66;
+            --warn: #f2c21d;
+            --risk: #ff4f46;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.46);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            color: var(--text-main);
+            font-family: Manrope, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(circle at 12% 5%, rgba(44, 184, 116, 0.24), transparent 24%),
+                radial-gradient(circle at 82% 0%, rgba(19, 131, 220, 0.3), transparent 32%),
+                linear-gradient(145deg, var(--bg-0) 0%, var(--bg-1) 55%, var(--bg-2) 100%);
+            overflow: hidden;
+        }
+
+        .screen {
+            width: min(100vw, calc(100vh * 16 / 9));
+            height: min(100vh, calc(100vw * 9 / 16));
+            margin: auto;
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+            grid-template-rows: auto auto 1fr;
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(10, 29, 53, 0.93) 0%, rgba(6, 20, 39, 0.8) 100%);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .compare-header {
+            padding: 10px 14px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .session-tag {
+            font-weight: 800;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .delta-pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(122, 232, 140, 0.4);
+            background: rgba(68, 207, 102, 0.14);
+            color: #7df19d;
+            font-weight: 800;
+        }
+
+        .selector-bar {
+            padding: 10px 12px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .field {
+            display: grid;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .field label {
+            color: var(--text-muted);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .field select {
+            width: 100%;
+            background: rgba(160, 201, 255, 0.1);
+            color: var(--text-main);
+            border: 1px solid rgba(184, 220, 255, 0.2);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font: inherit;
+        }
+
+        .btn {
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: linear-gradient(180deg, rgba(45, 76, 112, 0.74), rgba(22, 47, 78, 0.72));
+            color: var(--text-main);
+            border-radius: 14px;
+            padding: 10px 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .compare-grid {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .session-panel {
+            min-height: 0;
+            display: grid;
+            gap: 10px;
+            grid-template-rows: auto auto auto 1fr auto;
+        }
+
+        .session-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 0 2px;
+        }
+
+        .score {
+            display: grid;
+            grid-template-columns: 1.08fr 1fr;
+            gap: 14px;
+            padding: 16px 18px;
+            align-items: center;
+        }
+
+        .label {
+            color: var(--text-muted);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .score-number {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .score-number strong {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: clamp(44px, 5vw, 62px);
+            line-height: 0.92;
+            letter-spacing: -0.04em;
+        }
+
+        .info-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            display: grid;
+            place-items: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: var(--text-muted);
+            font-size: 23px;
+            line-height: 1.3;
+            transform: scale(0.42);
+            transform-origin: top left;
+            width: 238%;
+        }
+
+        .grade-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .grade {
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .track {
+            height: 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #3fd468 0%, #4bd5aa 45%, #5fb2ff 100%);
+            transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .track-note {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            color: rgba(255, 255, 255, 0.84);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .foot {
+            margin-top: 9px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status {
+            padding: 14px;
+        }
+
+        .row {
+            border: 1px solid rgba(166, 205, 255, 0.16);
+            border-radius: 14px;
+            background: linear-gradient(90deg, rgba(27, 56, 88, 0.48), rgba(15, 34, 58, 0.45));
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .row-title {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 31px;
+            transform: scale(0.46);
+            transform-origin: left center;
+            width: 195%;
+            font-weight: 600;
+        }
+
+        .row-text {
+            font-size: 31px;
+            transform: scale(0.35);
+            transform-origin: left center;
+            width: 265%;
+            color: rgba(229, 242, 255, 0.92);
+        }
+
+        .chip {
+            border-radius: 999px;
+            padding: 7px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(184, 214, 255, 0.12);
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 2px 6px 1px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .timeline {
+            padding: 10px 12px;
+        }
+
+        .ticks {
+            display: grid;
+            grid-template-columns: repeat(60, 1fr);
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+
+        .tick {
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1.06fr;
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .donut-card {
+            padding: 14px;
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .donut {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: conic-gradient(var(--good) 0 67%, var(--warn) 67% 86%, var(--risk) 86% 100%);
+            position: relative;
+        }
+
+        .donut::after {
+            content: "";
+            position: absolute;
+            inset: 14px;
+            border-radius: 50%;
+            background: #0a213d;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .metrics {
+            display: grid;
+            gap: 8px;
+        }
+
+        .metric {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .metric b {
+            color: var(--text-main);
+            min-width: 38px;
+        }
+
+        .line {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.09);
+            overflow: hidden;
+        }
+
+        .line > span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+        }
+
+        .feedback {
+            padding: 14px;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 8px;
+            min-height: 0;
+        }
+
+        .feedback-body {
+            border: 1px solid rgba(166, 205, 255, 0.16);
+            border-radius: 14px;
+            padding: 12px;
+            background: linear-gradient(180deg, rgba(11, 31, 54, 0.5), rgba(6, 21, 40, 0.3));
+            color: var(--text-muted);
+            font-size: 12px;
+            overflow: auto;
+        }
+
+        .bottom {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .scrub {
+            height: 18px;
+            border-radius: 999px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .scrub span {
+            display: block;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, rgba(67, 208, 110, 0.95), rgba(241, 194, 31, 0.85), rgba(255, 99, 84, 0.84));
+            border-radius: inherit;
+            transition: width 700ms ease;
+        }
+
+        .scrub::before {
+            content: "";
+            position: absolute;
+            left: var(--scrub-pos, 0%);
+            top: 50%;
+            width: 14px;
+            height: 14px;
+            margin-left: -7px;
+            margin-top: -7px;
+            border-radius: 50%;
+            background: #5ce778;
+            box-shadow: 0 0 0 4px rgba(92, 231, 120, 0.17);
+            transition: left 700ms ease;
+        }
+
+        .load-appear {
+            opacity: 0;
+            transform: translateY(8px);
+            animation: appear 420ms ease forwards;
+        }
+
+        .load-appear:nth-child(2) { animation-delay: 70ms; }
+        .load-appear:nth-child(3) { animation-delay: 130ms; }
+        .load-appear:nth-child(4) { animation-delay: 180ms; }
+
+        @keyframes appear {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .screen {
+                width: 100vw;
+                height: 100vh;
+                padding: 10px;
+            }
+
+            .compare-header {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .selector-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .compare-grid {
+                grid-template-columns: 1fr;
+                overflow: auto;
+            }
+
+            .score {
+                grid-template-columns: 1fr;
+            }
+
+            .main {
+                grid-template-columns: 1fr;
+            }
+
+            .bottom {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="screen">
+        <section class="card compare-header load-appear">
+            <div class="session-tag" id="headerA">Session A</div>
+            <div class="delta-pill" id="deltaPill">Score delta: --</div>
+            <div class="session-tag" id="headerB" style="text-align: right;">Session B</div>
+        </section>
+
+        <section class="card selector-bar load-appear">
+            <div class="field">
+                <label for="aArmSelect">Session A Arm</label>
+                <select id="aArmSelect"></select>
+            </div>
+            <div class="field">
+                <label for="aTrunkSelect">Session A Trunk</label>
+                <select id="aTrunkSelect"></select>
+            </div>
+            <div class="field">
+                <label for="bArmSelect">Session B Arm</label>
+                <select id="bArmSelect"></select>
+            </div>
+            <div class="field">
+                <label for="bTrunkSelect">Session B Trunk</label>
+                <select id="bTrunkSelect"></select>
+            </div>
+            <button class="btn" id="applyBtn">Apply Files</button>
+        </section>
+
+        <section class="compare-grid load-appear">
+            <article class="session-panel" id="panelA">
+                <div class="session-head"><span id="aName">Session A</span><span id="aDuration">Duration --</span></div>
+
+                <section class="card score">
+                    <div>
+                        <div class="label">Performance Score</div>
+                        <div class="score-number"><strong id="aScore">--</strong><span class="info-dot">i</span></div>
+                        <div class="subtitle" id="aSubtitle">Waiting for file selection.</div>
+                    </div>
+                    <div>
+                        <div class="grade-row"><div class="grade" id="aGrade">--</div><div class="label" id="aLevel" style="letter-spacing:0;text-transform:none;">--</div></div>
+                        <div class="track"><div class="fill" id="aFill"></div><div class="track-note">Real file calculation</div></div>
+                        <div class="foot"><span id="aCorrection">Avg correction --</span><span id="aImprove">Trend --</span></div>
+                    </div>
+                </section>
+
+                <section class="card status">
+                    <div class="row"><div class="row-title">ARM</div><div class="row-text" id="aArmText">--</div><div class="chip" id="aArmChip">--</div></div>
+                    <div class="row" style="margin-bottom:8px;"><div class="row-title">TRUNK</div><div class="row-text" id="aTrunkText">--</div><div class="chip" id="aTrunkChip">--</div></div>
+                    <div class="legend"><span><i class="dot" style="background: var(--good);"></i>Good</span><span><i class="dot" style="background: var(--warn);"></i>Warning</span><span><i class="dot" style="background: var(--risk);"></i>Risk</span></div>
+                </section>
+
+                <section class="card timeline">
+                    <div class="ticks" id="aTicks"></div>
+                    <div class="meta"><span id="aBest">Best --</span><span id="aWorst">Worst --</span></div>
+                </section>
+
+                <section class="main">
+                    <article class="card donut-card">
+                        <div class="donut" id="aDonut" aria-label="Posture Ratio"></div>
+                        <div class="metrics">
+                            <div class="metric"><b id="aGoodPct">--</b><div class="line"><span id="aGoodLine" style="background:var(--good);"></span></div><span>Good</span></div>
+                            <div class="metric"><b id="aWarnPct">--</b><div class="line"><span id="aWarnLine" style="background:var(--warn);"></span></div><span>Warning</span></div>
+                            <div class="metric"><b id="aRiskPct">--</b><div class="line"><span id="aRiskLine" style="background:var(--risk);"></span></div><span>Risk</span></div>
+                        </div>
+                    </article>
+                    <article class="card feedback">
+                        <div class="label" style="font-size:13px;letter-spacing:0.13em;">Coaching Feedback</div>
+                        <div class="feedback-body" id="aFeedback">--</div>
+                    </article>
+                </section>
+
+                <section class="bottom">
+                    <div class="scrub" id="aScrub"><span id="aScrubFill"></span></div>
+                    <button class="btn" id="aFilesBtn">Files</button>
+                </section>
+            </article>
+
+            <article class="session-panel" id="panelB">
+                <div class="session-head"><span id="bName">Session B</span><span id="bDuration">Duration --</span></div>
+
+                <section class="card score">
+                    <div>
+                        <div class="label">Performance Score</div>
+                        <div class="score-number"><strong id="bScore">--</strong><span class="info-dot">i</span></div>
+                        <div class="subtitle" id="bSubtitle">Waiting for file selection.</div>
+                    </div>
+                    <div>
+                        <div class="grade-row"><div class="grade" id="bGrade">--</div><div class="label" id="bLevel" style="letter-spacing:0;text-transform:none;">--</div></div>
+                        <div class="track"><div class="fill" id="bFill"></div><div class="track-note">Real file calculation</div></div>
+                        <div class="foot"><span id="bCorrection">Avg correction --</span><span id="bImprove">Trend --</span></div>
+                    </div>
+                </section>
+
+                <section class="card status">
+                    <div class="row"><div class="row-title">ARM</div><div class="row-text" id="bArmText">--</div><div class="chip" id="bArmChip">--</div></div>
+                    <div class="row" style="margin-bottom:8px;"><div class="row-title">TRUNK</div><div class="row-text" id="bTrunkText">--</div><div class="chip" id="bTrunkChip">--</div></div>
+                    <div class="legend"><span><i class="dot" style="background: var(--good);"></i>Good</span><span><i class="dot" style="background: var(--warn);"></i>Warning</span><span><i class="dot" style="background: var(--risk);"></i>Risk</span></div>
+                </section>
+
+                <section class="card timeline">
+                    <div class="ticks" id="bTicks"></div>
+                    <div class="meta"><span id="bBest">Best --</span><span id="bWorst">Worst --</span></div>
+                </section>
+
+                <section class="main">
+                    <article class="card donut-card">
+                        <div class="donut" id="bDonut" aria-label="Posture Ratio"></div>
+                        <div class="metrics">
+                            <div class="metric"><b id="bGoodPct">--</b><div class="line"><span id="bGoodLine" style="background:var(--good);"></span></div><span>Good</span></div>
+                            <div class="metric"><b id="bWarnPct">--</b><div class="line"><span id="bWarnLine" style="background:var(--warn);"></span></div><span>Warning</span></div>
+                            <div class="metric"><b id="bRiskPct">--</b><div class="line"><span id="bRiskLine" style="background:var(--risk);"></span></div><span>Risk</span></div>
+                        </div>
+                    </article>
+                    <article class="card feedback">
+                        <div class="label" style="font-size:13px;letter-spacing:0.13em;">Coaching Feedback</div>
+                        <div class="feedback-body" id="bFeedback">--</div>
+                    </article>
+                </section>
+
+                <section class="bottom">
+                    <div class="scrub" id="bScrub"><span id="bScrubFill"></span></div>
+                    <button class="btn" id="bFilesBtn">Files</button>
+                </section>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        const SLOTS = {
+            a: { arm: '', trunk: '' },
+            b: { arm: '', trunk: '' }
+        };
+
+        let fileOptions = [];
+
+        function parseCSVData(csvText) {
+            if (!csvText) return [];
+            const lines = csvText.trim().split('\n');
+            const data = [];
+            let timeOffset = 0;
+            let previousElapsed = 0;
+            for (let i = 1; i < lines.length; i += 1) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const parts = line.split(',');
+                if (parts.length < 5) continue;
+
+                const elapsedMs = Number.parseInt(parts[0], 10);
+                if (!Number.isFinite(elapsedMs)) continue;
+                if (i > 1 && elapsedMs < previousElapsed) {
+                    timeOffset += previousElapsed;
+                }
+
+                data.push({
+                    elapsed_ms: elapsedMs,
+                    adjusted_elapsed_ms: elapsedMs + timeOffset,
+                    angle: Number.parseFloat(parts[2]) || 0,
+                    feedback: Number.parseInt(parts[3], 10) || 0,
+                    zone: (parts[4] || 'green').trim().toLowerCase(),
+                    timestamp: parts[1] || ''
+                });
+                previousElapsed = elapsedMs;
+            }
+            return data.sort((a, b) => a.adjusted_elapsed_ms - b.adjusted_elapsed_ms);
+        }
+
+        function zoneLevel(zone) {
+            if (zone === 'red') return 2;
+            if (zone === 'yellow') return 1;
+            return 0;
+        }
+
+        function zoneFromLevel(level) {
+            if (level >= 2) return 'red';
+            if (level >= 1) return 'yellow';
+            return 'green';
+        }
+
+        function nearestPoint(points, ms) {
+            if (!points.length) return null;
+            let lo = 0;
+            let hi = points.length - 1;
+            while (lo <= hi) {
+                const mid = (lo + hi) >> 1;
+                const v = points[mid].adjusted_elapsed_ms;
+                if (v === ms) return points[mid];
+                if (v < ms) lo = mid + 1;
+                else hi = mid - 1;
+            }
+            const left = hi >= 0 ? points[hi] : null;
+            const right = lo < points.length ? points[lo] : null;
+            if (!left) return right;
+            if (!right) return left;
+            return Math.abs(left.adjusted_elapsed_ms - ms) <= Math.abs(right.adjusted_elapsed_ms - ms) ? left : right;
+        }
+
+        function buildCombinedTrack(armData, trunkData) {
+            const msSet = new Set();
+            armData.forEach((p) => msSet.add(p.adjusted_elapsed_ms));
+            trunkData.forEach((p) => msSet.add(p.adjusted_elapsed_ms));
+            const timeline = Array.from(msSet).sort((a, b) => a - b);
+            return timeline.map((ms) => {
+                const a = nearestPoint(armData, ms);
+                const t = nearestPoint(trunkData, ms);
+                const armZone = a ? (a.zone || 'green') : 'green';
+                const trunkZone = t ? (t.zone || 'green') : 'green';
+                return {
+                    adjusted_elapsed_ms: ms,
+                    armZone,
+                    trunkZone,
+                    zone: zoneFromLevel(Math.max(zoneLevel(armZone), zoneLevel(trunkZone))),
+                    feedback: (a && a.feedback) || (t && t.feedback) || 0
+                };
+            });
+        }
+
+        function computeZoneDurations(track, zoneGetter) {
+            const out = { good: 0, warning: 0, risk: 0, total: 0 };
+            if (!track || track.length < 2) return out;
+            for (let i = 1; i < track.length; i += 1) {
+                const prev = track[i - 1];
+                const curr = track[i];
+                const dt = Math.max(0, (curr.adjusted_elapsed_ms - prev.adjusted_elapsed_ms) / 1000);
+                if (dt <= 0) continue;
+                const zone = zoneGetter(curr);
+                if (zone === 'red') out.risk += dt;
+                else if (zone === 'yellow') out.warning += dt;
+                else out.good += dt;
+            }
+            out.total = out.good + out.warning + out.risk;
+            return out;
+        }
+
+        function toPct(value, total) {
+            if (total <= 0) return 0;
+            return (value / total) * 100;
+        }
+
+        function computeRecoveryStats(track) {
+            const recoveries = [];
+            let badStart = null;
+            for (let i = 1; i < track.length; i += 1) {
+                const prev = track[i - 1];
+                const curr = track[i];
+                const prevBad = zoneLevel(prev.zone) > 0;
+                const currBad = zoneLevel(curr.zone) > 0;
+                if (!prevBad && currBad && badStart === null) {
+                    badStart = curr.adjusted_elapsed_ms;
+                }
+                if (prevBad && !currBad && badStart !== null) {
+                    recoveries.push((curr.adjusted_elapsed_ms - badStart) / 1000);
+                    badStart = null;
+                }
+            }
+            const avg = recoveries.length
+                ? recoveries.reduce((sum, v) => sum + v, 0) / recoveries.length
+                : null;
+            return { count: recoveries.length, avg };
+        }
+
+        function bucketTimeline(track, bucketCount) {
+            const buckets = Array.from({ length: bucketCount }, () => ({ sum: 0, dur: 0 }));
+            if (!track || track.length < 2) return buckets.map(() => 'good');
+            const start = track[0].adjusted_elapsed_ms;
+            const end = track[track.length - 1].adjusted_elapsed_ms;
+            const totalMs = Math.max(1, end - start);
+
+            for (let i = 1; i < track.length; i += 1) {
+                const prev = track[i - 1];
+                const curr = track[i];
+                const dt = Math.max(0, curr.adjusted_elapsed_ms - prev.adjusted_elapsed_ms);
+                if (dt <= 0) continue;
+                const ratio = (curr.adjusted_elapsed_ms - start) / totalMs;
+                const idx = Math.min(bucketCount - 1, Math.floor(ratio * bucketCount));
+                buckets[idx].sum += zoneLevel(curr.zone) * dt;
+                buckets[idx].dur += dt;
+            }
+
+            return buckets.map((bucket) => {
+                if (bucket.dur <= 0) return 'good';
+                const avgSeverity = bucket.sum / bucket.dur;
+                if (avgSeverity >= 1.5) return 'risk';
+                if (avgSeverity >= 0.5) return 'warn';
+                return 'good';
+            });
+        }
+
+        function findBestWorstMinute(states) {
+            const rank = (state) => (state === 'risk' ? 2 : state === 'warn' ? 1 : 0);
+            let best = 0;
+            let worst = 0;
+            for (let i = 1; i < states.length; i += 1) {
+                if (rank(states[i]) < rank(states[best])) best = i;
+                if (rank(states[i]) > rank(states[worst])) worst = i;
+            }
+            return { best, worst };
+        }
+
+        function gradeFromScore(score) {
+            if (score >= 85) return { label: 'Excellent', level: '9 / 10 next milestone' };
+            if (score >= 75) return { label: 'Improving', level: '8 / 10 next milestone' };
+            if (score >= 65) return { label: 'Steady', level: '7 / 10 next milestone' };
+            return { label: 'At Risk', level: '5 / 10 stabilize first' };
+        }
+
+        function calcTrend(scoreStart, scoreEnd, durationSec) {
+            const minutes = Math.max(1 / 60, durationSec / 60);
+            return (scoreEnd - scoreStart) / minutes;
+        }
+
+        function scoreFromPercentages(goodPct, warnPct, riskPct) {
+            const raw = 100 - warnPct * 0.65 - riskPct * 1.25 + goodPct * 0.05;
+            return Math.max(0, Math.min(100, Math.round(raw)));
+        }
+
+        function scoreWindow(track, fromRatio, toRatio) {
+            if (!track || track.length < 2) return 0;
+            const startMs = track[0].adjusted_elapsed_ms;
+            const endMs = track[track.length - 1].adjusted_elapsed_ms;
+            const total = Math.max(1, endMs - startMs);
+            const from = startMs + total * fromRatio;
+            const to = startMs + total * toRatio;
+            const sliced = track.filter((p) => p.adjusted_elapsed_ms >= from && p.adjusted_elapsed_ms <= to);
+            const durations = computeZoneDurations(sliced, (p) => p.zone);
+            const goodPct = toPct(durations.good, durations.total);
+            const warnPct = toPct(durations.warning, durations.total);
+            const riskPct = toPct(durations.risk, durations.total);
+            return scoreFromPercentages(goodPct, warnPct, riskPct);
+        }
+
+        function describePart(partName, pct) {
+            const warn = pct.warning;
+            const risk = pct.risk;
+            if (risk >= 14) {
+                return { chip: 'risk', text: `${partName} has repeated risk spikes. Focus on immediate posture correction.` };
+            }
+            if (warn + risk >= 30) {
+                return { chip: 'warning', text: `${partName} is mostly stable but drifts appear under load.` };
+            }
+            return { chip: 'good', text: `${partName} remains mostly stable with low sustained deviation.` };
+        }
+
+        function coachingText(score, recovery, riskPct) {
+            if (score >= 80 && riskPct < 12) {
+                return 'Performance is stable. Keep this rhythm and maintain correction timing consistency.';
+            }
+            if (recovery.avg && recovery.avg <= 1.5) {
+                return 'Recovery speed is good. Next focus is reducing warning exposure before it escalates.';
+            }
+            return 'Frequent risk windows detected. Shorten correction loop and reduce prolonged non-neutral posture.';
+        }
+
+        function formatDuration(sec) {
+            const whole = Math.max(0, Math.round(sec));
+            const m = Math.floor(whole / 60);
+            const s = whole % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function minuteLabel(statesIndex, totalDurationSec) {
+            const minute = (statesIndex / 60) * (totalDurationSec / 60);
+            const mins = Math.floor(minute);
+            const secs = Math.floor((minute - mins) * 60);
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function renderTicks(containerId, states) {
+            const el = document.getElementById(containerId);
+            el.innerHTML = '';
+            states.forEach((state) => {
+                const div = document.createElement('div');
+                div.className = 'tick';
+                if (state === 'risk') div.style.background = 'var(--risk)';
+                else if (state === 'warn') div.style.background = 'var(--warn)';
+                else div.style.background = 'var(--good)';
+                el.appendChild(div);
+            });
+        }
+
+        function setChip(id, value) {
+            const el = document.getElementById(id);
+            el.textContent = value;
+            if (value === 'good') el.style.color = '#7df19d';
+            else if (value === 'warning') el.style.color = '#ffe08b';
+            else el.style.color = '#ff9f96';
+        }
+
+        async function loadDemoFileOptions() {
+            const fallback = Array.isArray(APP_CONFIG && APP_CONFIG.demoDataFiles) ? APP_CONFIG.demoDataFiles.slice() : [];
+            try {
+                const resp = await fetch('demo-data/');
+                if (!resp.ok) throw new Error('Cannot list demo-data directory');
+                const html = await resp.text();
+                const regex = /href="([^"]+\.(?:csv|CSV))"/g;
+                const names = [];
+                let m;
+                while ((m = regex.exec(html)) !== null) {
+                    const raw = m[1] || '';
+                    const name = decodeURIComponent(raw.split('/').pop());
+                    if (name && !names.includes(name)) names.push(name);
+                }
+                const source = names.length ? names : fallback;
+                fileOptions = source
+                    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                    .map((name) => ({ name, path: `demo-data/${encodeURIComponent(name)}` }));
+            } catch (_err) {
+                fileOptions = fallback
+                    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                    .map((name) => ({ name, path: `demo-data/${encodeURIComponent(name)}` }));
+            }
+        }
+
+        function assignDefaults() {
+            const names = fileOptions.map((f) => f.name);
+            const arms = names.filter((n) => /arm/i.test(n));
+            const trunks = names.filter((n) => /trunk/i.test(n));
+
+            SLOTS.a.arm = arms[0] || names[0] || '';
+            SLOTS.a.trunk = trunks[0] || names[1] || names[0] || '';
+            SLOTS.b.arm = arms[1] || arms[0] || names[2] || names[0] || '';
+            SLOTS.b.trunk = trunks[1] || trunks[0] || names[3] || names[1] || names[0] || '';
+        }
+
+        function initSelectors() {
+            const ids = ['aArmSelect', 'aTrunkSelect', 'bArmSelect', 'bTrunkSelect'];
+            const optionsHtml = fileOptions.map((f) => `<option value="${f.name}">${f.name}</option>`).join('');
+            ids.forEach((id) => {
+                document.getElementById(id).innerHTML = optionsHtml;
+            });
+
+            document.getElementById('aArmSelect').value = SLOTS.a.arm;
+            document.getElementById('aTrunkSelect').value = SLOTS.a.trunk;
+            document.getElementById('bArmSelect').value = SLOTS.b.arm;
+            document.getElementById('bTrunkSelect').value = SLOTS.b.trunk;
+        }
+
+        async function loadCsvByName(fileName) {
+            const opt = fileOptions.find((f) => f.name === fileName);
+            if (!opt) throw new Error(`Unknown file: ${fileName}`);
+            const resp = await fetch(opt.path);
+            if (!resp.ok) throw new Error(`Failed to load ${fileName}`);
+            return resp.text();
+        }
+
+        async function buildSession(armFile, trunkFile) {
+            const [armText, trunkText] = await Promise.all([
+                loadCsvByName(armFile),
+                loadCsvByName(trunkFile)
+            ]);
+
+            const armData = parseCSVData(armText);
+            const trunkData = parseCSVData(trunkText);
+            const merged = buildCombinedTrack(armData, trunkData);
+            if (merged.length < 2) {
+                throw new Error('Selected files do not contain enough timeline records.');
+            }
+
+            const zoneDur = computeZoneDurations(merged, (p) => p.zone);
+            const armDur = computeZoneDurations(merged, (p) => p.armZone);
+            const trunkDur = computeZoneDurations(merged, (p) => p.trunkZone);
+
+            const goodPct = toPct(zoneDur.good, zoneDur.total);
+            const warnPct = toPct(zoneDur.warning, zoneDur.total);
+            const riskPct = toPct(zoneDur.risk, zoneDur.total);
+            const score = scoreFromPercentages(goodPct, warnPct, riskPct);
+            const grade = gradeFromScore(score);
+            const recovery = computeRecoveryStats(merged);
+
+            const firstScore = scoreWindow(merged, 0, 0.5);
+            const secondScore = scoreWindow(merged, 0.5, 1);
+            const trendPerMin = calcTrend(firstScore, secondScore, zoneDur.total);
+
+            const timelineStates = bucketTimeline(merged, 60);
+            const marks = findBestWorstMinute(timelineStates);
+
+            const armPct = {
+                warning: toPct(armDur.warning, armDur.total),
+                risk: toPct(armDur.risk, armDur.total)
+            };
+            const trunkPct = {
+                warning: toPct(trunkDur.warning, trunkDur.total),
+                risk: toPct(trunkDur.risk, trunkDur.total)
+            };
+
+            return {
+                files: { arm: armFile, trunk: trunkFile },
+                score,
+                grade,
+                durationSec: zoneDur.total,
+                goodPct,
+                warnPct,
+                riskPct,
+                recovery,
+                trendPerMin,
+                timelineStates,
+                best: marks.best,
+                worst: marks.worst,
+                armStatus: describePart('Arm posture', armPct),
+                trunkStatus: describePart('Trunk posture', trunkPct),
+                feedback: coachingText(score, recovery, riskPct)
+            };
+        }
+
+        function applySession(slot, data) {
+            document.getElementById(`${slot}Name`).textContent = `Session ${slot.toUpperCase()}`;
+            document.getElementById(`${slot}Duration`).textContent = `Duration ${formatDuration(data.durationSec)}`;
+            document.getElementById(`${slot}Score`).textContent = `${data.score}`;
+            document.getElementById(`${slot}Grade`).textContent = `${data.grade.label}`;
+            document.getElementById(`${slot}Level`).textContent = data.grade.level;
+            document.getElementById(`${slot}Fill`).style.width = `${data.score}%`;
+
+            document.getElementById(`${slot}Subtitle`).textContent = `${data.files.arm} + ${data.files.trunk}`;
+
+            const avgCorrection = data.recovery.avg ? `${data.recovery.avg.toFixed(1)}s` : 'N/A';
+            document.getElementById(`${slot}Correction`).textContent = `Avg correction ${avgCorrection}`;
+            document.getElementById(`${slot}Improve`).textContent = `Trend ${data.trendPerMin.toFixed(2)} pts/min`;
+
+            document.getElementById(`${slot}GoodPct`).textContent = `${data.goodPct.toFixed(1)}%`;
+            document.getElementById(`${slot}WarnPct`).textContent = `${data.warnPct.toFixed(1)}%`;
+            document.getElementById(`${slot}RiskPct`).textContent = `${data.riskPct.toFixed(1)}%`;
+            document.getElementById(`${slot}GoodLine`).style.width = `${data.goodPct}%`;
+            document.getElementById(`${slot}WarnLine`).style.width = `${data.warnPct}%`;
+            document.getElementById(`${slot}RiskLine`).style.width = `${data.riskPct}%`;
+
+            const g = data.goodPct;
+            const w = g + data.warnPct;
+            document.getElementById(`${slot}Donut`).style.background = `conic-gradient(var(--good) 0 ${g}%, var(--warn) ${g}% ${w}%, var(--risk) ${w}% 100%)`;
+
+            document.getElementById(`${slot}ArmText`).textContent = data.armStatus.text;
+            document.getElementById(`${slot}TrunkText`).textContent = data.trunkStatus.text;
+            setChip(`${slot}ArmChip`, data.armStatus.chip);
+            setChip(`${slot}TrunkChip`, data.trunkStatus.chip);
+
+            renderTicks(`${slot}Ticks`, data.timelineStates);
+            document.getElementById(`${slot}Best`).textContent = `Best ${minuteLabel(data.best, data.durationSec)}`;
+            document.getElementById(`${slot}Worst`).textContent = `Worst ${minuteLabel(data.worst, data.durationSec)}`;
+            document.getElementById(`${slot}Feedback`).textContent = data.feedback;
+
+            const scrubWidth = Math.max(0, Math.min(100, data.goodPct));
+            document.getElementById(`${slot}ScrubFill`).style.width = `${scrubWidth}%`;
+            document.getElementById(`${slot}Scrub`).style.setProperty('--scrub-pos', `${scrubWidth}%`);
+            document.getElementById(`${slot}FilesBtn`).textContent = `${data.files.arm} + ${data.files.trunk}`;
+        }
+
+        async function applyAll() {
+            try {
+                SLOTS.a.arm = document.getElementById('aArmSelect').value;
+                SLOTS.a.trunk = document.getElementById('aTrunkSelect').value;
+                SLOTS.b.arm = document.getElementById('bArmSelect').value;
+                SLOTS.b.trunk = document.getElementById('bTrunkSelect').value;
+
+                const [aData, bData] = await Promise.all([
+                    buildSession(SLOTS.a.arm, SLOTS.a.trunk),
+                    buildSession(SLOTS.b.arm, SLOTS.b.trunk)
+                ]);
+
+                applySession('a', aData);
+                applySession('b', bData);
+
+                const delta = bData.score - aData.score;
+                const sign = delta >= 0 ? '+' : '';
+                document.getElementById('deltaPill').textContent = `Score delta: ${sign}${delta}`;
+                document.getElementById('headerA').textContent = `Session A: ${SLOTS.a.arm} + ${SLOTS.a.trunk}`;
+                document.getElementById('headerB').textContent = `Session B: ${SLOTS.b.arm} + ${SLOTS.b.trunk}`;
+            } catch (error) {
+                document.getElementById('deltaPill').textContent = `Load failed: ${error.message}`;
+            }
+        }
+
+        async function init() {
+            await loadDemoFileOptions();
+            assignDefaults();
+            initSelectors();
+            document.getElementById('applyBtn').addEventListener('click', applyAll);
+            await applyAll();
+        }
+
+        init();
+    </script>
+</body>
+</html>
