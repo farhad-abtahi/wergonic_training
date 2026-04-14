@@ -20,6 +20,134 @@
             --warn: #f2c21d;
             --risk: #ff4f46;
             --shadow: 0 24px 60px rgba(0, 0, 0, 0.46);
+            --donut-center: #0a213d;
+            --row-bg1: rgba(27, 56, 88, 0.48);
+            --row-bg2: rgba(15, 34, 58, 0.45);
+            --input-bg: rgba(160, 201, 255, 0.1);
+            --input-border: rgba(184, 220, 255, 0.2);
+            --modal-backdrop: rgba(2, 10, 18, 0.72);
+        }
+
+        :root.light {
+            --bg-0: #f0f4f8;
+            --bg-1: #e8eef4;
+            --bg-2: #dde5ee;
+            --surface: rgba(255, 255, 255, 0.92);
+            --border: rgba(0, 40, 100, 0.13);
+            --text-main: #1a2a3a;
+            --text-muted: rgba(26, 42, 58, 0.55);
+            --good: #22a84a;
+            --warn: #d4a00a;
+            --risk: #e03830;
+            --shadow: 0 12px 40px rgba(0, 0, 0, 0.07);
+            --donut-center: #eef2f7;
+            --row-bg1: rgba(220, 232, 248, 0.48);
+            --row-bg2: rgba(210, 225, 244, 0.45);
+            --input-bg: rgba(0, 40, 100, 0.06);
+            --input-border: rgba(0, 40, 100, 0.15);
+            --modal-backdrop: rgba(240, 244, 248, 0.72);
+        }
+
+        :root.light body {
+            background: linear-gradient(145deg, var(--bg-0) 0%, var(--bg-1) 55%, var(--bg-2) 100%);
+        }
+
+        :root.light .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 248, 252, 0.8));
+        }
+
+        :root.light .delta-pill {
+            border-color: rgba(34, 168, 74, 0.4);
+            background: rgba(34, 168, 74, 0.1);
+            color: #188a3a;
+        }
+
+        :root.light .btn {
+            border-color: rgba(0, 40, 100, 0.18);
+            background: linear-gradient(180deg, rgba(220, 232, 248, 0.8), rgba(200, 218, 240, 0.7));
+            color: var(--text-main);
+        }
+
+        :root.light .info-dot {
+            border-color: rgba(0, 40, 100, 0.2);
+            color: var(--text-muted);
+        }
+
+        :root.light .info-dot:hover {
+            color: var(--text-main);
+            border-color: rgba(0, 40, 100, 0.4);
+        }
+
+        :root.light .track {
+            background: rgba(0, 40, 100, 0.08);
+            border-color: rgba(0, 40, 100, 0.08);
+        }
+
+        :root.light .track-note {
+            color: rgba(26, 42, 58, 0.7);
+        }
+
+        :root.light .row {
+            border-color: rgba(0, 40, 100, 0.12);
+            background: linear-gradient(90deg, rgba(220, 232, 248, 0.5), rgba(230, 240, 252, 0.45));
+        }
+
+        :root.light .chip {
+            border-color: rgba(0, 40, 100, 0.12);
+            background: rgba(0, 40, 100, 0.06);
+            color: var(--text-muted);
+        }
+
+        :root.light .scrub {
+            background: rgba(0, 40, 100, 0.08);
+            border-color: rgba(0, 40, 100, 0.1);
+        }
+
+        :root.light .line {
+            background: rgba(0, 40, 100, 0.08);
+        }
+
+        :root.light .feedback-body {
+            border-color: rgba(0, 40, 100, 0.12);
+            background: linear-gradient(180deg, rgba(240, 245, 252, 0.5), rgba(235, 242, 250, 0.3));
+        }
+
+        :root.light .config-panel {
+            background: linear-gradient(180deg, rgba(250, 252, 255, 0.98) 0%, rgba(240, 248, 255, 0.95) 100%);
+            border-color: rgba(0, 40, 100, 0.18);
+            box-shadow: 0 12px 40px rgba(0, 40, 100, 0.15);
+        }
+
+        :root.light .score-modal-close {
+            border-color: rgba(0, 40, 100, 0.18);
+            background: rgba(0, 40, 100, 0.05);
+            color: var(--text-main);
+        }
+
+        :root.light .score-modal-card {
+            border-color: rgba(0, 40, 100, 0.1);
+            background: rgba(0, 40, 100, 0.03);
+        }
+
+        :root.light .score-modal-list {
+            border-color: rgba(0, 40, 100, 0.1);
+            background: rgba(0, 40, 100, 0.03);
+        }
+
+        :root.light .score-modal-bar {
+            background: rgba(0, 40, 100, 0.08);
+        }
+
+        :root.light .ratio-chip {
+            border-color: rgba(0, 40, 100, 0.15);
+        }
+
+        :root.light .part-donut::after {
+            border-color: rgba(0, 40, 100, 0.1);
+        }
+
+        :root.light .part-row + .part-row {
+            border-color: rgba(0, 40, 100, 0.1);
         }
 
         * {
@@ -65,6 +193,7 @@
             align-items: center;
             gap: 10px;
             font-size: 12px;
+            position: relative;
         }
 
         .session-tag {
@@ -84,6 +213,19 @@
             background: rgba(68, 207, 102, 0.14);
             color: #7df19d;
             font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .delta-pill-text {
+            white-space: nowrap;
+        }
+
+        .delta-pill-controls {
+            display: flex;
+            gap: 5px;
+            align-items: center;
         }
 
         .selector-bar {
@@ -110,9 +252,9 @@
 
         .field select {
             width: 100%;
-            background: rgba(160, 201, 255, 0.1);
+            background: var(--input-bg);
             color: var(--text-main);
-            border: 1px solid rgba(184, 220, 255, 0.2);
+            border: 1px solid var(--input-border);
             border-radius: 10px;
             padding: 8px 10px;
             font: inherit;
@@ -191,6 +333,135 @@
             color: var(--text-muted);
             font-size: 12px;
             margin-bottom: 8px;
+            padding: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .info-dot:hover {
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.42);
+        }
+
+        .score-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+        }
+
+        .score-modal[hidden] {
+            display: none;
+        }
+
+        .score-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: var(--modal-backdrop);
+            backdrop-filter: blur(10px);
+        }
+
+        .score-modal-panel {
+            position: relative;
+            width: min(720px, calc(100vw - 40px));
+            padding: 22px;
+            display: grid;
+            gap: 16px;
+            z-index: 1;
+        }
+
+        .score-modal-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .score-modal-title {
+            margin-top: 6px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 26px;
+            letter-spacing: -0.03em;
+        }
+
+        .score-modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .score-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .score-modal-card {
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.03);
+            display: grid;
+            gap: 8px;
+        }
+
+        .score-modal-card .kicker {
+            color: var(--text-muted);
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .score-modal-card .value {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 38px;
+            line-height: 0.95;
+        }
+
+        .score-modal-note {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .score-modal-list {
+            display: grid;
+            gap: 10px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .score-modal-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .score-modal-row span:first-child {
+            color: var(--text-muted);
+        }
+
+        .score-modal-row strong {
+            font-size: 15px;
+        }
+
+        @media (max-width: 900px) {
+            .score-modal-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .subtitle {
@@ -262,7 +533,7 @@
         .row {
             border: 1px solid rgba(166, 205, 255, 0.16);
             border-radius: 14px;
-            background: linear-gradient(90deg, rgba(27, 56, 88, 0.48), rgba(15, 34, 58, 0.45));
+            background: linear-gradient(90deg, var(--row-bg1), var(--row-bg2));
             margin-bottom: 10px;
             padding: 10px 12px;
             display: grid;
@@ -321,6 +592,126 @@
             padding: 10px 12px;
         }
 
+        .parts-analytics {
+            padding: 10px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .part-row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: center;
+            min-width: 0;
+            padding: 6px 2px;
+        }
+
+        .part-row + .part-row {
+            border-top: 1px solid rgba(166, 205, 255, 0.16);
+            padding-top: 10px;
+        }
+
+        .part-donut {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            position: relative;
+            background: conic-gradient(var(--good) 0 67%, var(--warn) 67% 86%, var(--risk) 86% 100%);
+            flex-shrink: 0;
+        }
+
+        .part-donut::after {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            background: var(--donut-center);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .part-body {
+            min-width: 0;
+            display: grid;
+            gap: 6px;
+        }
+
+        .part-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .part-name {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .part-ratio {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .ratio-chip {
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: var(--text-main);
+        }
+
+        .ratio-chip.good {
+            background: rgba(68, 207, 102, 0.16);
+            border-color: rgba(68, 207, 102, 0.42);
+        }
+
+        .ratio-chip.warn {
+            background: rgba(242, 194, 29, 0.17);
+            border-color: rgba(242, 194, 29, 0.42);
+        }
+
+        .ratio-chip.risk {
+            background: rgba(255, 79, 70, 0.15);
+            border-color: rgba(255, 79, 70, 0.42);
+        }
+
+        .part-ticks {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 2px;
+        }
+
+        .part-tick {
+            height: 10px;
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .part-tick.best-mark {
+            box-shadow: 0 0 0 2px #7df19d;
+        }
+
+        .part-tick.focus-mark {
+            box-shadow: 0 0 0 2px #ff9f96;
+        }
+
+        .part-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
         .ticks {
             display: grid;
             grid-template-columns: repeat(60, 1fr);
@@ -369,7 +760,7 @@
             position: absolute;
             inset: 14px;
             border-radius: 50%;
-            background: #0a213d;
+            background: var(--donut-center);
             border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
@@ -420,7 +811,6 @@
             background: linear-gradient(180deg, rgba(11, 31, 54, 0.5), rgba(6, 21, 40, 0.3));
             color: var(--text-muted);
             font-size: 12px;
-            overflow: auto;
         }
 
         .bottom {
@@ -480,6 +870,332 @@
             }
         }
 
+        .score-modal-bar {
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+
+        .score-modal-bar-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #3fd468, #5fb2ff);
+            transition: width 500ms ease;
+        }
+
+        :root.light .score-modal-bar {
+            background: rgba(0, 40, 100, 0.08);
+        }
+
+        .theme-toggle,
+        .config-toggle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            font-size: 14px;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+            transition: all 200ms ease;
+        }
+
+        .theme-toggle:hover,
+        .config-toggle:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.35);
+        }
+
+        :root.light .theme-toggle,
+        :root.light .config-toggle {
+            border-color: rgba(0, 40, 100, 0.2);
+            background: rgba(0, 40, 100, 0.06);
+        }
+
+        :root.light .theme-toggle:hover,
+        :root.light .config-toggle:hover {
+            background: rgba(0, 40, 100, 0.12);
+            border-color: rgba(0, 40, 100, 0.35);
+        }
+
+        .config-panel {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 100;
+            width: 300px;
+            padding: 14px;
+            display: grid;
+            gap: 8px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            background: linear-gradient(180deg, rgba(10, 29, 53, 0.98) 0%, rgba(6, 20, 39, 0.95) 100%);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+        }
+
+        .config-panel[hidden] {
+            display: none;
+        }
+
+        .best-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #7df19d;
+            letter-spacing: 0.03em;
+        }
+
+        .focus-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #f5a623;
+            letter-spacing: 0.03em;
+        }
+
+        :root.light .best-label {
+            color: #009640;
+        }
+
+        :root.light .focus-label {
+            color: #d97706;
+        }
+
+        .score-hint {
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        :root.light .score-hint {
+            opacity: 0.6;
+        }
+
+        .part-row {
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 600ms ease;
+        }
+
+        .part-row.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .part-row-inner {
+            position: relative;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: center;
+            backface-visibility: hidden;
+        }
+
+        .part-row-back {
+            position: absolute;
+            inset: 0;
+            backface-visibility: hidden;
+            transform: rotateY(180deg);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .part-chart {
+            flex: 1;
+            min-height: 80px;
+        }
+
+        .config-panel .label {
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .cfg-mode-row {
+            display: flex;
+            gap: 4px;
+        }
+
+        .cfg-mode-btn {
+            flex: 1;
+            padding: 5px 0;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .cfg-mode-btn.active {
+            background: rgba(63, 212, 104, 0.15);
+            border-color: rgba(63, 212, 104, 0.5);
+            color: var(--text-main);
+        }
+
+        .cfg-bracket {
+            display: grid;
+            grid-template-columns: 64px 1fr 28px;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 0;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .cfg-bracket .cb-range {
+            font-size: 10px;
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .cfg-bracket .cb-val {
+            font-size: 11px;
+            color: var(--text-main);
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .cfg-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            outline: none;
+            cursor: pointer;
+        }
+
+        :root.light .cfg-slider {
+            background: rgba(0, 40, 100, 0.08);
+        }
+
+        .cfg-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3fd468, #5fb2ff);
+            box-shadow: 0 0 0 3px rgba(63, 212, 104, 0.2);
+            cursor: grab;
+        }
+
+        .cfg-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3fd468, #5fb2ff);
+            border: none;
+            box-shadow: 0 0 0 3px rgba(63, 212, 104, 0.2);
+            cursor: grab;
+        }
+
+        .cfg-slider:active::-webkit-slider-thumb { cursor: grabbing; }
+        .cfg-slider:active::-moz-range-thumb { cursor: grabbing; }
+
+        .cfg-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 2px 0;
+        }
+
+        .curve-wrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .curve-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .curve-hint {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-align: center;
+            opacity: 0.7;
+        }
+
+        .modal-curve-wrap {
+            width: 100%;
+            aspect-ratio: 2.4;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .modal-curve-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .modal-brackets {
+            display: grid;
+            gap: 4px;
+            padding: 6px 0 2px;
+        }
+
+        .modal-bracket-row {
+            display: grid;
+            grid-template-columns: 68px 1fr 32px;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .modal-bracket-bar {
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+        }
+
+        :root.light .modal-bracket-bar {
+            background: rgba(0, 40, 100, 0.06);
+        }
+
+        .modal-bracket-fill {
+            height: 100%;
+            border-radius: inherit;
+            transition: width 400ms ease;
+        }
+
+        .modal-bracket-val {
+            font-weight: 800;
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .config-apply {
+            border: none;
+            background: linear-gradient(90deg, #3fd468, #5fb2ff);
+            color: #041120;
+            border-radius: 10px;
+            padding: 7px 0;
+            font-weight: 800;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
         @media (max-width: 1100px) {
             .screen {
                 width: 100vw;
@@ -509,6 +1225,19 @@
                 grid-template-columns: 1fr;
             }
 
+            .parts-analytics {
+                gap: 4px;
+            }
+
+            .part-row {
+                grid-template-columns: 1fr;
+                justify-items: start;
+            }
+
+            .part-body {
+                width: 100%;
+            }
+
             .bottom {
                 grid-template-columns: 1fr;
             }
@@ -519,8 +1248,25 @@
     <main class="screen">
         <section class="card compare-header load-appear">
             <div class="session-tag" id="headerA">Session A</div>
-            <div class="delta-pill" id="deltaPill">Score delta: --</div>
+            <div class="delta-pill">
+                <span class="delta-pill-text" id="deltaPill">Session Comparison</span>
+                <div class="delta-pill-controls">
+                    <button type="button" class="config-toggle" id="configToggle" aria-label="Scoring config">⚙</button>
+                    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
+                </div>
+            </div>
             <div class="session-tag" id="headerB" style="text-align: right;">Session B</div>
+        </section>
+
+        <section class="card config-panel" id="configPanel" hidden>
+            <div class="label">Scoring Mode</div>
+            <div class="cfg-mode-row">
+                <button type="button" class="cfg-mode-btn active" data-mode="angle">Angle</button>
+                <button type="button" class="cfg-mode-btn" data-mode="zone">Zone</button>
+            </div>
+            <div class="cfg-divider"></div>
+            <div id="cfgBody"></div>
+            <button type="button" class="config-apply" id="cfgApply">Apply & Recalc</button>
         </section>
 
         <section class="card selector-bar load-appear">
@@ -550,13 +1296,13 @@
                 <section class="card score">
                     <div>
                         <div class="label">Performance Score</div>
-                        <div class="score-number"><strong id="aScore">--</strong><span class="info-dot">i</span></div>
+                        <div class="score-number"><strong id="aScore">--</strong><button type="button" class="info-dot" data-score-slot="a" aria-label="View Session A score details">i</button></div>
                         <div class="subtitle" id="aSubtitle">Waiting for file selection.</div>
+                        <div class="score-hint" id="aScoreHint"></div>
                     </div>
                     <div>
-                        <div class="grade-row"><div class="grade" id="aGrade">--</div><div class="label" id="aLevel" style="letter-spacing:0;text-transform:none;">--</div></div>
-                        <div class="track"><div class="fill" id="aFill"></div><div class="track-note">Real file calculation</div></div>
-                        <div class="foot"><span id="aCorrection">Avg correction --</span><span id="aImprove">Trend --</span></div>
+                        <div class="grade-row"><div class="grade" id="aGrade">--</div></div>
+                        <div class="track"><div class="fill" id="aFill"></div><div class="track-note"></div></div>
                     </div>
                 </section>
 
@@ -566,20 +1312,46 @@
                     <div class="legend"><span><i class="dot" style="background: var(--good);"></i>Good</span><span><i class="dot" style="background: var(--warn);"></i>Warning</span><span><i class="dot" style="background: var(--risk);"></i>Risk</span></div>
                 </section>
 
-                <section class="card timeline">
-                    <div class="ticks" id="aTicks"></div>
-                    <div class="meta"><span id="aBest">Best --</span><span id="aWorst">Worst --</span></div>
+                <section class="card parts-analytics">
+                    <article class="part-row">
+                        <div class="part-donut" id="aArmDonut" aria-label="Arm posture ratio"></div>
+                        <div class="part-body">
+                            <div class="part-head">
+                                <div class="part-name">ARM</div>
+                                <div class="part-ratio">
+                                    <span class="ratio-chip good" id="aArmGoodPct">G --</span>
+                                    <span class="ratio-chip warn" id="aArmWarnPct">W --</span>
+                                    <span class="ratio-chip risk" id="aArmRiskPct">R --</span>
+                                </div>
+                            </div>
+                            <div class="part-ticks" id="aArmTicks"></div>
+                            <div class="part-meta">
+                                <span id="aArmBest" class="best-label">Best --</span>
+                                <span id="aArmWorst" class="focus-label">Needs Focus --</span>
+                            </div>
+                        </div>
+                    </article>
+                    <article class="part-row">
+                        <div class="part-donut" id="aTrunkDonut" aria-label="Trunk posture ratio"></div>
+                        <div class="part-body">
+                            <div class="part-head">
+                                <div class="part-name">TRUNK</div>
+                                <div class="part-ratio">
+                                    <span class="ratio-chip good" id="aTrunkGoodPct">G --</span>
+                                    <span class="ratio-chip warn" id="aTrunkWarnPct">W --</span>
+                                    <span class="ratio-chip risk" id="aTrunkRiskPct">R --</span>
+                                </div>
+                            </div>
+                            <div class="part-ticks" id="aTrunkTicks"></div>
+                            <div class="part-meta">
+                                <span id="aTrunkBest" class="best-label">Best --</span>
+                                <span id="aTrunkWorst" class="focus-label">Needs Focus --</span>
+                            </div>
+                        </div>
+                    </article>
                 </section>
 
                 <section class="main">
-                    <article class="card donut-card">
-                        <div class="donut" id="aDonut" aria-label="Posture Ratio"></div>
-                        <div class="metrics">
-                            <div class="metric"><b id="aGoodPct">--</b><div class="line"><span id="aGoodLine" style="background:var(--good);"></span></div><span>Good</span></div>
-                            <div class="metric"><b id="aWarnPct">--</b><div class="line"><span id="aWarnLine" style="background:var(--warn);"></span></div><span>Warning</span></div>
-                            <div class="metric"><b id="aRiskPct">--</b><div class="line"><span id="aRiskLine" style="background:var(--risk);"></span></div><span>Risk</span></div>
-                        </div>
-                    </article>
                     <article class="card feedback">
                         <div class="label" style="font-size:13px;letter-spacing:0.13em;">Coaching Feedback</div>
                         <div class="feedback-body" id="aFeedback">--</div>
@@ -587,8 +1359,6 @@
                 </section>
 
                 <section class="bottom">
-                    <div class="scrub" id="aScrub"><span id="aScrubFill"></span></div>
-                    <button class="btn" id="aFilesBtn">Files</button>
                 </section>
             </article>
 
@@ -598,13 +1368,13 @@
                 <section class="card score">
                     <div>
                         <div class="label">Performance Score</div>
-                        <div class="score-number"><strong id="bScore">--</strong><span class="info-dot">i</span></div>
+                        <div class="score-number"><strong id="bScore">--</strong><button type="button" class="info-dot" data-score-slot="b" aria-label="View Session B score details">i</button></div>
                         <div class="subtitle" id="bSubtitle">Waiting for file selection.</div>
+                        <div class="score-hint" id="bScoreHint"></div>
                     </div>
                     <div>
-                        <div class="grade-row"><div class="grade" id="bGrade">--</div><div class="label" id="bLevel" style="letter-spacing:0;text-transform:none;">--</div></div>
-                        <div class="track"><div class="fill" id="bFill"></div><div class="track-note">Real file calculation</div></div>
-                        <div class="foot"><span id="bCorrection">Avg correction --</span><span id="bImprove">Trend --</span></div>
+                        <div class="grade-row"><div class="grade" id="bGrade">--</div></div>
+                        <div class="track"><div class="fill" id="bFill"></div><div class="track-note"></div></div>
                     </div>
                 </section>
 
@@ -614,20 +1384,46 @@
                     <div class="legend"><span><i class="dot" style="background: var(--good);"></i>Good</span><span><i class="dot" style="background: var(--warn);"></i>Warning</span><span><i class="dot" style="background: var(--risk);"></i>Risk</span></div>
                 </section>
 
-                <section class="card timeline">
-                    <div class="ticks" id="bTicks"></div>
-                    <div class="meta"><span id="bBest">Best --</span><span id="bWorst">Worst --</span></div>
+                <section class="card parts-analytics">
+                    <article class="part-row">
+                        <div class="part-donut" id="bArmDonut" aria-label="Arm posture ratio"></div>
+                        <div class="part-body">
+                            <div class="part-head">
+                                <div class="part-name">ARM</div>
+                                <div class="part-ratio">
+                                    <span class="ratio-chip good" id="bArmGoodPct">G --</span>
+                                    <span class="ratio-chip warn" id="bArmWarnPct">W --</span>
+                                    <span class="ratio-chip risk" id="bArmRiskPct">R --</span>
+                                </div>
+                            </div>
+                            <div class="part-ticks" id="bArmTicks"></div>
+                            <div class="part-meta">
+                                <span id="bArmBest" class="best-label">Best --</span>
+                                <span id="bArmWorst" class="focus-label">Needs Focus --</span>
+                            </div>
+                        </div>
+                    </article>
+                    <article class="part-row">
+                        <div class="part-donut" id="bTrunkDonut" aria-label="Trunk posture ratio"></div>
+                        <div class="part-body">
+                            <div class="part-head">
+                                <div class="part-name">TRUNK</div>
+                                <div class="part-ratio">
+                                    <span class="ratio-chip good" id="bTrunkGoodPct">G --</span>
+                                    <span class="ratio-chip warn" id="bTrunkWarnPct">W --</span>
+                                    <span class="ratio-chip risk" id="bTrunkRiskPct">R --</span>
+                                </div>
+                            </div>
+                            <div class="part-ticks" id="bTrunkTicks"></div>
+                            <div class="part-meta">
+                                <span id="bTrunkBest" class="best-label">Best --</span>
+                                <span id="bTrunkWorst" class="focus-label">Needs Focus --</span>
+                            </div>
+                        </div>
+                    </article>
                 </section>
 
                 <section class="main">
-                    <article class="card donut-card">
-                        <div class="donut" id="bDonut" aria-label="Posture Ratio"></div>
-                        <div class="metrics">
-                            <div class="metric"><b id="bGoodPct">--</b><div class="line"><span id="bGoodLine" style="background:var(--good);"></span></div><span>Good</span></div>
-                            <div class="metric"><b id="bWarnPct">--</b><div class="line"><span id="bWarnLine" style="background:var(--warn);"></span></div><span>Warning</span></div>
-                            <div class="metric"><b id="bRiskPct">--</b><div class="line"><span id="bRiskLine" style="background:var(--risk);"></span></div><span>Risk</span></div>
-                        </div>
-                    </article>
                     <article class="card feedback">
                         <div class="label" style="font-size:13px;letter-spacing:0.13em;">Coaching Feedback</div>
                         <div class="feedback-body" id="bFeedback">--</div>
@@ -635,20 +1431,72 @@
                 </section>
 
                 <section class="bottom">
-                    <div class="scrub" id="bScrub"><span id="bScrubFill"></span></div>
-                    <button class="btn" id="bFilesBtn">Files</button>
                 </section>
             </article>
         </section>
     </main>
 
+    <div class="score-modal" id="scoreModal" hidden aria-hidden="true">
+        <div class="score-modal-backdrop" data-score-close></div>
+        <section class="score-modal-panel card" role="dialog" aria-modal="true" aria-labelledby="scoreModalTitle">
+            <div class="score-modal-head">
+                <div>
+                    <div class="label">Score Details</div>
+                    <div class="score-modal-title" id="scoreModalTitle">--</div>
+                </div>
+                <button type="button" class="score-modal-close" data-score-close aria-label="Close score details">×</button>
+            </div>
+            <div class="score-modal-grid">
+                <div class="score-modal-card">
+                    <div class="kicker">ARM</div>
+                    <div class="value" id="scoreModalArmValue">--</div>
+                    <div class="score-modal-bar"><div class="score-modal-bar-fill" id="scoreModalArmBar" style="width:0"></div></div>
+                    <div class="score-modal-note" id="scoreModalArmNote">--</div>
+                </div>
+                <div class="score-modal-card">
+                    <div class="kicker">TRUNK</div>
+                    <div class="value" id="scoreModalTrunkValue">--</div>
+                    <div class="score-modal-bar"><div class="score-modal-bar-fill" id="scoreModalTrunkBar" style="width:0"></div></div>
+                    <div class="score-modal-note" id="scoreModalTrunkNote">--</div>
+                </div>
+            </div>
+            <div class="score-modal-list">
+                <div class="score-modal-row"><span>Final</span><strong id="scoreModalFinalValue">--</strong></div>
+                <div class="score-modal-row"><span>Formula</span><strong id="scoreModalFormula">--</strong></div>
+                <div class="score-modal-row"><span>Mode</span><strong id="scoreModalRule">--</strong></div>
+            </div>
+            <div id="scoreModalBrackets" class="modal-brackets">
+            </div>
+        </section>
+    </div>
+
     <script>
+        const SCORE_CONFIG = {
+            mode: 'angle',
+            // curve points: [{angle, score}], always sorted by angle asc
+            // fixed endpoints at 0 and 90
+            curvePoints: [
+                { angle: 0, score: 100 },
+                { angle: 15, score: 100 },
+                { angle: 30, score: 85 },
+                { angle: 45, score: 50 },
+                { angle: 60, score: 25 },
+                { angle: 90, score: 0 }
+            ],
+            zone: {
+                green: 100,
+                yellow: 50,
+                red: 0
+            }
+        };
+
         const SLOTS = {
             a: { arm: '', trunk: '' },
             b: { arm: '', trunk: '' }
         };
 
         let fileOptions = [];
+        const sessionCache = { a: null, b: null };
 
         function parseCSVData(csvText) {
             if (!csvText) return [];
@@ -693,6 +1541,33 @@
             return 'green';
         }
 
+        function combinedZoneFromParts(armZone, trunkZone) {
+            const avgLevel = (zoneLevel(armZone) + zoneLevel(trunkZone)) / 2;
+            return zoneFromLevel(Math.round(avgLevel));
+        }
+
+        function configLabel() {
+            if (SCORE_CONFIG.mode === 'zone') {
+                const z = SCORE_CONFIG.zone;
+                return `G→${z.green} Y→${z.yellow} R→${z.red}`;
+            }
+            return SCORE_CONFIG.curvePoints.map(p => `${p.angle}°→${Math.round(p.score)}`).join('  ');
+        }
+
+        function buildScoreDetails(merged) {
+            const armScore = scoreFromTrack(merged, p => p.armAngle, p => p.armZone);
+            const trunkScore = scoreFromTrack(merged, p => p.trunkAngle, p => p.trunkZone);
+            const finalScore = Math.round((armScore + trunkScore) / 2);
+            return {
+                armScore,
+                trunkScore,
+                finalScore,
+                formula: `(${armScore} + ${trunkScore}) / 2 = ${finalScore}`,
+                method: configLabel(),
+                rule: SCORE_CONFIG.mode === 'zone' ? 'Time-weighted zone score' : 'Time-weighted angle score'
+            };
+        }
+
         function nearestPoint(points, ms) {
             if (!points.length) return null;
             let lo = 0;
@@ -725,7 +1600,9 @@
                     adjusted_elapsed_ms: ms,
                     armZone,
                     trunkZone,
-                    zone: zoneFromLevel(Math.max(zoneLevel(armZone), zoneLevel(trunkZone))),
+                    armAngle: a ? Math.abs(a.angle) : 0,
+                    trunkAngle: t ? Math.abs(t.angle) : 0,
+                    zone: combinedZoneFromParts(armZone, trunkZone),
                     feedback: (a && a.feedback) || (t && t.feedback) || 0
                 };
             });
@@ -803,21 +1680,29 @@
         }
 
         function findBestWorstMinute(states) {
-            const rank = (state) => (state === 'risk' ? 2 : state === 'warn' ? 1 : 0);
-            let best = 0;
-            let worst = 0;
-            for (let i = 1; i < states.length; i += 1) {
-                if (rank(states[i]) < rank(states[best])) best = i;
-                if (rank(states[i]) > rank(states[worst])) worst = i;
+            if (states.length === 0) return { best: 0, worst: 0 };
+            // Score each state: good=+2, warn=-1, risk=-4
+            const score = (s) => (s === 'good' ? 2 : s === 'warn' ? -1 : -4);
+            const windowSize = Math.max(1, Math.round(states.length / 8));
+            let bestScore = -Infinity;
+            let worstScore = Infinity;
+            let bestCenter = 0;
+            let worstCenter = 0;
+            for (let i = 0; i <= states.length - windowSize; i += 1) {
+                let sum = 0;
+                for (let j = i; j < i + windowSize; j += 1) sum += score(states[j]);
+                const center = i + Math.floor(windowSize / 2);
+                if (sum > bestScore) { bestScore = sum; bestCenter = center; }
+                if (sum < worstScore) { worstScore = sum; worstCenter = center; }
             }
-            return { best, worst };
+            return { best: bestCenter, worst: worstCenter };
         }
 
         function gradeFromScore(score) {
-            if (score >= 85) return { label: 'Excellent', level: '9 / 10 next milestone' };
-            if (score >= 75) return { label: 'Improving', level: '8 / 10 next milestone' };
-            if (score >= 65) return { label: 'Steady', level: '7 / 10 next milestone' };
-            return { label: 'At Risk', level: '5 / 10 stabilize first' };
+            if (score >= 85) return { label: 'Excellent' };
+            if (score >= 75) return { label: 'Improving' };
+            if (score >= 65) return { label: 'Steady' };
+            return { label: 'At Risk' };
         }
 
         function calcTrend(scoreStart, scoreEnd, durationSec) {
@@ -825,9 +1710,39 @@
             return (scoreEnd - scoreStart) / minutes;
         }
 
-        function scoreFromPercentages(goodPct, warnPct, riskPct) {
-            const raw = 100 - warnPct * 0.65 - riskPct * 1.25 + goodPct * 0.05;
-            return Math.max(0, Math.min(100, Math.round(raw)));
+        function angleScore(angle) {
+            const abs = Math.abs(angle);
+            const pts = SCORE_CONFIG.curvePoints;
+            if (abs <= pts[0].angle) return pts[0].score;
+            if (abs >= pts[pts.length - 1].angle) return pts[pts.length - 1].score;
+            for (let i = 1; i < pts.length; i++) {
+                if (abs <= pts[i].angle) {
+                    const t = (abs - pts[i - 1].angle) / Math.max(0.01, pts[i].angle - pts[i - 1].angle);
+                    return pts[i - 1].score + t * (pts[i].score - pts[i - 1].score);
+                }
+            }
+            return 0;
+        }
+
+        function zoneScore(zone) {
+            if (zone === 'red') return SCORE_CONFIG.zone.red;
+            if (zone === 'yellow') return SCORE_CONFIG.zone.yellow;
+            return SCORE_CONFIG.zone.green;
+        }
+
+        function scoreFromTrack(track, angleGetter, zoneGetter) {
+            if (!track || track.length < 2) return 0;
+            let totalWeight = 0, totalScore = 0;
+            for (let i = 1; i < track.length; i++) {
+                const dt = Math.max(0, track[i].adjusted_elapsed_ms - track[i - 1].adjusted_elapsed_ms);
+                if (dt <= 0) continue;
+                const s = SCORE_CONFIG.mode === 'zone'
+                    ? zoneScore(zoneGetter(track[i]))
+                    : angleScore(angleGetter(track[i]));
+                totalScore += s * dt;
+                totalWeight += dt;
+            }
+            return totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
         }
 
         function scoreWindow(track, fromRatio, toRatio) {
@@ -838,11 +1753,9 @@
             const from = startMs + total * fromRatio;
             const to = startMs + total * toRatio;
             const sliced = track.filter((p) => p.adjusted_elapsed_ms >= from && p.adjusted_elapsed_ms <= to);
-            const durations = computeZoneDurations(sliced, (p) => p.zone);
-            const goodPct = toPct(durations.good, durations.total);
-            const warnPct = toPct(durations.warning, durations.total);
-            const riskPct = toPct(durations.risk, durations.total);
-            return scoreFromPercentages(goodPct, warnPct, riskPct);
+            const armS = scoreFromTrack(sliced, p => p.armAngle, p => p.armZone);
+            const trkS = scoreFromTrack(sliced, p => p.trunkAngle, p => p.trunkZone);
+            return Math.round((armS + trkS) / 2);
         }
 
         function describePart(partName, pct) {
@@ -874,8 +1787,8 @@
             return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
 
-        function minuteLabel(statesIndex, totalDurationSec) {
-            const minute = (statesIndex / 60) * (totalDurationSec / 60);
+        function minuteLabel(statesIndex, bucketCount, totalDurationSec) {
+            const minute = (statesIndex / Math.max(1, bucketCount)) * (totalDurationSec / 60);
             const mins = Math.floor(minute);
             const secs = Math.floor((minute - mins) * 60);
             return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
@@ -890,6 +1803,22 @@
                 if (state === 'risk') div.style.background = 'var(--risk)';
                 else if (state === 'warn') div.style.background = 'var(--warn)';
                 else div.style.background = 'var(--good)';
+                el.appendChild(div);
+            });
+        }
+
+        function renderPartTicks(containerId, states, marks) {
+            const el = document.getElementById(containerId);
+            el.innerHTML = '';
+            el.style.gridTemplateColumns = `repeat(${Math.max(1, states.length)}, 1fr)`;
+            states.forEach((state, idx) => {
+                const div = document.createElement('div');
+                div.className = 'part-tick';
+                if (state === 'risk') div.style.background = 'var(--risk)';
+                else if (state === 'warn') div.style.background = 'var(--warn)';
+                else div.style.background = 'var(--good)';
+                if (marks && idx === marks.best) div.classList.add('best-mark');
+                if (marks && idx === marks.worst) div.classList.add('focus-mark');
                 el.appendChild(div);
             });
         }
@@ -979,84 +1908,426 @@
             const goodPct = toPct(zoneDur.good, zoneDur.total);
             const warnPct = toPct(zoneDur.warning, zoneDur.total);
             const riskPct = toPct(zoneDur.risk, zoneDur.total);
-            const score = scoreFromPercentages(goodPct, warnPct, riskPct);
-            const grade = gradeFromScore(score);
             const recovery = computeRecoveryStats(merged);
 
             const firstScore = scoreWindow(merged, 0, 0.5);
             const secondScore = scoreWindow(merged, 0.5, 1);
             const trendPerMin = calcTrend(firstScore, secondScore, zoneDur.total);
 
-            const timelineStates = bucketTimeline(merged, 60);
+            const mergedBucketCount = Math.max(1, Math.ceil(zoneDur.total / 30));
+            const timelineStates = bucketTimeline(merged, mergedBucketCount);
             const marks = findBestWorstMinute(timelineStates);
 
+            const armTrack = merged.map((p) => ({
+                adjusted_elapsed_ms: p.adjusted_elapsed_ms,
+                zone: p.armZone
+            }));
+            const trunkTrack = merged.map((p) => ({
+                adjusted_elapsed_ms: p.adjusted_elapsed_ms,
+                zone: p.trunkZone
+            }));
+
+            const armBucketCount = Math.max(1, Math.ceil(Math.max(armDur.total, zoneDur.total) / 30));
+            const trunkBucketCount = Math.max(1, Math.ceil(Math.max(trunkDur.total, zoneDur.total) / 30));
+            const armTimelineStates = bucketTimeline(armTrack, armBucketCount);
+            const trunkTimelineStates = bucketTimeline(trunkTrack, trunkBucketCount);
+            const armMarks = findBestWorstMinute(armTimelineStates);
+            const trunkMarks = findBestWorstMinute(trunkTimelineStates);
+
             const armPct = {
+                good: toPct(armDur.good, armDur.total),
                 warning: toPct(armDur.warning, armDur.total),
                 risk: toPct(armDur.risk, armDur.total)
             };
             const trunkPct = {
+                good: toPct(trunkDur.good, trunkDur.total),
                 warning: toPct(trunkDur.warning, trunkDur.total),
                 risk: toPct(trunkDur.risk, trunkDur.total)
             };
+            const scoreDetails = buildScoreDetails(merged);
+            const grade = gradeFromScore(scoreDetails.finalScore);
 
             return {
                 files: { arm: armFile, trunk: trunkFile },
-                score,
+                score: scoreDetails.finalScore,
                 grade,
                 durationSec: zoneDur.total,
                 goodPct,
                 warnPct,
                 riskPct,
+                scoreDetails,
                 recovery,
                 trendPerMin,
                 timelineStates,
                 best: marks.best,
                 worst: marks.worst,
+                armTimelineStates,
+                trunkTimelineStates,
+                armMarks,
+                trunkMarks,
+                armPct,
+                trunkPct,
                 armStatus: describePart('Arm posture', armPct),
                 trunkStatus: describePart('Trunk posture', trunkPct),
-                feedback: coachingText(score, recovery, riskPct)
+                feedback: coachingText(scoreDetails.finalScore, recovery, riskPct)
             };
         }
 
+        function formatPercentages(pct) {
+            return `G ${pct.good.toFixed(1)}% · W ${pct.warning.toFixed(1)}% · R ${pct.risk.toFixed(1)}%`;
+        }
+
+        function renderModalBrackets() {
+            const c = document.getElementById('scoreModalBrackets');
+            c.innerHTML = '';
+            if (SCORE_CONFIG.mode === 'angle') {
+                const wrap = document.createElement('div');
+                wrap.className = 'modal-curve-wrap';
+                const canvas = document.createElement('canvas');
+                canvas.className = 'modal-curve-canvas';
+                wrap.appendChild(canvas);
+                c.appendChild(wrap);
+                requestAnimationFrame(() => drawCurve(canvas, false));
+            } else {
+                ['green', 'yellow', 'red'].forEach(zone => {
+                    const colors = { green: 'var(--good)', yellow: 'var(--warn)', red: 'var(--risk)' };
+                    const labels = { green: 'Green', yellow: 'Yellow', red: 'Red' };
+                    const val = SCORE_CONFIG.zone[zone];
+                    const row = document.createElement('div');
+                    row.className = 'modal-bracket-row';
+                    row.innerHTML = `<span>${labels[zone]}</span>`
+                        + `<div class="modal-bracket-bar"><div class="modal-bracket-fill" style="width:${val}%;background:${colors[zone]}"></div></div>`
+                        + `<span class="modal-bracket-val">${val}</span>`;
+                    c.appendChild(row);
+                });
+            }
+        }
+
+        function renderConfigPanel() {
+            const body = document.getElementById('cfgBody');
+            body.innerHTML = '';
+            document.querySelectorAll('.cfg-mode-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.mode === SCORE_CONFIG.mode);
+            });
+            if (SCORE_CONFIG.mode === 'angle') {
+                renderAngleBrackets(body);
+            } else {
+                renderZoneConfig(body);
+            }
+        }
+
+        function renderAngleBrackets(c) {
+            const wrap = document.createElement('div');
+            wrap.className = 'curve-wrap';
+            const canvas = document.createElement('canvas');
+            canvas.className = 'curve-canvas';
+            canvas.id = 'cfgCurveCanvas';
+            wrap.appendChild(canvas);
+            c.appendChild(wrap);
+            const hint = document.createElement('div');
+            hint.className = 'curve-hint';
+            hint.textContent = 'Click to add · Drag to move · Right-click to remove';
+            c.appendChild(hint);
+            requestAnimationFrame(() => {
+                initCurveEditor(canvas);
+            });
+        }
+
+        // ---- Curve drawing ----
+        const CURVE_PAD = { top: 16, right: 16, bottom: 26, left: 32 };
+        const MAX_ANGLE = 90;
+
+        function drawCurve(canvas, interactive) {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            const w = rect.width, h = rect.height;
+            const pad = CURVE_PAD;
+            const pw = w - pad.left - pad.right;
+            const ph = h - pad.top - pad.bottom;
+
+            const isLight = document.documentElement.classList.contains('light');
+            const gridColor = isLight ? 'rgba(0,40,100,0.07)' : 'rgba(255,255,255,0.06)';
+            const axisColor = isLight ? 'rgba(0,40,100,0.25)' : 'rgba(255,255,255,0.18)';
+            const textColor = isLight ? 'rgba(0,40,100,0.45)' : 'rgba(255,255,255,0.4)';
+            const curveColor = isLight ? '#1a8a42' : '#5ee87a';
+            const fillTop = isLight ? 'rgba(34,168,74,0.12)' : 'rgba(63,212,104,0.1)';
+            const dotFill = isLight ? '#188a3a' : '#3fd468';
+            const dotStroke = isLight ? '#fff' : '#0a213d';
+
+            // bg
+            ctx.fillStyle = isLight ? 'rgba(0,40,100,0.03)' : 'rgba(255,255,255,0.02)';
+            ctx.fillRect(0, 0, w, h);
+
+            // grid
+            ctx.strokeStyle = gridColor;
+            ctx.lineWidth = 1;
+            for (let v = 0; v <= 100; v += 25) {
+                const y = pad.top + ph - (v / 100) * ph;
+                ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+            }
+            for (let a = 0; a <= MAX_ANGLE; a += 15) {
+                const x = pad.left + (a / MAX_ANGLE) * pw;
+                ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+            }
+
+            // axes
+            ctx.strokeStyle = axisColor;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + ph);
+            ctx.lineTo(pad.left + pw, pad.top + ph);
+            ctx.stroke();
+
+            // labels
+            ctx.fillStyle = textColor;
+            ctx.font = '9px Manrope, sans-serif';
+            ctx.textAlign = 'center';
+            for (let a = 0; a <= MAX_ANGLE; a += 15) {
+                ctx.fillText(a + '°', pad.left + (a / MAX_ANGLE) * pw, pad.top + ph + 14);
+            }
+            ctx.textAlign = 'right';
+            for (let v = 0; v <= 100; v += 25) {
+                ctx.fillText(v, pad.left - 5, pad.top + ph - (v / 100) * ph + 3);
+            }
+
+            // curve fill
+            const pts = SCORE_CONFIG.curvePoints;
+            ctx.beginPath();
+            ctx.moveTo(pad.left + (pts[0].angle / MAX_ANGLE) * pw, pad.top + ph - (pts[0].score / 100) * ph);
+            for (let i = 1; i < pts.length; i++) {
+                ctx.lineTo(pad.left + (pts[i].angle / MAX_ANGLE) * pw, pad.top + ph - (pts[i].score / 100) * ph);
+            }
+            ctx.lineTo(pad.left + (pts[pts.length - 1].angle / MAX_ANGLE) * pw, pad.top + ph);
+            ctx.lineTo(pad.left + (pts[0].angle / MAX_ANGLE) * pw, pad.top + ph);
+            ctx.closePath();
+            ctx.fillStyle = fillTop;
+            ctx.fill();
+
+            // curve line
+            ctx.beginPath();
+            ctx.moveTo(pad.left + (pts[0].angle / MAX_ANGLE) * pw, pad.top + ph - (pts[0].score / 100) * ph);
+            for (let i = 1; i < pts.length; i++) {
+                ctx.lineTo(pad.left + (pts[i].angle / MAX_ANGLE) * pw, pad.top + ph - (pts[i].score / 100) * ph);
+            }
+            ctx.strokeStyle = curveColor;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // dots
+            if (interactive) {
+                pts.forEach((p, i) => {
+                    const x = pad.left + (p.angle / MAX_ANGLE) * pw;
+                    const y = pad.top + ph - (p.score / 100) * ph;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = dotFill;
+                    ctx.fill();
+                    ctx.strokeStyle = dotStroke;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                });
+            }
+        }
+
+        // ---- Interactive curve editor ----
+        function initCurveEditor(canvas) {
+            drawCurve(canvas, true);
+            let dragIdx = -1;
+
+            function toData(e) {
+                const rect = canvas.getBoundingClientRect();
+                const pad = CURVE_PAD;
+                const pw = rect.width - pad.left - pad.right;
+                const ph = rect.height - pad.top - pad.bottom;
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const angle = Math.max(0, Math.min(MAX_ANGLE, ((mx - pad.left) / pw) * MAX_ANGLE));
+                const score = Math.max(0, Math.min(100, ((pad.top + ph - my) / ph) * 100));
+                return { angle, score, mx, my };
+            }
+
+            function hitTest(mx, my) {
+                const rect = canvas.getBoundingClientRect();
+                const pad = CURVE_PAD;
+                const pw = rect.width - pad.left - pad.right;
+                const ph = rect.height - pad.top - pad.bottom;
+                const pts = SCORE_CONFIG.curvePoints;
+                for (let i = 0; i < pts.length; i++) {
+                    const px = pad.left + (pts[i].angle / MAX_ANGLE) * pw;
+                    const py = pad.top + ph - (pts[i].score / 100) * ph;
+                    if (Math.hypot(mx - px, my - py) < 10) return i;
+                }
+                return -1;
+            }
+
+            canvas.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const { angle, score, mx, my } = toData(e);
+                const idx = hitTest(mx, my);
+                if (e.button === 2) {
+                    // right-click: remove point (except first/last)
+                    if (idx > 0 && idx < SCORE_CONFIG.curvePoints.length - 1) {
+                        SCORE_CONFIG.curvePoints.splice(idx, 1);
+                        drawCurve(canvas, true);
+                    }
+                    return;
+                }
+                if (idx >= 0) {
+                    dragIdx = idx;
+                    canvas.style.cursor = 'grabbing';
+                } else {
+                    // add new point
+                    SCORE_CONFIG.curvePoints.push({ angle: Math.round(angle), score: Math.round(score) });
+                    SCORE_CONFIG.curvePoints.sort((a, b) => a.angle - b.angle);
+                    dragIdx = SCORE_CONFIG.curvePoints.findIndex(p => p.angle === Math.round(angle) && p.score === Math.round(score));
+                    drawCurve(canvas, true);
+                    canvas.style.cursor = 'grabbing';
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (dragIdx < 0) {
+                    const { mx, my } = toData(e);
+                    canvas.style.cursor = hitTest(mx, my) >= 0 ? 'grab' : 'crosshair';
+                    return;
+                }
+                const { angle, score } = toData(e);
+                const pts = SCORE_CONFIG.curvePoints;
+                const isFirst = dragIdx === 0;
+                const isLast = dragIdx === pts.length - 1;
+                // endpoints: lock angle, only move score
+                if (isFirst) {
+                    pts[dragIdx].score = Math.round(score);
+                } else if (isLast) {
+                    pts[dragIdx].score = Math.round(score);
+                } else {
+                    // clamp between neighbors
+                    const minA = pts[dragIdx - 1].angle + 1;
+                    const maxA = pts[dragIdx + 1].angle - 1;
+                    pts[dragIdx].angle = Math.round(Math.max(minA, Math.min(maxA, angle)));
+                    pts[dragIdx].score = Math.round(score);
+                }
+                drawCurve(canvas, true);
+            });
+
+            const endDrag = () => {
+                if (dragIdx >= 0) {
+                    dragIdx = -1;
+                    canvas.style.cursor = 'crosshair';
+                }
+            };
+            canvas.addEventListener('mouseup', endDrag);
+            canvas.addEventListener('mouseleave', endDrag);
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        function renderZoneConfig(c) {
+            ['green', 'yellow', 'red'].forEach(zone => {
+                const colors = { green: 'var(--good)', yellow: 'var(--warn)', red: 'var(--risk)' };
+                const labels = { green: 'Green', yellow: 'Yellow', red: 'Red' };
+                const row = document.createElement('div');
+                row.className = 'cfg-bracket';
+                row.innerHTML = `<div class="cb-range" style="color:${colors[zone]}">${labels[zone]}</div>`
+                    + `<input type="range" class="cfg-slider" data-type="zone" data-zone="${zone}" min="0" max="100" step="5" value="${SCORE_CONFIG.zone[zone]}">`
+                    + `<div class="cb-val">${SCORE_CONFIG.zone[zone]}</div>`;
+                c.appendChild(row);
+            });
+            c.addEventListener('input', onSliderInput);
+        }
+
+        function onSliderInput(e) {
+            const s = e.target;
+            if (!s.classList.contains('cfg-slider')) return;
+            const val = parseInt(s.value, 10);
+            s.parentElement.querySelector('.cb-val').textContent = val;
+            if (s.dataset.type === 'zone') {
+                SCORE_CONFIG.zone[s.dataset.zone] = val;
+            }
+        }
+
+        function readConfig() {
+            SCORE_CONFIG.curvePoints.sort((a, b) => a.angle - b.angle);
+        }
+
+        function openScoreDetails(slot) {
+            const data = sessionCache[slot];
+            if (!data) return;
+
+            document.getElementById('scoreModalTitle').textContent = `Session ${slot.toUpperCase()} Score Detail`;
+            document.getElementById('scoreModalArmValue').textContent = `${data.scoreDetails.armScore}`;
+            document.getElementById('scoreModalTrunkValue').textContent = `${data.scoreDetails.trunkScore}`;
+            document.getElementById('scoreModalFinalValue').textContent = `${data.scoreDetails.finalScore}`;
+            document.getElementById('scoreModalFormula').textContent = data.scoreDetails.formula;
+            document.getElementById('scoreModalRule').textContent = data.scoreDetails.rule;
+            document.getElementById('scoreModalArmNote').textContent = formatPercentages(data.armPct);
+            renderModalBrackets();
+            document.getElementById('scoreModalTrunkNote').textContent = formatPercentages(data.trunkPct);
+            document.getElementById('scoreModalArmBar').style.width = `${data.scoreDetails.armScore}%`;
+            document.getElementById('scoreModalTrunkBar').style.width = `${data.scoreDetails.trunkScore}%`;
+
+            const modal = document.getElementById('scoreModal');
+            modal.hidden = false;
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeScoreDetails() {
+            const modal = document.getElementById('scoreModal');
+            modal.hidden = true;
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
         function applySession(slot, data) {
+            sessionCache[slot] = data;
             document.getElementById(`${slot}Name`).textContent = `Session ${slot.toUpperCase()}`;
             document.getElementById(`${slot}Duration`).textContent = `Duration ${formatDuration(data.durationSec)}`;
             document.getElementById(`${slot}Score`).textContent = `${data.score}`;
             document.getElementById(`${slot}Grade`).textContent = `${data.grade.label}`;
-            document.getElementById(`${slot}Level`).textContent = data.grade.level;
             document.getElementById(`${slot}Fill`).style.width = `${data.score}%`;
 
             document.getElementById(`${slot}Subtitle`).textContent = `${data.files.arm} + ${data.files.trunk}`;
-
-            const avgCorrection = data.recovery.avg ? `${data.recovery.avg.toFixed(1)}s` : 'N/A';
-            document.getElementById(`${slot}Correction`).textContent = `Avg correction ${avgCorrection}`;
-            document.getElementById(`${slot}Improve`).textContent = `Trend ${data.trendPerMin.toFixed(2)} pts/min`;
-
-            document.getElementById(`${slot}GoodPct`).textContent = `${data.goodPct.toFixed(1)}%`;
-            document.getElementById(`${slot}WarnPct`).textContent = `${data.warnPct.toFixed(1)}%`;
-            document.getElementById(`${slot}RiskPct`).textContent = `${data.riskPct.toFixed(1)}%`;
-            document.getElementById(`${slot}GoodLine`).style.width = `${data.goodPct}%`;
-            document.getElementById(`${slot}WarnLine`).style.width = `${data.warnPct}%`;
-            document.getElementById(`${slot}RiskLine`).style.width = `${data.riskPct}%`;
-
-            const g = data.goodPct;
-            const w = g + data.warnPct;
-            document.getElementById(`${slot}Donut`).style.background = `conic-gradient(var(--good) 0 ${g}%, var(--warn) ${g}% ${w}%, var(--risk) ${w}% 100%)`;
 
             document.getElementById(`${slot}ArmText`).textContent = data.armStatus.text;
             document.getElementById(`${slot}TrunkText`).textContent = data.trunkStatus.text;
             setChip(`${slot}ArmChip`, data.armStatus.chip);
             setChip(`${slot}TrunkChip`, data.trunkStatus.chip);
 
-            renderTicks(`${slot}Ticks`, data.timelineStates);
-            document.getElementById(`${slot}Best`).textContent = `Best ${minuteLabel(data.best, data.durationSec)}`;
-            document.getElementById(`${slot}Worst`).textContent = `Worst ${minuteLabel(data.worst, data.durationSec)}`;
+            document.getElementById(`${slot}ArmGoodPct`).textContent = `G ${data.armPct.good.toFixed(1)}%`;
+            document.getElementById(`${slot}ArmWarnPct`).textContent = `W ${data.armPct.warning.toFixed(1)}%`;
+            document.getElementById(`${slot}ArmRiskPct`).textContent = `R ${data.armPct.risk.toFixed(1)}%`;
+            document.getElementById(`${slot}TrunkGoodPct`).textContent = `G ${data.trunkPct.good.toFixed(1)}%`;
+            document.getElementById(`${slot}TrunkWarnPct`).textContent = `W ${data.trunkPct.warning.toFixed(1)}%`;
+            document.getElementById(`${slot}TrunkRiskPct`).textContent = `R ${data.trunkPct.risk.toFixed(1)}%`;
+
+            const armGood = data.armPct.good;
+            const armWarnEnd = armGood + data.armPct.warning;
+            const trunkGood = data.trunkPct.good;
+            const trunkWarnEnd = trunkGood + data.trunkPct.warning;
+            document.getElementById(`${slot}ArmDonut`).style.background = `conic-gradient(var(--good) 0 ${armGood}%, var(--warn) ${armGood}% ${armWarnEnd}%, var(--risk) ${armWarnEnd}% 100%)`;
+            document.getElementById(`${slot}TrunkDonut`).style.background = `conic-gradient(var(--good) 0 ${trunkGood}%, var(--warn) ${trunkGood}% ${trunkWarnEnd}%, var(--risk) ${trunkWarnEnd}% 100%)`;
+
+            renderPartTicks(`${slot}ArmTicks`, data.armTimelineStates, data.armMarks);
+            renderPartTicks(`${slot}TrunkTicks`, data.trunkTimelineStates, data.trunkMarks);
+            document.getElementById(`${slot}ArmBest`).textContent = `Best ${minuteLabel(data.armMarks.best, data.armTimelineStates.length, data.durationSec)}`;
+            document.getElementById(`${slot}ArmWorst`).textContent = `Needs Focus ${minuteLabel(data.armMarks.worst, data.armTimelineStates.length, data.durationSec)}`;
+            document.getElementById(`${slot}TrunkBest`).textContent = `Best ${minuteLabel(data.trunkMarks.best, data.trunkTimelineStates.length, data.durationSec)}`;
+            document.getElementById(`${slot}TrunkWorst`).textContent = `Needs Focus ${minuteLabel(data.trunkMarks.worst, data.trunkTimelineStates.length, data.durationSec)}`;
             document.getElementById(`${slot}Feedback`).textContent = data.feedback;
 
-            const scrubWidth = Math.max(0, Math.min(100, data.goodPct));
-            document.getElementById(`${slot}ScrubFill`).style.width = `${scrubWidth}%`;
-            document.getElementById(`${slot}Scrub`).style.setProperty('--scrub-pos', `${scrubWidth}%`);
-            document.getElementById(`${slot}FilesBtn`).textContent = `${data.files.arm} + ${data.files.trunk}`;
+
+
+            // Calculate score improvement potential
+            const currentGreen = data.goodPct;
+            const improvedGreen = Math.min(100, currentGreen * 1.5);
+            const greenIncrease = improvedGreen - currentGreen;
+            const potentialImprovement = Math.round(greenIncrease * 0.5);
+            const hintEl = document.getElementById(`${slot}ScoreHint`);
+            if (hintEl && greenIncrease > 0) {
+                hintEl.textContent = `💡 Increase green time by ${greenIncrease.toFixed(0)}% → gain up to +${potentialImprovement} points`;
+            }
         }
 
         async function applyAll() {
@@ -1076,7 +2347,7 @@
 
                 const delta = bData.score - aData.score;
                 const sign = delta >= 0 ? '+' : '';
-                document.getElementById('deltaPill').textContent = `Score delta: ${sign}${delta}`;
+                // document.getElementById('deltaPill').textContent = `Score delta: ${sign}${delta}`;
                 document.getElementById('headerA').textContent = `Session A: ${SLOTS.a.arm} + ${SLOTS.a.trunk}`;
                 document.getElementById('headerB').textContent = `Session B: ${SLOTS.b.arm} + ${SLOTS.b.trunk}`;
             } catch (error) {
@@ -1088,11 +2359,67 @@
             await loadDemoFileOptions();
             assignDefaults();
             initSelectors();
+            document.querySelectorAll('[data-score-slot]').forEach((btn) => {
+                btn.addEventListener('click', () => openScoreDetails(btn.getAttribute('data-score-slot')));
+            });
+            document.querySelectorAll('[data-score-close]').forEach((btn) => {
+                btn.addEventListener('click', closeScoreDetails);
+            });
+            document.getElementById('scoreModal').addEventListener('click', (event) => {
+                if (event.target && event.target.hasAttribute('data-score-close')) closeScoreDetails();
+            });
+            window.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !document.getElementById('scoreModal').hidden) closeScoreDetails();
+            });
             document.getElementById('applyBtn').addEventListener('click', applyAll);
+
+            // Theme toggle
+            const themeBtn = document.getElementById('themeToggle');
+            if (localStorage.getItem('dashboard-theme') === 'light') {
+                document.documentElement.classList.add('light');
+                themeBtn.textContent = '☀';
+            }
+            themeBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('light');
+                const isLight = document.documentElement.classList.contains('light');
+                themeBtn.textContent = isLight ? '☀' : '☾';
+                localStorage.setItem('dashboard-theme', isLight ? 'light' : 'dark');
+            });
+
+            // Config panel
+            renderConfigPanel();
+            document.querySelectorAll('.cfg-mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    SCORE_CONFIG.mode = btn.dataset.mode;
+                    renderConfigPanel();
+                });
+            });
+            document.getElementById('configToggle').addEventListener('click', (e) => {
+                const panel = document.getElementById('configPanel');
+                panel.hidden = !panel.hidden;
+                
+                if (!panel.hidden) {
+                    renderConfigPanel();
+                    // Position panel below the button
+                    const btnRect = e.currentTarget.getBoundingClientRect();
+                    panel.style.top = `${btnRect.bottom + 8}px`;
+                    panel.style.right = `${window.innerWidth - btnRect.right}px`;
+                }
+            });
+            document.getElementById('cfgApply').addEventListener('click', () => {
+                readConfig();
+                document.getElementById('configPanel').hidden = true;
+                applyAll();
+            });
+
+
+
             await applyAll();
         }
 
         init();
     </script>
+
+
 </body>
 </html>
