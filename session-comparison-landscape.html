@@ -76,7 +76,7 @@
 
         .hero-header {
             display: grid;
-            grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.95fr);
+            grid-template-columns: 1fr;
             gap: 16px;
             align-items: stretch;
         }
@@ -240,13 +240,6 @@
             color: var(--dash-muted);
         }
 
-        .achievement-panel {
-            padding: 14px;
-            display: grid;
-            grid-template-rows: auto 1fr;
-            gap: 12px;
-        }
-
         .panel-label {
             font-size: 0.78rem;
             letter-spacing: 0.12em;
@@ -254,47 +247,35 @@
             color: var(--dash-muted);
         }
 
-        .achievement-grid {
+        .score-part-bars {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
+            gap: 6px;
+            margin-top: 10px;
         }
 
-        .achievement-chip {
-            border-radius: 18px;
-            padding: 12px 12px 10px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            min-height: 92px;
+        .score-part-row {
+            display: grid;
+            grid-template-columns: 46px minmax(0, 1fr) 28px;
+            align-items: center;
+            gap: 8px;
         }
 
-        .achievement-chip .icon {
-            font-size: 1.2rem;
-            margin-bottom: 8px;
-        }
-
-        .achievement-chip .name {
-            font-size: 0.86rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .achievement-chip .value {
-            font-size: 1.35rem;
-            font-weight: 700;
-            letter-spacing: -0.04em;
-        }
-
-        .achievement-chip .hint {
-            margin-top: 4px;
+        .score-part-label {
             font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
             color: var(--dash-muted);
         }
 
-        .achievement-chip.active {
-            border-color: rgba(76, 175, 80, 0.42);
-            box-shadow: inset 0 0 0 1px rgba(76, 175, 80, 0.18);
-            background: linear-gradient(180deg, rgba(76, 175, 80, 0.16), rgba(255, 255, 255, 0.03));
+        .score-part-track {
+            height: 12px;
+        }
+
+        .score-part-num {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--dash-text);
+            text-align: right;
         }
 
         .body-grid {
@@ -1055,6 +1036,203 @@
             padding: 10px 12px;
         }
 
+        /* ── Theme Toggle Button ── */
+        .theme-toggle {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            z-index: 200;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--dash-text);
+            font-size: 15px;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            transition: background 200ms, border-color 200ms;
+        }
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.38);
+        }
+
+        /* ── Light Mode Variables ── */
+        :root.light {
+            --dash-bg:          #eef2f6;
+            --dash-bg-2:        #e4eaf2;
+            --dash-surface:     rgba(255, 255, 255, 0.92);
+            --dash-surface-2:   rgba(248, 251, 255, 0.96);
+            --dash-border:      rgba(0, 40, 100, 0.12);
+            --dash-text:        #1a2a3a;
+            --dash-muted:       rgba(26, 42, 58, 0.55);
+            --dash-good:        #22a84a;
+            --dash-warning:     #d4a00a;
+            --dash-risk:        #e03830;
+            --dash-good-soft:   rgba(34, 168, 74, 0.12);
+            --dash-warning-soft:rgba(212, 160, 10, 0.12);
+            --dash-risk-soft:   rgba(224, 56, 48, 0.12);
+            --dash-shadow:      0 12px 40px rgba(0, 0, 0, 0.07);
+        }
+
+        :root.light body {
+            background: linear-gradient(135deg, var(--dash-bg) 0%, var(--dash-bg-2) 100%);
+        }
+
+        :root.light .glass-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(245,249,255,0.84) 100%);
+        }
+
+        :root.light .theme-toggle {
+            border-color: rgba(0, 40, 100, 0.2);
+            background: rgba(0, 40, 100, 0.06);
+        }
+        :root.light .theme-toggle:hover {
+            background: rgba(0, 40, 100, 0.12);
+            border-color: rgba(0, 40, 100, 0.35);
+        }
+
+        :root.light .progress-shell {
+            background: rgba(0, 40, 100, 0.08);
+            border-color: rgba(0, 40, 100, 0.08);
+        }
+
+        :root.light .progress-overlay {
+            color: rgba(26, 42, 58, 0.85);
+            mix-blend-mode: normal;
+        }
+
+        :root.light .level-chip {
+            background: rgba(0, 40, 100, 0.06);
+            border-color: rgba(0, 40, 100, 0.12);
+        }
+
+        :root.light .score-tooltip {
+            border-color: rgba(0, 40, 100, 0.18);
+            background: rgba(0, 40, 100, 0.05);
+            color: var(--dash-muted);
+        }
+        :root.light .score-tooltip:hover::after {
+            background: #f0f5ff;
+            color: #1a2a3a;
+        }
+
+        :root.light .state-pill {
+            background: rgba(0, 40, 100, 0.06);
+            border-color: rgba(0, 40, 100, 0.14);
+        }
+
+        :root.light .meta-pill {
+            background: rgba(0, 40, 100, 0.06);
+            border-color: rgba(0, 40, 100, 0.12);
+        }
+
+        :root.light .video-shell {
+            background: linear-gradient(180deg, #e8eef6, #dde4ef);
+            border-color: rgba(0, 40, 100, 0.1);
+        }
+
+        :root.light .player-controls {
+            background: rgba(0, 40, 100, 0.04);
+            border-color: rgba(0, 40, 100, 0.08);
+        }
+
+        :root.light .seek-range {
+            accent-color: #1a7fe8;
+        }
+
+        :root.light .timeline-shell {
+            background: rgba(0, 40, 100, 0.05);
+            border-color: rgba(0, 40, 100, 0.08);
+        }
+
+        :root.light .timeline-slice.good   { background: rgba(34, 168, 74, 0.65); }
+        :root.light .timeline-slice.warning { background: rgba(212, 160, 10, 0.7); }
+        :root.light .timeline-slice.risk   { background: rgba(224, 56, 48, 0.72); }
+
+        :root.light .timeline-marker {
+            color: rgba(26, 42, 58, 0.6);
+        }
+
+        :root.light .feedback-card {
+            background: rgba(0, 40, 100, 0.04);
+            border-color: rgba(0, 40, 100, 0.1);
+        }
+
+        :root.light .expand-btn {
+            background: rgba(0, 40, 100, 0.06);
+            border-color: rgba(0, 40, 100, 0.14);
+            color: var(--dash-text);
+        }
+        :root.light .expand-btn:hover {
+            background: rgba(0, 40, 100, 0.12);
+        }
+
+        :root.light .analysis-sheet {
+            background: rgba(255, 255, 255, 0.97);
+            border-color: rgba(0, 40, 100, 0.12);
+        }
+
+        :root.light .analysis-close {
+            background: rgba(0, 40, 100, 0.05);
+            border-color: rgba(0, 40, 100, 0.15);
+            color: var(--dash-text);
+        }
+
+        :root.light .snapshot-card {
+            background: rgba(0, 40, 100, 0.04);
+            border-color: rgba(0, 40, 100, 0.1);
+        }
+
+        :root.light .metric-card {
+            background: rgba(0, 40, 100, 0.04);
+            border-color: rgba(0, 40, 100, 0.1);
+        }
+
+        :root.light .raw-table th {
+            background: rgba(240, 245, 255, 0.98);
+            color: var(--dash-muted);
+        }
+
+        :root.light .raw-table th,
+        :root.light .raw-table td {
+            border-bottom-color: rgba(0, 40, 100, 0.08);
+        }
+
+        :root.light .warning-box {
+            background: rgba(212, 160, 10, 0.1);
+            border-color: rgba(212, 160, 10, 0.3);
+            color: rgba(26, 42, 58, 0.75);
+        }
+
+        :root.light .expert-source-row select {
+            background: rgba(0, 40, 100, 0.05);
+            border-color: rgba(0, 40, 100, 0.12);
+            color: var(--dash-text);
+        }
+
+        :root.light .footer-card {
+            background: rgba(255, 255, 255, 0.88);
+            border-color: rgba(0, 40, 100, 0.1);
+        }
+
+        :root.light .ring-legend-row span {
+            color: var(--dash-muted);
+        }
+
+        :root.light .bar-stack .stack-track {
+            background: rgba(0, 40, 100, 0.06);
+        }
+
+        :root.light .unavailable-box {
+            background: rgba(212, 160, 10, 0.08);
+            border-color: rgba(212, 160, 10, 0.25);
+            color: rgba(26, 42, 58, 0.7);
+        }
+
+        /* ── Media query ── */
         @media (max-width: 1300px) {
             .screen-shell {
                 width: 100vw;
@@ -1080,6 +1258,7 @@
     </style>
 </head>
 <body>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle light/dark mode">☾</button>
 <main class="screen-shell" id="appShell">
     <header class="hero-header">
         <section class="glass-card score-card">
@@ -1099,17 +1278,28 @@
                     <div class="progress-fill" id="scoreFill"></div>
                     <div class="progress-overlay" id="scoreProgressText">Current score: 78 / 100</div>
                 </div>
+                <div class="score-part-bars">
+                    <div class="score-part-row">
+                        <span class="score-part-label">ARM</span>
+                        <div class="progress-shell score-part-track">
+                            <div class="progress-fill" id="armScoreFill" style="background:linear-gradient(90deg,#4caf50,#4bd5aa)"></div>
+                        </div>
+                        <span class="score-part-num" id="armScoreNum">--</span>
+                    </div>
+                    <div class="score-part-row">
+                        <span class="score-part-label">TRUNK</span>
+                        <div class="progress-shell score-part-track">
+                            <div class="progress-fill" id="trunkScoreFill" style="background:linear-gradient(90deg,#ffc107,#f4b400)"></div>
+                        </div>
+                        <span class="score-part-num" id="trunkScoreNum">--</span>
+                    </div>
+                </div>
                 <div class="score-footnote">
                     <span id="sessionStamp">Loading session...</span>
                     <span id="unlockHint">Target: keep score above 80</span>
                 </div>
             </div>
         </section>
-
-        <aside class="glass-card achievement-panel">
-            <div class="panel-label">Achievements</div>
-            <div class="achievement-grid" id="achievementGrid"></div>
-        </aside>
     </header>
 
     <section class="body-grid">
@@ -1281,6 +1471,62 @@
 </div>
 
 <script>
+const SCORE_CONFIG = {
+    mode: 'angle',
+    curvePoints: [
+        { angle: 0, score: 100 },
+        { angle: 15, score: 100 },
+        { angle: 30, score: 85 },
+        { angle: 45, score: 50 },
+        { angle: 60, score: 25 },
+        { angle: 90, score: 0 }
+    ],
+    zone: { green: 100, yellow: 50, red: 0 }
+};
+
+function angleScore(angle) {
+    const abs = Math.abs(angle);
+    const pts = SCORE_CONFIG.curvePoints;
+    if (abs <= pts[0].angle) return pts[0].score;
+    if (abs >= pts[pts.length - 1].angle) return pts[pts.length - 1].score;
+    for (let i = 1; i < pts.length; i++) {
+        if (abs <= pts[i].angle) {
+            const t = (abs - pts[i - 1].angle) / Math.max(0.01, pts[i].angle - pts[i - 1].angle);
+            return pts[i - 1].score + t * (pts[i].score - pts[i - 1].score);
+        }
+    }
+    return 0;
+}
+
+function zoneScore(zone) {
+    const z = String(zone || '').toLowerCase();
+    if (z === 'red') return SCORE_CONFIG.zone.red;
+    if (z === 'yellow') return SCORE_CONFIG.zone.yellow;
+    return SCORE_CONFIG.zone.green;
+}
+
+function scoreFromZoneTrack(track, angleGetter, zoneGetter) {
+    if (!track || track.length < 2) return 0;
+    let totalWeight = 0, totalScore = 0;
+    for (let i = 1; i < track.length; i++) {
+        const dt = Math.max(0, track[i].adjusted_elapsed_ms - track[i - 1].adjusted_elapsed_ms);
+        if (dt <= 0) continue;
+        const s = SCORE_CONFIG.mode === 'zone'
+            ? zoneScore(zoneGetter(track[i]))
+            : angleScore(angleGetter(track[i]));
+        totalScore += s * dt;
+        totalWeight += dt;
+    }
+    return totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+}
+
+function buildScoreDetails(merged) {
+    const armScore = scoreFromZoneTrack(merged, p => p.armAngle, p => p.armZone);
+    const trunkScore = scoreFromZoneTrack(merged, p => p.trunkAngle, p => p.trunkZone);
+    const finalScore = Math.round((armScore + trunkScore) / 2);
+    return { armScore, trunkScore, finalScore };
+}
+
 const DEFAULT_SESSION = {
     arm: 'rightArm_VCBC04_reformatted.csv',
     trunk: 'trunk_VCBC04_reformatted.csv'
@@ -1298,6 +1544,8 @@ const APP_STATE = {
         trunkFile: DEFAULT_SESSION.trunk,
         arm: null,
         trunk: null,
+        armScore: 0,
+        trunkScore: 0,
         armData: [],
         trunkData: [],
         combined: [],
@@ -1578,6 +1826,12 @@ async function loadDemoFileOptions() {
     } catch (_error) {
         APP_STATE.files = fallback.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     }
+
+    // Inject files uploaded via upload.html (single-session mode)
+    const _upArm   = sessionStorage.getItem('wergonic_single_arm');
+    const _upTrunk = sessionStorage.getItem('wergonic_single_trunk');
+    if (_upArm   && !APP_STATE.files.includes(_upArm))   APP_STATE.files.unshift(_upArm);
+    if (_upTrunk && !APP_STATE.files.includes(_upTrunk)) APP_STATE.files.unshift(_upTrunk);
 }
 
 function populateExpertSelectors() {
@@ -1615,7 +1869,8 @@ function initDom() {
     UI.scoreProgressText = document.getElementById('scoreProgressText');
     UI.unlockHint = document.getElementById('unlockHint');
     UI.sessionStamp = document.getElementById('sessionStamp');
-    UI.achievementGrid = document.getElementById('achievementGrid');
+    UI.armScoreFill = document.getElementById('armScoreFill');
+    UI.trunkScoreFill = document.getElementById('trunkScoreFill');
     UI.armGoodBar = document.getElementById('armGoodBar');
     UI.armWarningBar = document.getElementById('armWarningBar');
     UI.armRiskBar = document.getElementById('armRiskBar');
@@ -1742,20 +1997,68 @@ function buildTimelineSlices(track) {
     return slices;
 }
 
-function chooseBestAndWorst(track, armSummary, trunkSummary) {
-    const candidates = [];
-    if (armSummary && armSummary.segments && armSummary.segments.best_60s) candidates.push({ type: 'arm', zone: 'good', ...armSummary.segments.best_60s });
-    if (trunkSummary && trunkSummary.segments && trunkSummary.segments.best_60s) candidates.push({ type: 'trunk', zone: 'good', ...trunkSummary.segments.best_60s });
-    const worstCandidates = [];
-    if (armSummary && armSummary.segments && armSummary.segments.worst_60s) worstCandidates.push({ type: 'arm', zone: 'risk', ...armSummary.segments.worst_60s });
-    if (trunkSummary && trunkSummary.segments && trunkSummary.segments.worst_60s) worstCandidates.push({ type: 'trunk', zone: 'risk', ...trunkSummary.segments.worst_60s });
+// Identical logic to dashboard.html's bucketTimeline + findBestWorstMinute
+function _bucketTimeline(track, bucketCount) {
+    const buckets = Array.from({ length: bucketCount }, () => ({ sum: 0, dur: 0 }));
+    if (!track || track.length < 2) return buckets.map(() => 'good');
+    const start    = track[0].adjusted_elapsed_ms;
+    const totalMs  = Math.max(1, track[track.length - 1].adjusted_elapsed_ms - start);
+    const _lvl = zone => {
+        const z = String(zone || 'good').toLowerCase();
+        if (z === 'risk' || z === 'red') return 2;
+        if (z === 'warning' || z === 'yellow' || z === 'warn') return 1;
+        return 0;
+    };
+    for (let i = 1; i < track.length; i++) {
+        const prev = track[i - 1];
+        const curr = track[i];
+        const dt = Math.max(0, curr.adjusted_elapsed_ms - prev.adjusted_elapsed_ms);
+        if (dt <= 0) continue;
+        const ratio = (curr.adjusted_elapsed_ms - start) / totalMs;
+        const idx = Math.min(bucketCount - 1, Math.floor(ratio * bucketCount));
+        buckets[idx].sum += _lvl(curr.zone) * dt;
+        buckets[idx].dur += dt;
+    }
+    return buckets.map(b => {
+        if (b.dur <= 0) return 'good';
+        const avg = b.sum / b.dur;
+        if (avg >= 1.5) return 'risk';
+        if (avg >= 0.5) return 'warn';
+        return 'good';
+    });
+}
 
-    const best = candidates.sort((a, b) => a.avgAngle - b.avgAngle)[0] || null;
-    const worst = worstCandidates.sort((a, b) => b.avgAngle - a.avgAngle)[0] || null;
+function _findBestWorstIndex(states) {
+    if (states.length === 0) return { best: 0, worst: 0 };
+    const score = s => s === 'good' ? 2 : s === 'warn' ? -1 : -4;
+    const win = Math.max(1, Math.round(states.length / 8));
+    let bestScore = -Infinity, worstScore = Infinity;
+    let bestIdx = 0, worstIdx = 0;
+    for (let i = 0; i <= states.length - win; i++) {
+        let sum = 0;
+        for (let j = i; j < i + win; j++) sum += score(states[j]);
+        const center = i + Math.floor(win / 2);
+        if (sum > bestScore)  { bestScore  = sum;  bestIdx  = center; }
+        if (sum < worstScore) { worstScore = sum;  worstIdx = center; }
+    }
+    return { best: bestIdx, worst: worstIdx };
+}
 
-    const bestMs = best ? best.startMs : (track[0] ? track[0].adjusted_elapsed_ms : 0);
-    const worstMs = worst ? worst.startMs : (track[track.length - 1] ? track[track.length - 1].adjusted_elapsed_ms : 0);
-    return { bestMs, worstMs, best, worst };
+function chooseBestAndWorst(combinedTrack) {
+    if (!combinedTrack || combinedTrack.length < 2) return { bestMs: 0, worstMs: 0 };
+    const startMs  = combinedTrack[0].adjusted_elapsed_ms;
+    const endMs    = combinedTrack[combinedTrack.length - 1].adjusted_elapsed_ms;
+    const totalSec = Math.max(1, (endMs - startMs) / 1000);
+    // 30-second buckets (same as dashboard)
+    const bucketCount = Math.max(1, Math.ceil(totalSec / 30));
+    const states  = _bucketTimeline(combinedTrack, bucketCount);
+    const marks   = _findBestWorstIndex(states);
+    // Convert bucket index → ms (same formula as dashboard's minuteLabel)
+    const bucketToMs = idx => startMs + (idx / Math.max(1, bucketCount)) * (endMs - startMs);
+    return {
+        bestMs:  bucketToMs(marks.best),
+        worstMs: bucketToMs(marks.worst)
+    };
 }
 
 function nearestPoint(track, ms) {
@@ -1812,10 +2115,11 @@ class PostureMannequin {
     initMaterials() {
         const toon = hex => new THREE.MeshToonMaterial({ color: hex });
         this.mats = {
-            skin: toon(0xf5c5a3),
-            clothing: toon(0x546e7a),
-            joint: toon(0x78909c),
-            pelvis: toon(0x455a64)
+            skin:          toon(0xf5c5a3),
+            trunkClothing: toon(0x546e7a),  // torso — driven by trunk zone only
+            armClothing:   toon(0x546e7a),  // arm sleeves — driven by arm zone only
+            joint:         toon(0x78909c),
+            pelvis:        toon(0x455a64)
         };
     }
 
@@ -1829,14 +2133,14 @@ class PostureMannequin {
     }
 
     build() {
-        const { skin, clothing, joint, pelvis } = this.mats;
+        const { skin, trunkClothing, armClothing, joint, pelvis } = this.mats;
         this.add(new THREE.CylinderGeometry(0.15, 0.13, 0.22, 18), pelvis, this.root, 0, 0.11, 0);
 
         this.spinePivot = new THREE.Group();
         this.spinePivot.position.set(0, 0.22, 0);
         this.root.add(this.spinePivot);
 
-        this.add(new THREE.CylinderGeometry(0.185, 0.155, 0.6, 18), clothing, this.spinePivot, 0, 0.30, 0);
+        this.add(new THREE.CylinderGeometry(0.185, 0.155, 0.6, 18), trunkClothing, this.spinePivot, 0, 0.30, 0);
 
         this.chestGroup = new THREE.Group();
         this.chestGroup.position.set(0, 0.62, 0);
@@ -1845,8 +2149,8 @@ class PostureMannequin {
         this.add(new THREE.CylinderGeometry(0.065, 0.085, 0.2, 12), skin, this.chestGroup, 0, 0.10, 0);
         this.add(new THREE.SphereGeometry(0.155, 22, 16), skin, this.chestGroup, 0, 0.37, 0);
 
-        this.buildArm('left', joint, skin, clothing);
-        this.buildArm('right', joint, skin, clothing);
+        this.buildArm('left', joint, skin, armClothing);
+        this.buildArm('right', joint, skin, armClothing);
     }
 
     buildArm(side, joint, skin, clothing) {
@@ -1883,14 +2187,16 @@ class PostureMannequin {
     }
 
     setTrunkZone(zone) {
-        const color = zone === 'red' ? 0xe53935 : zone === 'yellow' ? 0xfb8c00 : 0x546e7a;
-        this.mats.clothing.color.setHex(color);
+        const c = zone === 'red' ? 0xe53935 : zone === 'yellow' ? 0xfb8c00 : 0x546e7a;
+        this.mats.trunkClothing.color.setHex(c);
         this.mats.pelvis.color.setHex(zone === 'red' ? 0xb71c1c : zone === 'yellow' ? 0xe65100 : 0x455a64);
     }
 
     setArmZone(zone) {
-        const color = zone === 'red' ? 0xef5350 : zone === 'yellow' ? 0xffa726 : 0x78909c;
-        this.mats.joint.color.setHex(color);
+        const sleeve = zone === 'red' ? 0xe53935 : zone === 'yellow' ? 0xfb8c00 : 0x546e7a;
+        const joint  = zone === 'red' ? 0xef5350 : zone === 'yellow' ? 0xffa726 : 0x78909c;
+        this.mats.armClothing.color.setHex(sleeve);
+        this.mats.joint.color.setHex(joint);
     }
 }
 
@@ -2083,36 +2389,16 @@ function renderScore(postureScore) {
     UI.unlockHint.textContent = scoreState.hint;
     UI.sessionStamp.textContent = `Session · ${APP_STATE.session.armFile}${APP_STATE.session.trunkFile ? ' / ' + APP_STATE.session.trunkFile : ''}`;
 
-    UI.achievementGrid.innerHTML = [
-        {
-            icon: '🏅',
-            name: 'Good Posture Streak',
-            value: `${Math.round(parseFloat(APP_STATE.session.arm?.longestGreenStreak || 0))}s`,
-            hint: 'Longest green-zone streak',
-            active: parseFloat(APP_STATE.session.arm?.longestGreenStreak || 0) >= 8
-        },
-        {
-            icon: '🏆',
-            name: 'Best Today',
-            value: APP_STATE.session.bestTag || 'Best',
-            hint: 'Tap timeline to revisit the best segment',
-            active: true
-        },
-        {
-            icon: '⬆️',
-            name: 'Top Improvement',
-            value: APP_STATE.session.arm && APP_STATE.session.trunk ? `${Math.max(0, Math.round((parseFloat(APP_STATE.session.arm.avgFirst) || 0) - (parseFloat(APP_STATE.session.arm.avgSecond) || 0)))}°` : '—',
-            hint: 'First vs second half',
-            active: !!(APP_STATE.session.arm && APP_STATE.session.arm.improvement)
-        }
-    ].map(item => `
-        <div class="achievement-chip ${item.active ? 'active' : ''}">
-            <div class="icon">${item.icon}</div>
-            <div class="name">${item.name}</div>
-            <div class="value">${item.value}</div>
-            <div class="hint">${item.hint}</div>
-        </div>
-    `).join('');
+    const armScore = clamp(Math.round(APP_STATE.session.armScore || 0), 0, 100);
+    const trunkScore = clamp(Math.round(APP_STATE.session.trunkScore || 0), 0, 100);
+    if (UI.armScoreFill) {
+        UI.armScoreFill.style.width = `${armScore}%`;
+        document.getElementById('armScoreNum').textContent = String(armScore);
+    }
+    if (UI.trunkScoreFill) {
+        UI.trunkScoreFill.style.width = `${trunkScore}%`;
+        document.getElementById('trunkScoreNum').textContent = String(trunkScore);
+    }
 }
 
 function renderPartCard(part, summary, unavailable) {
@@ -2212,7 +2498,7 @@ function renderTimeline(track) {
     `).join('');
     UI.timelineMarkers.innerHTML = [
         `<span class="timeline-marker">⭐ Best ${formatTimecode(APP_STATE.session.bestMs)}</span>`,
-        `<span class="timeline-marker">⚠️ Worst ${formatTimecode(APP_STATE.session.worstMs)}</span>`
+        `<span class="timeline-marker">⚠️ Need Attention ${formatTimecode(APP_STATE.session.worstMs)}</span>`
     ].join('');
 
     UI.timelineTrack.querySelectorAll('.timeline-slice').forEach(button => {
@@ -2277,8 +2563,8 @@ function renderOverlay(armSummary, trunkSummary, combinedTrack) {
         ['Arm green', `${(parseFloat(armSummary.greenPercentage) || 0).toFixed(1)}%`],
         ['Arm red', `${(parseFloat(armSummary.redPercentage) || 0).toFixed(1)}%`],
         ['Trunk green', trunkSummary ? `${(parseFloat(trunkSummary.greenPercentage) || 0).toFixed(1)}%` : 'Data unavailable'],
-        ['Best 60s', formatTimecode(APP_STATE.session.bestMs)],
-        ['Worst 60s', formatTimecode(APP_STATE.session.worstMs)],
+        ['Best segment', formatTimecode(APP_STATE.session.bestMs)],
+        ['Need Attention', formatTimecode(APP_STATE.session.worstMs)],
         ['Recovery', `${armSummary.recoveryCount || 0}${trunkSummary ? ' + ' + (trunkSummary.recoveryCount || 0) : ''}`]
     ];
 
@@ -2337,6 +2623,8 @@ async function loadSession() {
 
     const fetchCsv = async name => {
         if (!name) return '';
+        const stored = sessionStorage.getItem(`wergonic_csv_${name}`);
+        if (stored) return stored;
         const response = await fetch(`demo-data/${encodeURIComponent(name)}`);
         if (!response.ok) throw new Error(`Cannot fetch ${name}`);
         return response.text();
@@ -2352,41 +2640,35 @@ async function loadSession() {
     const armStats = armData.length > 0 ? calculateStatistics(armData, SLOT_META.arm) : null;
     const trunkStats = trunkData.length > 0 ? calculateStatistics(trunkData, SLOT_META.trunk) : null;
 
-    const armSummary = armData.length > 0 && typeof buildSessionSummary === 'function'
-        ? buildSessionSummary(armData, SLOT_META.arm, armStats, APP_STATE.session.armFile)
-        : null;
-    const trunkSummary = trunkData.length > 0 && typeof buildSessionSummary === 'function'
-        ? buildSessionSummary(trunkData, SLOT_META.trunk, trunkStats, APP_STATE.session.trunkFile)
-        : null;
-
-    if (armSummary && armSummary.segments && !APP_STATE.session.bestMs) {
-        APP_STATE.session.bestMs = armSummary.segments.best_60s ? armSummary.segments.best_60s.startMs : (armData[0] ? armData[0].adjusted_elapsed_ms : 0);
-        APP_STATE.session.worstMs = armSummary.segments.worst_60s ? armSummary.segments.worst_60s.startMs : (armData.at(-1) ? armData.at(-1).adjusted_elapsed_ms : 0);
-    }
+    const armSummary = armStats;
+    const trunkSummary = trunkStats;
 
     const combinedTrack = buildCombinedReplayTrack(armData, trunkData);
-    const bestWorst = chooseBestAndWorst(combinedTrack, armSummary, trunkSummary);
+    const bestWorst = chooseBestAndWorst(combinedTrack);
 
     APP_STATE.session.arm = armSummary;
     APP_STATE.session.trunk = trunkSummary;
     APP_STATE.session.armData = armData;
     APP_STATE.session.trunkData = trunkData;
     APP_STATE.session.combined = combinedTrack;
-    APP_STATE.session.score = combinedTrack.length > 0 ? computeScoreFromSummary(armSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0 }, trunkSummary || null, combinedTrack) : 0;
+    const scoreDetails = buildScoreDetails(combinedTrack);
+    APP_STATE.session.score = combinedTrack.length > 0 ? scoreDetails.finalScore : 0;
+    APP_STATE.session.armScore = combinedTrack.length > 0 ? scoreDetails.armScore : 0;
+    APP_STATE.session.trunkScore = combinedTrack.length > 0 ? scoreDetails.trunkScore : 0;
     APP_STATE.session.bestMs = bestWorst.bestMs;
     APP_STATE.session.worstMs = bestWorst.worstMs;
     APP_STATE.session.playMs = bestWorst.bestMs;
     APP_STATE.session.timelineSlices = buildTimelineSlices(combinedTrack);
-    APP_STATE.session.bestTag = bestWorst.best ? `${bestWorst.best.type.toUpperCase()} Best` : 'Best';
-    APP_STATE.session.worstTag = bestWorst.worst ? `${bestWorst.worst.type.toUpperCase()} Worst` : 'Worst';
+    APP_STATE.session.bestTag = 'Best';
+    APP_STATE.session.worstTag = 'Need Attention';
 
     renderScore(APP_STATE.session.score);
     updateCombinedStatePill(APP_STATE.session.score);
-    renderPartCard('arm', armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, longestGreenStreak: 0 }, false);
+    renderPartCard('arm', armSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0, longestGreenStreak: 0 }, !armSummary);
     renderPartCard('trunk', trunkSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0 }, !trunkSummary);
-    renderFeedback(armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, recoveryCount: 0, rulaScore: 3 }, trunkSummary);
+    renderFeedback(armSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0, recoveryCount: 0 }, trunkSummary);
     renderTimeline(combinedTrack);
-    renderOverlay(armSummary || { greenPercentage: 75, yellowPercentage: 20, redPercentage: 5, recoveryCount: 0 }, trunkSummary, combinedTrack);
+    renderOverlay(armSummary || { greenPercentage: 0, yellowPercentage: 0, redPercentage: 0, recoveryCount: 0 }, trunkSummary, combinedTrack);
 
     UI.bestTag.textContent = `⭐ ${APP_STATE.session.bestTag}`;
     UI.worstTag.textContent = `⚠️ ${APP_STATE.session.worstTag}`;
@@ -2476,6 +2758,12 @@ async function initPage() {
     await loadDemoFileOptions();
     populateExpertSelectors();
 
+    // Use uploaded files when navigated from upload.html
+    const _upArm   = sessionStorage.getItem('wergonic_single_arm');
+    const _upTrunk = sessionStorage.getItem('wergonic_single_trunk');
+    if (_upArm)   APP_STATE.session.armFile   = _upArm;
+    if (_upTrunk) APP_STATE.session.trunkFile = _upTrunk;
+
     await loadSession();
 
     UI.scoreFill.style.width = '0';
@@ -2497,6 +2785,23 @@ initPage().catch(error => {
     console.error('Dashboard init failed:', error);
     UI.sessionStamp.textContent = `Initialization failed: ${error.message}`;
 });
+
+// ── Theme toggle (mirrors dashboard.html) ──────────────────────────────────
+(function () {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    const STORAGE_KEY = 'landscape-theme';
+    if (localStorage.getItem(STORAGE_KEY) === 'light') {
+        document.documentElement.classList.add('light');
+        btn.textContent = '☀';
+    }
+    btn.addEventListener('click', () => {
+        document.documentElement.classList.toggle('light');
+        const isLight = document.documentElement.classList.contains('light');
+        btn.textContent = isLight ? '☀' : '☾';
+        localStorage.setItem(STORAGE_KEY, isLight ? 'light' : 'dark');
+    });
+})();
 </script>
 </body>
 </html>

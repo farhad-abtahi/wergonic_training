@@ -251,6 +251,8 @@
                 <span id="curTime">0.0s</span>
                 <span id="totTime">0.0s</span>
             </div>
+            <!-- 30-second segment colour bars -->
+            <div id="segmentRows" style="margin-top:6px;"></div>
         </div>
     </div>
 
@@ -356,11 +358,12 @@ class Mannequin {
     _mats() {
         const toon = hex => new THREE.MeshToonMaterial({ color: hex });
         this.M = {
-            skin:     toon(0xf5c5a3),
-            clothing: toon(0x546e7a),
-            joint:    toon(0x78909c),
-            pelvis:   toon(0x455a64),
-            eye:      toon(0x2a2a3a),
+            skin:          toon(0xf5c5a3),
+            trunkClothing: toon(0x546e7a),   // torso — coloured by trunk zone
+            armClothing:   toon(0x546e7a),   // arm sleeves — coloured by arm zone
+            joint:         toon(0x78909c),   // shoulder/elbow joints — coloured by arm zone
+            pelvis:        toon(0x455a64),
+            eye:           toon(0x2a2a3a),
         };
     }
 
@@ -374,7 +377,7 @@ class Mannequin {
     }
 
     _build() {
-        const { skin, clothing, joint, pelvis, eye } = this.M;
+        const { skin, trunkClothing, joint, pelvis, eye } = this.M;
 
         // Pelvis (fixed, doesn't lean)
         this._add(new THREE.CylinderGeometry(0.15, 0.13, 0.22, 18), pelvis, this.root, 0, 0.11, 0);
@@ -385,7 +388,7 @@ class Mannequin {
         this.root.add(this.spinePivot);
 
         // Torso
-        this.torsoMesh = this._add(new THREE.CylinderGeometry(0.185, 0.155, 0.6, 18), clothing, this.spinePivot, 0, 0.30, 0);
+        this.torsoMesh = this._add(new THREE.CylinderGeometry(0.185, 0.155, 0.6, 18), trunkClothing, this.spinePivot, 0, 0.30, 0);
 
         // Chest group (pivot at top of torso)
         this.chestGroup = new THREE.Group();
@@ -411,7 +414,7 @@ class Mannequin {
 
     _buildArm(side) {
         const s = side === 'left' ? -1 : 1;
-        const { skin, clothing, joint } = this.M;
+        const { skin, armClothing, joint } = this.M;
 
         // Shoulder group at top of chestGroup
         const sg = new THREE.Group();
@@ -427,8 +430,8 @@ class Mannequin {
         if (side === 'left') this.lArmP = uap; else this.rArmP = uap;
 
         // Upper arm flesh + sleeve
-        this._add(new THREE.CylinderGeometry(0.072, 0.060, 0.30, 14), skin,     uap, 0, -0.15, 0);
-        this._add(new THREE.CylinderGeometry(0.082, 0.068, 0.20, 14), clothing, uap, 0, -0.08, 0);
+        this._add(new THREE.CylinderGeometry(0.072, 0.060, 0.30, 14), skin,       uap, 0, -0.15, 0);
+        this._add(new THREE.CylinderGeometry(0.082, 0.068, 0.20, 14), armClothing, uap, 0, -0.08, 0);
 
         // Elbow
         this._add(new THREE.SphereGeometry(0.066, 12, 8), joint, uap, 0, -0.30, 0);
@@ -466,20 +469,23 @@ class Mannequin {
 
     setTrunkZone(zone) {
         const c = zone==='red' ? 0xe53935 : zone==='yellow' ? 0xfb8c00 : 0x546e7a;
-        this.M.clothing.color.setHex(c);
+        this.M.trunkClothing.color.setHex(c);
         this.M.pelvis.color.setHex(zone==='red' ? 0xb71c1c : zone==='yellow' ? 0xe65100 : 0x455a64);
     }
 
     setArmZone(zone) {
-        const c = zone==='red' ? 0xef5350 : zone==='yellow' ? 0xffa726 : 0x78909c;
-        this.M.joint.color.setHex(c);
+        const sleeve = zone==='red' ? 0xe53935 : zone==='yellow' ? 0xfb8c00 : 0x546e7a;
+        const joint  = zone==='red' ? 0xef5350 : zone==='yellow' ? 0xffa726 : 0x78909c;
+        this.M.armClothing.color.setHex(sleeve);
+        this.M.joint.color.setHex(joint);
     }
 
     reset() {
         this.spinePivot.rotation.x = 0;
         this.lArmP.rotation.x = 0;
         this.rArmP.rotation.x = 0;
-        this.M.clothing.color.setHex(0x546e7a);
+        this.M.trunkClothing.color.setHex(0x546e7a);
+        this.M.armClothing.color.setHex(0x546e7a);
         this.M.pelvis.color.setHex(0x455a64);
         this.M.joint.color.setHex(0x78909c);
     }
@@ -498,7 +504,7 @@ function initThree() {
 
     const w = wrap.clientWidth || 600, h = wrap.clientHeight || 450;
     camera = new THREE.PerspectiveCamera(42, w / h, 0.05, 40);
-    camera.position.set(1.3, 1.5, 3.4);
+    camera.position.set(2.5, 1.5, 2.5);   // 45° side view
     camera.lookAt(0, 0.75, 0);
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -680,7 +686,66 @@ function launch() {
         else mannequin.reset();
         updatePose(0);
         updateTLui();
+        buildSegmentBars();
     }, 40);
+}
+
+// ══════════════════════════════════════════
+//  SEGMENT BAR HELPERS
+// ══════════════════════════════════════════
+// Returns the DOMINANT zone (most time spent) in [startMs, endMs] — not the worst
+function zoneForSegment(data, startMs, endMs) {
+    const offset = data[0].t;
+    const count = { green: 0, yellow: 0, red: 0 };
+    for (let t = startMs; t <= endMs; t += 1000) {
+        const pt = interpolate(data, t + offset);
+        if (pt && pt.zone in count) count[pt.zone]++;
+    }
+    if (count.red   >= count.yellow && count.red   >= count.green) return 'red';
+    if (count.yellow >= count.green) return 'yellow';
+    return 'green';
+}
+
+function buildSegmentBars() {
+    const { arm, trunk } = state.channels;
+    const totalMs = state.pb.totalMs;
+    const container = document.getElementById('segmentRows');
+    container.innerHTML = '';
+    if (!totalMs) return;
+
+    const SEG = 30000; // 30 seconds per block
+    const nSeg = Math.ceil(totalMs / SEG);
+    const chList = [];
+    if (arm)   chList.push({ data: arm.data,   label: '💪 Arm' });
+    if (trunk) chList.push({ data: trunk.data, label: '🧍 Trunk' });
+
+    chList.forEach(({ data, label }) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+        const lbl = document.createElement('span');
+        lbl.textContent = label;
+        lbl.style.cssText = 'font-size:.72rem;font-weight:700;min-width:56px;color:var(--md-sys-color-on-surface-variant);flex-shrink:0;';
+        wrap.appendChild(lbl);
+
+        const bar = document.createElement('div');
+        bar.style.cssText = 'flex:1;display:flex;gap:2px;';
+
+        for (let i = 0; i < nSeg; i++) {
+            const segStart = i * SEG;
+            const segEnd   = Math.min((i + 1) * SEG, totalMs);
+            const zone = zoneForSegment(data, segStart, segEnd);
+            const bg = zone === 'red' ? '#ef5350' : zone === 'yellow' ? '#ffa726' : '#66bb6a';
+            const block = document.createElement('div');
+            block.style.cssText = `flex:${segEnd - segStart};height:14px;background:${bg};border-radius:3px;cursor:pointer;transition:opacity .15s;`;
+            block.title = `${(segStart/1000).toFixed(0)}–${(segEnd/1000).toFixed(0)}s: ${zone}`;
+            block.addEventListener('mouseenter', () => block.style.opacity = '0.7');
+            block.addEventListener('mouseleave', () => block.style.opacity = '1');
+            block.addEventListener('click', () => { pausePlay(); seekTo(segStart); });
+            bar.appendChild(block);
+        }
+        wrap.appendChild(bar);
+        container.appendChild(wrap);
+    });
 }
 
 // ══════════════════════════════════════════

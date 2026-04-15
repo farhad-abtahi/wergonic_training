@@ -1854,9 +1854,32 @@
                     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
                     .map((name) => ({ name, path: `demo-data/${encodeURIComponent(name)}` }));
             }
+
+            // Inject files uploaded via upload.html (compare mode)
+            ['wergonic_cmp_a_arm', 'wergonic_cmp_a_trunk',
+             'wergonic_cmp_b_arm', 'wergonic_cmp_b_trunk'].forEach(key => {
+                const name = sessionStorage.getItem(key);
+                if (name && !fileOptions.find(f => f.name === name)) {
+                    fileOptions.unshift({ name, path: null });
+                }
+            });
         }
 
         function assignDefaults() {
+            const upAArm   = sessionStorage.getItem('wergonic_cmp_a_arm');
+            const upATrunk = sessionStorage.getItem('wergonic_cmp_a_trunk');
+            const upBArm   = sessionStorage.getItem('wergonic_cmp_b_arm');
+            const upBTrunk = sessionStorage.getItem('wergonic_cmp_b_trunk');
+
+            if (upAArm || upATrunk || upBArm || upBTrunk) {
+                const names = fileOptions.map((f) => f.name);
+                SLOTS.a.arm   = upAArm   || names[0] || '';
+                SLOTS.a.trunk = upATrunk || names[0] || '';
+                SLOTS.b.arm   = upBArm   || names[0] || '';
+                SLOTS.b.trunk = upBTrunk || names[0] || '';
+                return;
+            }
+
             const names = fileOptions.map((f) => f.name);
             const arms = names.filter((n) => /arm/i.test(n));
             const trunks = names.filter((n) => /trunk/i.test(n));
@@ -1881,6 +1904,8 @@
         }
 
         async function loadCsvByName(fileName) {
+            const stored = sessionStorage.getItem(`wergonic_csv_${fileName}`);
+            if (stored) return stored;
             const opt = fileOptions.find((f) => f.name === fileName);
             if (!opt) throw new Error(`Unknown file: ${fileName}`);
             const resp = await fetch(opt.path);

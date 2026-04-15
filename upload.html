@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Session — Wergonic Training</title>
+    <style>
+        :root {
+            --bg-0: #050e1d;
+            --bg-1: #091426;
+            --bg-2: #0c1b31;
+            --text-main: rgba(232, 244, 255, 0.96);
+            --text-muted: rgba(167, 203, 232, 0.68);
+            --border: rgba(166, 205, 255, 0.14);
+            --surface: rgba(10, 29, 53, 0.85);
+            --good: #3fd468;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        :root.light {
+            --bg-0: #eef2f6;
+            --bg-1: #e4eaf2;
+            --bg-2: #dde5ef;
+            --text-main: #1a2a3a;
+            --text-muted: rgba(26, 42, 58, 0.55);
+            --border: rgba(0, 40, 100, 0.12);
+            --surface: rgba(255, 255, 255, 0.92);
+            --good: #22a84a;
+            --shadow: 0 8px 32px rgba(0, 40, 100, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            min-height: 100%;
+            font-family: Manrope, "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text-main);
+            background:
+                radial-gradient(circle at 12% 5%, rgba(44, 184, 116, 0.24), transparent 24%),
+                radial-gradient(circle at 82% 0%, rgba(19, 131, 220, 0.3), transparent 32%),
+                linear-gradient(145deg, var(--bg-0) 0%, var(--bg-1) 55%, var(--bg-2) 100%);
+            background-attachment: fixed;
+        }
+
+        .page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 20px;
+            gap: 28px;
+        }
+
+        /* ── Header ── */
+        .header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 11px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .title {
+            font-family: "Space Grotesk", Manrope, sans-serif;
+            font-size: clamp(28px, 5vw, 40px);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #7df19d 0%, #5fb2ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .desc {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        /* ── Mode Toggle ── */
+        .mode-toggle {
+            display: flex;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        :root.light .mode-toggle {
+            background: rgba(0, 40, 100, 0.04);
+        }
+
+        .mode-btn {
+            padding: 9px 22px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-muted);
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 200ms ease;
+            letter-spacing: 0.03em;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, rgba(63, 212, 104, 0.15), rgba(95, 178, 255, 0.1));
+            border-color: rgba(63, 212, 104, 0.38);
+            color: var(--text-main);
+        }
+
+        :root.light .mode-btn.active {
+            background: linear-gradient(135deg, rgba(34, 168, 74, 0.12), rgba(0, 100, 200, 0.08));
+            border-color: rgba(34, 168, 74, 0.4);
+        }
+
+        /* ── Upload Panel ── */
+        .upload-panel {
+            width: 100%;
+            max-width: 880px;
+        }
+
+        .session-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .session-grid.single { grid-template-columns: 1fr; }
+        .session-grid.compare { grid-template-columns: 1fr 1fr; }
+
+        .session-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 22px 22px 20px;
+            backdrop-filter: blur(18px);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .session-card-label {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+
+        .file-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* ── Drop Zone ── */
+        .file-slot {
+            position: relative;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 14px;
+            padding: 18px 12px 14px;
+            cursor: pointer;
+            transition: border-color 180ms ease, background 180ms ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            text-align: center;
+            min-height: 98px;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: rgba(63, 212, 104, 0.52);
+            background: rgba(63, 212, 104, 0.06);
+        }
+
+        .drop-zone.filled {
+            border-style: solid;
+            border-color: rgba(63, 212, 104, 0.42);
+            background: rgba(63, 212, 104, 0.07);
+        }
+
+        :root.light .drop-zone:hover,
+        :root.light .drop-zone.drag-over {
+            border-color: rgba(34, 168, 74, 0.5);
+            background: rgba(34, 168, 74, 0.06);
+        }
+
+        :root.light .drop-zone.filled {
+            border-color: rgba(34, 168, 74, 0.45);
+            background: rgba(34, 168, 74, 0.06);
+        }
+
+        .drop-icon {
+            font-size: 24px;
+            line-height: 1;
+        }
+
+        .drop-type {
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+
+        .drop-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            opacity: 0.65;
+        }
+
+        .drop-filename {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--good);
+            word-break: break-all;
+            line-height: 1.3;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ── Launch Section ── */
+        .launch-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 880px;
+        }
+
+        .launch-btn {
+            width: 100%;
+            padding: 15px 28px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(90deg, #3fd468, #5fb2ff);
+            color: #041120;
+            font: inherit;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: opacity 180ms ease, transform 100ms ease;
+        }
+
+        .launch-btn:hover:not(:disabled) { opacity: 0.88; }
+        .launch-btn:active:not(:disabled) { transform: scale(0.992); }
+        .launch-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: rgba(167, 203, 232, 0.2);
+            color: var(--text-muted);
+        }
+
+        .launch-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        /* ── Theme Toggle ── */
+        .theme-toggle {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-main);
+            font-size: 14px;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            transition: all 180ms ease;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        :root.light .theme-toggle {
+            border-color: rgba(0, 40, 100, 0.18);
+            background: rgba(0, 40, 100, 0.05);
+        }
+
+        :root.light .theme-toggle:hover {
+            background: rgba(0, 40, 100, 0.1);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .session-grid.compare { grid-template-columns: 1fr; }
+            .file-row { grid-template-columns: 1fr; }
+            .page { padding: 24px 16px; gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
+
+    <main class="page">
+        <header class="header">
+            <div class="logo">Wergonic Training</div>
+            <h1 class="title">Upload Session Data</h1>
+            <p class="desc">Upload local CSV files, then open a single-session report<br>or a side-by-side comparison dashboard.</p>
+        </header>
+
+        <!-- Mode selector -->
+        <div class="mode-toggle" role="group" aria-label="Report mode">
+            <button class="mode-btn active" id="modeSingle" data-mode="single">Single Session</button>
+            <button class="mode-btn" id="modeCompare" data-mode="compare">Compare Two Sessions</button>
+        </div>
+
+        <!-- Upload cards -->
+        <div class="upload-panel">
+            <div class="session-grid single" id="sessionGrid">
+
+                <!-- Single session card -->
+                <div class="session-card" id="cardSingle">
+                    <div class="session-card-label">Session Files</div>
+                    <div class="file-row">
+                        <div class="file-slot">
+                            <div class="drop-zone" id="dropSingleArm">
+                                <span class="drop-icon">💪</span>
+                                <span class="drop-type">Arm CSV</span>
+                                <span class="drop-hint" id="hintSingleArm">Click or drop file</span>
+                            </div>
+                            <input type="file" accept=".csv,.CSV" id="fileSingleArm" aria-label="Arm CSV file">
+                        </div>
+                        <div class="file-slot">
+                            <div class="drop-zone" id="dropSingleTrunk">
+                                <span class="drop-icon">🧍</span>
+                                <span class="drop-type">Trunk CSV</span>
+                                <span class="drop-hint" id="hintSingleTrunk">Click or drop file</span>
+                            </div>
+                            <input type="file" accept=".csv,.CSV" id="fileSingleTrunk" aria-label="Trunk CSV file">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare: Session A card -->
+                <div class="session-card" id="cardA" style="display:none">
+                    <div class="session-card-label" style="color:#7df19d;">Session A</div>
+                    <div class="file-row">
+                        <div class="file-slot">
+                            <div class="drop-zone" id="dropAArm">
+                                <span class="drop-icon">💪</span>
+                                <span class="drop-type">Arm CSV</span>
+                                <span class="drop-hint" id="hintAArm">Click or drop file</span>
+                            </div>
+                            <input type="file" accept=".csv,.CSV" id="fileAArm" aria-label="Session A Arm CSV">
+                        </div>
+                        <div class="file-slot">
+                            <div class="drop-zone" id="dropATrunk">
+                                <span class="drop-icon">🧍</span>
+                                <span class="drop-type">Trunk CSV</span>
+                                <span class="drop-hint" id="hintATrunk">Click or drop file</span>
+                            </div>
+                            <input type="file" accept=".csv,.CSV" id="fileATrunk" aria-label="Session A Trunk CSV">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare: Session B card -->
+                <div class="session-card" id="cardB" style="display:none">
+                    <div class="session-card-label" style="color:#5fb2ff;">Session B</div>
+                    <div class="file-row">
+                        <div class="file-slot">
+                            <div class="drop-zone" id="dropBArm">
+                                <span class="drop-icon">💪</span>
+                                <span class="drop-type">Arm CSV</span>
+                                <span class="drop-hint" id="hintBArm">Click or drop file</span>
+                            </div>
+                            <input type="file" accept=".csv,.CSV" id="fileBArm" aria-label="Session B Arm CSV">
+                        </div>
+                        <div class="file-slot">
+                            <div class="drop-zone" id="dropBTrunk">
+                                <span class="drop-icon">🧍</span>
+                                <span class="drop-type">Trunk CSV</span>
+                                <span class="drop-hint" id="hintBTrunk">Click or drop file</span>
+                            </div>
+                            <input type="file" accept=".csv,.CSV" id="fileBTrunk" aria-label="Session B Trunk CSV">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Launch -->
+        <div class="launch-section">
+            <button class="launch-btn" id="launchBtn" disabled>Upload files to continue</button>
+            <span class="launch-hint">Files are read in-browser and never uploaded to a server · data cleared when the tab closes</span>
+        </div>
+    </main>
+
+    <script>
+        // ── SessionStorage keys ────────────────────────────────────────────────
+        const SS = {
+            csv: (name) => `wergonic_csv_${name}`,
+            SINGLE_ARM:  'wergonic_single_arm',
+            SINGLE_TRUNK:'wergonic_single_trunk',
+            CMP_A_ARM:   'wergonic_cmp_a_arm',
+            CMP_A_TRUNK: 'wergonic_cmp_a_trunk',
+            CMP_B_ARM:   'wergonic_cmp_b_arm',
+            CMP_B_TRUNK: 'wergonic_cmp_b_trunk',
+        };
+
+        // ── App state ──────────────────────────────────────────────────────────
+        const state = {
+            mode: 'single',
+            files: {
+                single_arm:   null,  // { name, content }
+                single_trunk: null,
+                a_arm:        null,
+                a_trunk:      null,
+                b_arm:        null,
+                b_trunk:      null,
+            }
+        };
+
+        // ── Mode toggle ────────────────────────────────────────────────────────
+        function setMode(mode) {
+            state.mode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            const grid = document.getElementById('sessionGrid');
+            grid.className = `session-grid ${mode}`;
+            document.getElementById('cardSingle').style.display = (mode === 'single') ? '' : 'none';
+            document.getElementById('cardA').style.display      = (mode === 'compare') ? '' : 'none';
+            document.getElementById('cardB').style.display      = (mode === 'compare') ? '' : 'none';
+            updateLaunch();
+        }
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => setMode(btn.dataset.mode));
+        });
+
+        // ── File reading ───────────────────────────────────────────────────────
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload  = e => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+
+        // slotId → { dropZoneId, hintId }
+        const SLOT_UI = {
+            single_arm:   { zone: 'dropSingleArm',   hint: 'hintSingleArm'  },
+            single_trunk: { zone: 'dropSingleTrunk',  hint: 'hintSingleTrunk'},
+            a_arm:        { zone: 'dropAArm',         hint: 'hintAArm'       },
+            a_trunk:      { zone: 'dropATrunk',       hint: 'hintATrunk'     },
+            b_arm:        { zone: 'dropBArm',         hint: 'hintBArm'       },
+            b_trunk:      { zone: 'dropBTrunk',       hint: 'hintBTrunk'     },
+        };
+
+        async function handleFile(slotId, file) {
+            if (!file || !file.name.match(/\.csv$/i)) return;
+            const content = await readFileAsText(file);
+            state.files[slotId] = { name: file.name, content };
+
+            const { zone, hint } = SLOT_UI[slotId];
+            document.getElementById(zone).classList.add('filled');
+            const hintEl = document.getElementById(hint);
+            hintEl.className = 'drop-filename';
+            hintEl.textContent = file.name;
+            updateLaunch();
+        }
+
+        // Wire file inputs
+        const INPUT_SLOTS = {
+            fileSingleArm:   'single_arm',
+            fileSingleTrunk: 'single_trunk',
+            fileAArm:        'a_arm',
+            fileATrunk:      'a_trunk',
+            fileBArm:        'b_arm',
+            fileBTrunk:      'b_trunk',
+        };
+
+        Object.entries(INPUT_SLOTS).forEach(([inputId, slotId]) => {
+            document.getElementById(inputId).addEventListener('change', function () {
+                if (this.files[0]) handleFile(slotId, this.files[0]);
+            });
+        });
+
+        // Drop zone ↔ slot mapping
+        const ZONE_SLOTS = {
+            dropSingleArm:   'single_arm',
+            dropSingleTrunk: 'single_trunk',
+            dropAArm:        'a_arm',
+            dropATrunk:      'a_trunk',
+            dropBArm:        'b_arm',
+            dropBTrunk:      'b_trunk',
+        };
+
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+            zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                const slotId = ZONE_SLOTS[zone.id];
+                if (file && slotId) handleFile(slotId, file);
+            });
+        });
+
+        // ── Validation ─────────────────────────────────────────────────────────
+        function isReady() {
+            const f = state.files;
+            if (state.mode === 'single') {
+                return !!(f.single_arm?.content && f.single_trunk?.content);
+            }
+            return !!(f.a_arm?.content && f.a_trunk?.content && f.b_arm?.content && f.b_trunk?.content);
+        }
+
+        function updateLaunch() {
+            const btn = document.getElementById('launchBtn');
+            const ready = isReady();
+            btn.disabled = !ready;
+            if (!ready) {
+                btn.textContent = state.mode === 'single'
+                    ? 'Upload arm & trunk files to continue'
+                    : 'Upload all four files to continue';
+            } else {
+                btn.textContent = state.mode === 'single'
+                    ? 'Open Session Report →'
+                    : 'Open Comparison Dashboard →';
+            }
+        }
+
+        // ── Launch ─────────────────────────────────────────────────────────────
+        document.getElementById('launchBtn').addEventListener('click', () => {
+            if (!isReady()) return;
+
+            // Clear previous wergonic upload keys from sessionStorage
+            Object.keys(sessionStorage)
+                .filter(k => k.startsWith('wergonic_'))
+                .forEach(k => sessionStorage.removeItem(k));
+
+            const f = state.files;
+
+            if (state.mode === 'single') {
+                sessionStorage.setItem(SS.csv(f.single_arm.name),   f.single_arm.content);
+                sessionStorage.setItem(SS.csv(f.single_trunk.name), f.single_trunk.content);
+                sessionStorage.setItem(SS.SINGLE_ARM,   f.single_arm.name);
+                sessionStorage.setItem(SS.SINGLE_TRUNK, f.single_trunk.name);
+                window.location.href = 'session-comparison-landscape.html';
+            } else {
+                sessionStorage.setItem(SS.csv(f.a_arm.name),   f.a_arm.content);
+                sessionStorage.setItem(SS.csv(f.a_trunk.name), f.a_trunk.content);
+                sessionStorage.setItem(SS.csv(f.b_arm.name),   f.b_arm.content);
+                sessionStorage.setItem(SS.csv(f.b_trunk.name), f.b_trunk.content);
+                sessionStorage.setItem(SS.CMP_A_ARM,   f.a_arm.name);
+                sessionStorage.setItem(SS.CMP_A_TRUNK, f.a_trunk.name);
+                sessionStorage.setItem(SS.CMP_B_ARM,   f.b_arm.name);
+                sessionStorage.setItem(SS.CMP_B_TRUNK, f.b_trunk.name);
+                window.location.href = 'dashboard.html';
+            }
+        });
+
+        // ── Theme toggle ────────────────────────────────────────────────────────
+        (function () {
+            const btn = document.getElementById('themeToggle');
+            const KEY = 'wergonic-upload-theme';
+            if (localStorage.getItem(KEY) === 'light') {
+                document.documentElement.classList.add('light');
+                btn.textContent = '☀';
+            }
+            btn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('light');
+                const isLight = document.documentElement.classList.contains('light');
+                btn.textContent = isLight ? '☀' : '☾';
+                localStorage.setItem(KEY, isLight ? 'light' : 'dark');
+            });
+        })();
+    </script>
+</body>
+</html>
