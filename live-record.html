@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a5fb4">
+    <title>Live Recording - Wergonic</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+    <style>
+        /* ── Layout ── */
+        .rec-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        @media (max-width: 600px) { .rec-grid { grid-template-columns: 1fr; } }
+
+        /* ── Device card ── */
+        .lr-device-card {
+            border: 2px solid var(--border-color, #ddd);
+            border-radius: 12px;
+            padding: 16px;
+            background: var(--card-bg, #fff);
+            transition: border-color .2s;
+        }
+        .lr-device-card.connected { border-color: #26a269; }
+        .lr-device-card.recording { border-color: #e01b24; }
+
+        .lr-device-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .lr-badge {
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            color: #fff;
+        }
+        .lr-badge.arm   { background: #1a5fb4; }
+        .lr-badge.trunk { background: #613583; }
+
+        .lr-status-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #888;
+            flex-shrink: 0;
+        }
+        .lr-status-dot.connected    { background: #26a269; }
+        .lr-status-dot.recording    { background: #e01b24; animation: blink 1s infinite; }
+        .lr-status-dot.reconnecting { background: #e5a50a; animation: blink .6s infinite; }
+
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        .lr-device-name { font-size: .85rem; color: #666; margin: 0; }
+
+        /* ── Live readout ── */
+        .lr-readout {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+            align-items: center;
+        }
+        .lr-angle-big {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1;
+            min-width: 80px;
+            text-align: center;
+        }
+        .lr-zone-pill {
+            font-size: .85rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            color: #fff;
+        }
+        .lr-zone-pill.green  { background: #26a269; }
+        .lr-zone-pill.yellow { background: #c08000; }
+        .lr-zone-pill.red    { background: #e01b24; }
+        .lr-zone-pill.--     { background: #999; }
+
+        .lr-meta { font-size: .8rem; color: #666; }
+
+        /* ── Threshold row ── */
+        .lr-thresh-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .lr-thresh-group { display: flex; flex-direction: column; gap: 2px; }
+        .lr-thresh-group label { font-size: .75rem; font-weight: 600; }
+        .lr-thresh-group input[type=number] {
+            width: 60px;
+            padding: 4px 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: .9rem;
+        }
+
+        /* ── Control bar ── */
+        .lr-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        /* ── Session bar ── */
+        .lr-session-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            background: var(--md-sys-color-primary-container, #dce8ff);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .lr-session-bar label { font-weight: 600; font-size: .9rem; }
+        .lr-session-bar input[type=text] {
+            padding: 6px 10px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            font-size: .9rem;
+            width: 180px;
+        }
+        .lr-elapsed-display {
+            font-size: 1.4rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 1px;
+            color: #1a5fb4;
+        }
+        .lr-count-display {
+            font-size: .85rem;
+            color: #555;
+        }
+
+        /* ── Storage indicator ── */
+        .lr-storage-note {
+            font-size: .75rem;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        /* ── Export section ── */
+        .lr-export-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+        .lr-export-section h4 { margin: 0 0 8px; font-size: .9rem; }
+        .lr-record-count-chip {
+            display: inline-block;
+            background: #eee;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: .8rem;
+            margin-right: 6px;
+        }
+
+        /* ── Restore banner ── */
+        .lr-restore-banner {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .lr-restore-banner p { margin: 0; flex: 1; font-size: .9rem; }
+
+        /* ── Mini log ── */
+        .lr-log {
+            height: 80px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #ccc;
+            font-family: monospace;
+            font-size: .75rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+        .lr-log p { margin: 0; line-height: 1.5; }
+        .lr-log .info  { color: #89b4fa; }
+        .lr-log .warn  { color: #f9e2af; }
+        .lr-log .error { color: #f38ba8; }
+        .lr-log .ok    { color: #a6e3a1; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navigation">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="demo-report.html" class="nav-link">Session Report</a>
+        <a href="demo.html" class="nav-link">Comparison</a>
+        <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
+        <a href="teacher-control.html" class="nav-link">Teacher Control</a>
+        <a href="live-record.html" class="nav-link active">Live Record</a>
+        <span class="nav-version"></span>
+    </nav>
+
+    <div class="container">
+        <header>
+            <div class="page-heading">
+                <h1>Live Recording</h1>
+                <p class="page-subtitle">Poll BLE devices, record posture data, and export as CSV.</p>
+            </div>
+        </header>
+
+        <!-- Restore banner (shown when cached data detected) -->
+        <div id="restoreBanner" class="lr-restore-banner" style="display:none">
+            <p>⚠️ Unsaved recording data found in browser cache (<span id="restoreCount">0</span> records). Restore or discard?</p>
+            <button class="btn btn-small btn-primary" id="restoreBtn">Restore</button>
+            <button class="btn btn-small btn-secondary" id="discardBtn">Discard</button>
+        </div>
+
+        <!-- Session bar -->
+        <div class="lr-session-bar">
+            <label>Subject:</label>
+            <input type="text" id="subjectNameInput" placeholder="e.g. VCBC04" maxlength="32">
+            <div>
+                <div class="lr-elapsed-display" id="elapsedDisplay">00:00:00</div>
+                <div class="lr-count-display">ARM: <span id="armCountDisplay">0</span> pts &nbsp;|&nbsp; TRUNK: <span id="trunkCountDisplay">0</span> pts</div>
+            </div>
+        </div>
+
+        <!-- Device cards -->
+        <div class="rec-grid">
+            <!-- ARM -->
+            <div class="lr-device-card" id="armCard">
+                <div class="lr-device-header">
+                    <span class="lr-badge arm">ARM</span>
+                    <span class="lr-status-dot" id="armDot"></span>
+                    <p class="lr-device-name" id="armName">Not connected</p>
+                </div>
+
+                <div class="lr-thresh-row">
+                    <div class="lr-thresh-group">
+                        <label style="color: #c08000">Yellow °</label>
+                        <input type="number" id="armYellow" value="30" min="5" max="90">
+                    </div>
+                    <div class="lr-thresh-group">
+                        <label style="color: #e01b24">Red °</label>
+                        <input type="number" id="armRed" value="60" min="10" max="180">
+                    </div>
+                </div>
+
+                <div class="lr-readout">
+                    <div class="lr-angle-big" id="armAngle">--</div>
+                    <div>
+                        <div class="lr-zone-pill --" id="armZone">--</div>
+                        <div class="lr-meta" id="armMeta" style="margin-top:6px"></div>
+                    </div>
+                </div>
+
+                <div class="lr-controls">
+                    <button class="btn btn-small btn-primary" id="connectArmBtn">Connect</button>
+                    <button class="btn btn-small btn-warning" id="calibrateArmBtn" disabled>Calibrate</button>
+                    <button class="btn btn-small btn-secondary" id="disconnectArmBtn" disabled>Disconnect</button>
+                </div>
+            </div>
+
+            <!-- TRUNK -->
+            <div class="lr-device-card" id="trunkCard">
+                <div class="lr-device-header">
+                    <span class="lr-badge trunk">TRUNK</span>
+                    <span class="lr-status-dot" id="trunkDot"></span>
+                    <p class="lr-device-name" id="trunkName">Not connected</p>
+                </div>
+
+                <div class="lr-thresh-row">
+                    <div class="lr-thresh-group">
+                        <label style="color: #c08000">Yellow °</label>
+                        <input type="number" id="trunkYellow" value="20" min="5" max="90">
+                    </div>
+                    <div class="lr-thresh-group">
+                        <label style="color: #e01b24">Red °</label>
+                        <input type="number" id="trunkRed" value="45" min="10" max="180">
+                    </div>
+                </div>
+
+                <div class="lr-readout">
+                    <div class="lr-angle-big" id="trunkAngle">--</div>
+                    <div>
+                        <div class="lr-zone-pill --" id="trunkZone">--</div>
+                        <div class="lr-meta" id="trunkMeta" style="margin-top:6px"></div>
+                    </div>
+                </div>
+
+                <div class="lr-controls">
+                    <button class="btn btn-small btn-primary" id="connectTrunkBtn">Connect</button>
+                    <button class="btn btn-small btn-warning" id="calibrateTrunkBtn" disabled>Calibrate</button>
+                    <button class="btn btn-small btn-secondary" id="disconnectTrunkBtn" disabled>Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recording controls -->
+        <div class="panel" style="margin-top:16px">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+                <button class="btn btn-warning" id="calibrateBothBtn">⊙ Calibrate Both</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                <button class="btn btn-success" id="startBtn">▶ Start Recording</button>
+                <button class="btn btn-warning" id="pauseBtn" disabled>⏸ Pause</button>
+                <button class="btn btn-danger"  id="stopBtn"  disabled>⏹ Stop</button>
+            </div>
+            <p class="lr-storage-note">Data is auto-saved to browser localStorage every 5 seconds.</p>
+
+            <!-- Export -->
+            <div class="lr-export-section">
+                <h4>Export CSV</h4>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-small btn-primary" id="exportArmBtn" disabled>
+                        ⬇ ARM CSV <span class="lr-record-count-chip" id="armExportCount">0</span>
+                    </button>
+                    <button class="btn btn-small btn-primary" id="exportTrunkBtn" disabled>
+                        ⬇ TRUNK CSV <span class="lr-record-count-chip" id="trunkExportCount">0</span>
+                    </button>
+                    <button class="btn btn-small btn-secondary" id="clearCacheBtn">🗑 Clear Cache</button>
+                </div>
+            </div>
+
+            <!-- Log -->
+            <div class="lr-log" id="lrLog"></div>
+        </div>
+    </div>
+
+<script>
+// ═══════════════════════════════════════════════
+// BLE UUIDs (same as app.js)
+// ═══════════════════════════════════════════════
+const WERGONIC_SERVICE_UUID        = '34802252-7185-4d5d-b431-630e7050e8f0';
+const COMMAND_CHARACTERISTIC_UUID  = '34802252-7185-4d5d-b431-630e7050e8f0';
+const ARM_ANGLE_UUID               = '872a73a9-ad52-47f3-8622-10e06c24c65f'; // ARM only
+const TRUNK_BEND_UUID              = '4d3a9874-27e5-11ee-be56-0242ac120002'; // TRUNK only
+const ANGLE_CHARACTERISTIC_UUID    = ARM_ANGLE_UUID; // kept for compat
+const POLL_INTERVAL_MS             = 500;  // matches DEV_FREQ in imu.h — hardware outputs at 2 Hz
+const AUTOSAVE_INTERVAL_MS         = 5000;
+const STORAGE_KEY_ARM              = 'lr_arm_records';
+const STORAGE_KEY_TRUNK            = 'lr_trunk_records';
+const STORAGE_KEY_SESSION          = 'lr_session_meta';
+
+// ═══════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════
+const rec = {
+    arm: {
+        device: null, server: null, service: null, angleChar: null, cmdChar: null,
+        isConnected: false, isCalibrated: false, pollTimer: null,
+        reconnectTimer: null, manualDisconnect: false,
+        records: [],       // { elapsed_ms, angle, zone }
+        latestAngle: null, latestZone: '--'
+    },
+    trunk: {
+        device: null, server: null, service: null, angleChar: null, cmdChar: null,
+        isConnected: false, isCalibrated: false, pollTimer: null,
+        reconnectTimer: null, manualDisconnect: false,
+        records: [],
+        latestAngle: null, latestZone: '--'
+    }
+};
+
+const session = {
+    isRecording: false,
+    isPaused: false,
+    startWallTime: null,   // Date.now() when recording started
+    pauseOffset: 0,        // Total paused ms accumulated
+    pauseStart: null,      // Date.now() when last pause started
+    autosaveTimer: null,
+    elapsedTimer: null
+};
+
+// ═══════════════════════════════════════════════
+// DOM helpers
+// ═══════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function log(msg, cls = 'info') {
+    const el = $('lrLog');
+    const p = document.createElement('p');
+    p.className = cls;
+    const ts = new Date().toLocaleTimeString();
+    p.textContent = `[${ts}] ${msg}`;
+    el.appendChild(p);
+    el.scrollTop = el.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════
+// Thresholds
+// ═══════════════════════════════════════════════
+function getZone(deviceType, angle) {
+    const y = parseInt($(`${deviceType}Yellow`).value) || (deviceType === 'arm' ? 30 : 20);
+    const r = parseInt($(`${deviceType}Red`).value)    || (deviceType === 'arm' ? 60 : 45);
+    if (angle >= r) return 'red';
+    if (angle >= y) return 'yellow';
+    return 'green';
+}
+
+// ═══════════════════════════════════════════════
+// Elapsed time helpers
+// ═══════════════════════════════════════════════
+function getElapsedMs() {
+    if (!session.startWallTime) return 0;
+    const now = Date.now();
+    const raw = now - session.startWallTime - session.pauseOffset;
+    // If currently paused, subtract ongoing pause duration
+    if (session.isPaused && session.pauseStart) {
+        return raw - (now - session.pauseStart);
+    }
+    return raw;
+}
+
+function formatHHMMSS(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function formatTimestamp(ms) {
+    const h   = Math.floor(ms / 3600000);
+    const m   = Math.floor((ms % 3600000) / 60000);
+    const s   = Math.floor((ms % 60000) / 1000);
+    const rem = ms % 1000;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(rem).padStart(3,'0')}`;
+}
+
+// ═══════════════════════════════════════════════
+// BLE Connection
+// ═══════════════════════════════════════════════
+async function connectDevice(deviceType) {
+    if (!navigator.bluetooth) {
+        alert('Web Bluetooth is not supported. Use Chrome or Edge desktop.');
+        return;
+    }
+    const state = rec[deviceType];
+    state.manualDisconnect = false;   // new connection attempt — enable auto-reconnect
+    if (state.reconnectTimer) { clearTimeout(state.reconnectTimer); state.reconnectTimer = null; }
+    log(`Requesting ${deviceType.toUpperCase()} BLE device…`);
+    try {
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [{ services: [WERGONIC_SERVICE_UUID] }],
+            optionalServices: [WERGONIC_SERVICE_UUID]
+        });
+        state.device = device;
+        device.addEventListener('gattserverdisconnected', () => onDisconnected(deviceType));
+
+        log(`Connecting to ${device.name || device.id}…`);
+        state.server  = await device.gatt.connect();
+        state.service = await state.server.getPrimaryService(WERGONIC_SERVICE_UUID);
+
+        // Command characteristic (same UUID as service)
+        try {
+            state.cmdChar = await state.service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID);
+        } catch (_) {}
+
+        // Angle characteristic — ARM and TRUNK use different UUIDs
+        const angleUUID = (deviceType === 'arm') ? ARM_ANGLE_UUID : TRUNK_BEND_UUID;
+        try {
+            state.angleChar = await state.service.getCharacteristic(angleUUID);
+        } catch (e) {
+            log(`${deviceType.toUpperCase()} angle char not found: ${e.message}`, 'error');
+        }
+
+        state.isConnected = true;
+        updateDeviceUI(deviceType, device.name || device.id);
+        log(`${deviceType.toUpperCase()} connected: ${device.name || device.id}. Click Calibrate to start.`, 'ok');
+    } catch (e) {
+        log(`${deviceType.toUpperCase()} connect error: ${e.message}`, 'error');
+    }
+}
+
+async function sendCmd(deviceType, cmd) {
+    const state = rec[deviceType];
+    if (!state.cmdChar) { log(`${deviceType.toUpperCase()} no command char`, 'warn'); return; }
+    try {
+        await safeWrite(state.cmdChar, new TextEncoder().encode(cmd));
+    } catch (e) {
+        log(`${deviceType.toUpperCase()} cmd '${cmd}' failed: ${e.message}`, 'error');
+    }
+}
+
+async function calibrateDevice(deviceType) {
+    const state = rec[deviceType];
+    if (!state.isConnected) { log(`${deviceType.toUpperCase()} not connected`, 'warn'); return; }
+    const typeCmd = deviceType === 'arm' ? 'A' : 'B';
+    log(`${deviceType.toUpperCase()} calibrating…`, 'info');
+    await sendCmd(deviceType, typeCmd);
+    await new Promise(r => setTimeout(r, 200));
+    await sendCmd(deviceType, 'C');
+    setTimeout(() => {
+        state.isCalibrated = true;
+        log(`${deviceType.toUpperCase()} calibrated ✓ — polling started`, 'ok');
+        startDevicePolling(deviceType);
+        updateCalibrateUI(deviceType);
+    }, 1000);
+}
+
+async function calibrateBoth() {
+    const anyConnected = rec.arm.isConnected || rec.trunk.isConnected;
+    if (!anyConnected) { log('No devices connected', 'warn'); return; }
+    log('Calibrating both devices simultaneously…', 'info');
+    await Promise.all([
+        rec.arm.isConnected   ? calibrateDevice('arm')   : Promise.resolve(),
+        rec.trunk.isConnected ? calibrateDevice('trunk') : Promise.resolve()
+    ]);
+}
+
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_DELAY_MS     = 3000;
+
+function onDisconnected(deviceType) {
+    const state = rec[deviceType];
+    state.isConnected = false;
+    state.angleChar   = null;
+    state.cmdChar     = null;
+    stopDevicePolling(deviceType);
+    log(`${deviceType.toUpperCase()} disconnected`, 'warn');
+
+    if (state.manualDisconnect) {
+        // User clicked Disconnect — full reset, no retry
+        state.isCalibrated = false;
+        updateDeviceUI(deviceType, null);
+        updateCalibrateUI(deviceType);
+    } else {
+        // Out-of-range or unexpected drop — try to reconnect
+        const dot = $(`${deviceType}Dot`);
+        const nm  = $(`${deviceType}Name`);
+        dot.className  = 'lr-status-dot reconnecting';
+        nm.textContent = 'Reconnecting…';
+        state.reconnectTimer = setTimeout(() => reconnectDevice(deviceType, 1), RECONNECT_DELAY_MS);
+    }
+}
+
+async function reconnectDevice(deviceType, attempt) {
+    const state = rec[deviceType];
+    if (state.manualDisconnect || !state.device) return;
+
+    if (attempt > MAX_RECONNECT_ATTEMPTS) {
+        log(`${deviceType.toUpperCase()} gave up reconnecting after ${MAX_RECONNECT_ATTEMPTS} attempts`, 'error');
+        state.isCalibrated = false;
+        updateDeviceUI(deviceType, null);
+        updateCalibrateUI(deviceType);
+        return;
+    }
+
+    const dot = $(`${deviceType}Dot`);
+    const nm  = $(`${deviceType}Name`);
+    dot.className  = 'lr-status-dot reconnecting';
+    nm.textContent = `Reconnecting… (${attempt}/${MAX_RECONNECT_ATTEMPTS})`;
+    log(`${deviceType.toUpperCase()} reconnecting (${attempt}/${MAX_RECONNECT_ATTEMPTS})…`, 'warn');
+
+    try {
+        state.server  = await state.device.gatt.connect();
+        state.service = await state.server.getPrimaryService(WERGONIC_SERVICE_UUID);
+
+        try {
+            state.cmdChar = await state.service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID);
+        } catch (_) {}
+
+        const angleUUID  = (deviceType === 'arm') ? ARM_ANGLE_UUID : TRUNK_BEND_UUID;
+        state.angleChar  = await state.service.getCharacteristic(angleUUID);
+        state.isConnected = true;
+
+        updateDeviceUI(deviceType, state.device.name || state.device.id);
+        log(`${deviceType.toUpperCase()} reconnected ✓`, 'ok');
+
+        if (state.isCalibrated) {
+            // Firmware keeps calibration across BLE reconnects — resume immediately
+            startDevicePolling(deviceType);
+            log(`${deviceType.toUpperCase()} polling resumed`, 'ok');
+        } else {
+            updateCalibrateUI(deviceType);
+        }
+    } catch (e) {
+        // Device still out of range — schedule next attempt
+        state.reconnectTimer = setTimeout(() => reconnectDevice(deviceType, attempt + 1), RECONNECT_DELAY_MS);
+    }
+}
+
+function disconnectDevice(deviceType) {
+    const state = rec[deviceType];
+    state.manualDisconnect = true;    // suppress auto-reconnect
+    if (state.reconnectTimer) { clearTimeout(state.reconnectTimer); state.reconnectTimer = null; }
+    if (state.device && state.device.gatt.connected) {
+        state.device.gatt.disconnect();
+    }
+    state.isConnected  = false;
+    state.isCalibrated = false;
+    state.angleChar    = null;
+    state.cmdChar      = null;
+    stopDevicePolling(deviceType);
+    updateDeviceUI(deviceType, null);
+    updateCalibrateUI(deviceType);
+}
+
+// ═══════════════════════════════════════════════
+// Polling — one independent setInterval per device (mirrors app.js).
+// readValue() wrapped with a hard 1 s timeout so a stuck GATT op
+// never blocks the timer or the other device's reads.
+// safeWrite() used only for calibration commands; no shared lock.
+// ═══════════════════════════════════════════════
+
+function readValueWithTimeout(char, timeoutMs = 1000) {
+    return Promise.race([
+        char.readValue(),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('readValue timeout')), timeoutMs))
+    ]);
+}
+
+async function safeWrite(char, data) {
+    await char.writeValue(data);
+}
+
+function handleAngleData(deviceType, dataView) {
+    const angle = dataView.getUint8(0);
+    const zone  = getZone(deviceType, angle);
+    const state = rec[deviceType];
+    state.latestAngle = angle;
+    state.latestZone  = zone;
+    updateAngleUI(deviceType, angle, zone);
+
+    if (session.isRecording && !session.isPaused) {
+        state.records.push({ elapsed_ms: getElapsedMs(), angle, zone });
+        updateCountUI();
+    }
+}
+
+function startDevicePolling(deviceType) {
+    stopDevicePolling(deviceType);
+    const state = rec[deviceType];
+    if (!state.angleChar) return;
+
+    state.pollTimer = setInterval(async () => {
+        if (!state.isConnected || !state.angleChar) {
+            stopDevicePolling(deviceType);
+            return;
+        }
+        try {
+            const value = await readValueWithTimeout(state.angleChar, 900);
+            handleAngleData(deviceType, value);
+        } catch (_) {
+            // timeout or GATT busy — skip this tick, retry next interval
+        }
+    }, POLL_INTERVAL_MS);
+
+    log(`${deviceType.toUpperCase()} polling started`, 'ok');
+}
+
+function stopDevicePolling(deviceType) {
+    const state = rec[deviceType];
+    if (state.pollTimer) {
+        clearInterval(state.pollTimer);
+        state.pollTimer = null;
+    }
+}
+
+// ═══════════════════════════════════════════════
+// Recording controls
+// ═══════════════════════════════════════════════
+function startRecording() {
+    if (session.isRecording) return;
+    if (!rec.arm.isConnected && !rec.trunk.isConnected) {
+        alert('Connect at least one device before recording.');
+        return;
+    }
+
+    // Clear previous records
+    rec.arm.records   = [];
+    rec.trunk.records = [];
+    session.startWallTime = Date.now();
+    session.pauseOffset   = 0;
+    session.pauseStart    = null;
+    session.isRecording   = true;
+    session.isPaused      = false;
+
+    // Save session meta immediately
+    saveToStorage();
+
+    // Auto-save timer
+    session.autosaveTimer = setInterval(saveToStorage, AUTOSAVE_INTERVAL_MS);
+
+    // Elapsed display timer
+    session.elapsedTimer = setInterval(() => {
+        $('elapsedDisplay').textContent = formatHHMMSS(getElapsedMs());
+    }, 500);
+
+    updateRecordingUI();
+    log('Recording started', 'ok');
+}
+
+function pauseRecording() {
+    if (!session.isRecording || session.isPaused) return;
+    session.isPaused   = true;
+    session.pauseStart = Date.now();
+    $('pauseBtn').textContent = '▶ Resume';
+    log('Recording paused', 'warn');
+}
+
+function resumeRecording() {
+    if (!session.isRecording || !session.isPaused) return;
+    // Accumulate paused duration
+    if (session.pauseStart) {
+        session.pauseOffset += Date.now() - session.pauseStart;
+        session.pauseStart = null;
+    }
+    session.isPaused = false;
+    $('pauseBtn').textContent = '⏸ Pause';
+    log('Recording resumed', 'ok');
+}
+
+function stopRecording() {
+    if (!session.isRecording) return;
+    if (session.isPaused && session.pauseStart) {
+        session.pauseOffset += Date.now() - session.pauseStart;
+        session.pauseStart = null;
+    }
+    session.isRecording = false;
+    session.isPaused    = false;
+
+    clearInterval(session.autosaveTimer);
+    clearInterval(session.elapsedTimer);
+    session.autosaveTimer = null;
+    session.elapsedTimer  = null;
+
+    saveToStorage();
+    updateRecordingUI();
+    updateCountUI();
+    enableExportButtons();
+    log(`Recording stopped. ARM: ${rec.arm.records.length} pts, TRUNK: ${rec.trunk.records.length} pts`, 'ok');
+}
+
+// ═══════════════════════════════════════════════
+// CSV Export
+// ═══════════════════════════════════════════════
+function buildCSV(records) {
+    const lines = ['elapsed_ms,timestamp,angle,feedback,zone'];
+    for (const r of records) {
+        lines.push(`${r.elapsed_ms},${formatTimestamp(r.elapsed_ms)},${r.angle},0,${r.zone}`);
+    }
+    return lines.join('\n');
+}
+
+function downloadCSV(deviceType) {
+    const records = rec[deviceType].records;
+    if (!records.length) { alert(`No ${deviceType.toUpperCase()} data to export.`); return; }
+    const subject = ($('subjectNameInput').value.trim() || 'subject').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g, '-');
+    const filename = `${subject}_${deviceType}_${ts}.csv`;
+    const csv = buildCSV(records);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log(`Exported ${filename} (${records.length} rows)`, 'ok');
+}
+
+// ═══════════════════════════════════════════════
+// localStorage persistence
+// ═══════════════════════════════════════════════
+function saveToStorage() {
+    try {
+        localStorage.setItem(STORAGE_KEY_ARM,   JSON.stringify(rec.arm.records));
+        localStorage.setItem(STORAGE_KEY_TRUNK, JSON.stringify(rec.trunk.records));
+        localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify({
+            subject: $('subjectNameInput').value.trim(),
+            savedAt: Date.now()
+        }));
+    } catch (e) {
+        log('localStorage save failed: ' + e.message, 'warn');
+    }
+}
+
+function loadFromStorage() {
+    try {
+        const arm   = localStorage.getItem(STORAGE_KEY_ARM);
+        const trunk = localStorage.getItem(STORAGE_KEY_TRUNK);
+        const meta  = localStorage.getItem(STORAGE_KEY_SESSION);
+        const armRec   = arm   ? JSON.parse(arm)   : [];
+        const trunkRec = trunk ? JSON.parse(trunk) : [];
+        const total = armRec.length + trunkRec.length;
+        if (total > 0) {
+            const metaObj = meta ? JSON.parse(meta) : {};
+            $('restoreCount').textContent = total;
+            $('restoreBanner').style.display = 'flex';
+            $('restoreBtn').onclick = () => {
+                rec.arm.records   = armRec;
+                rec.trunk.records = trunkRec;
+                if (metaObj.subject) $('subjectNameInput').value = metaObj.subject;
+                updateCountUI();
+                enableExportButtons();
+                $('restoreBanner').style.display = 'none';
+                log(`Restored ${armRec.length} ARM + ${trunkRec.length} TRUNK records from cache`, 'ok');
+            };
+            $('discardBtn').onclick = () => {
+                clearStorage();
+                $('restoreBanner').style.display = 'none';
+                log('Cache discarded', 'warn');
+            };
+        }
+    } catch (e) {
+        log('localStorage load failed: ' + e.message, 'warn');
+    }
+}
+
+function clearStorage() {
+    localStorage.removeItem(STORAGE_KEY_ARM);
+    localStorage.removeItem(STORAGE_KEY_TRUNK);
+    localStorage.removeItem(STORAGE_KEY_SESSION);
+}
+
+// ═══════════════════════════════════════════════
+// UI helpers
+// ═══════════════════════════════════════════════
+function updateDeviceUI(deviceType, name) {
+    const dot  = $(`${deviceType}Dot`);
+    const nm   = $(`${deviceType}Name`);
+    const card = $(`${deviceType}Card`);
+    const conn = $(`connect${deviceType.charAt(0).toUpperCase()+deviceType.slice(1)}Btn`);
+    const disc = $(`disconnect${deviceType.charAt(0).toUpperCase()+deviceType.slice(1)}Btn`);
+    const cal  = $(`calibrate${deviceType.charAt(0).toUpperCase()+deviceType.slice(1)}Btn`);
+    if (name) {
+        dot.className  = 'lr-status-dot connected';
+        nm.textContent = name;
+        card.classList.add('connected');
+        conn.disabled  = true;
+        disc.disabled  = false;
+        cal.disabled   = false;
+    } else {
+        dot.className  = 'lr-status-dot';
+        nm.textContent = 'Not connected';
+        card.classList.remove('connected');
+        conn.disabled  = false;
+        disc.disabled  = true;
+        cal.disabled   = true;
+    }
+}
+
+function updateCalibrateUI(deviceType) {
+    const cal = $(`calibrate${deviceType.charAt(0).toUpperCase()+deviceType.slice(1)}Btn`);
+    const state = rec[deviceType];
+    if (state.isCalibrated) {
+        cal.textContent = 'Calibrate ✓';
+        cal.classList.remove('btn-warning');
+        cal.classList.add('btn-success');
+    } else {
+        cal.textContent = 'Calibrate';
+        cal.classList.remove('btn-success');
+        cal.classList.add('btn-warning');
+    }
+}
+
+function updateAngleUI(deviceType, angle, zone) {
+    $(`${deviceType}Angle`).textContent = angle;
+    const zoneEl = $(`${deviceType}Zone`);
+    zoneEl.textContent = zone.toUpperCase();
+    zoneEl.className   = `lr-zone-pill ${zone}`;
+    $(`${deviceType}Meta`).textContent = `Latest: ${angle}°`;
+}
+
+function updateCountUI() {
+    $('armCountDisplay').textContent   = rec.arm.records.length;
+    $('trunkCountDisplay').textContent = rec.trunk.records.length;
+    $('armExportCount').textContent    = rec.arm.records.length;
+    $('trunkExportCount').textContent  = rec.trunk.records.length;
+}
+
+function updateRecordingUI() {
+    const isRec = session.isRecording;
+    $('startBtn').disabled  = isRec;
+    $('pauseBtn').disabled  = !isRec;
+    $('stopBtn').disabled   = !isRec;
+    $('pauseBtn').textContent = '⏸ Pause';
+
+    // Update device card borders
+    ['arm','trunk'].forEach(dt => {
+        const card = $(`${dt}Card`);
+        card.classList.toggle('recording', isRec && rec[dt].isConnected);
+    });
+}
+
+function enableExportButtons() {
+    $('exportArmBtn').disabled   = rec.arm.records.length === 0;
+    $('exportTrunkBtn').disabled = rec.trunk.records.length === 0;
+}
+
+// ═══════════════════════════════════════════════
+// Event listeners
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    // Check BLE support
+    if (!navigator.bluetooth) {
+        log('Web Bluetooth not supported. Use Chrome/Edge on desktop.', 'error');
+    }
+
+    // Connection
+    $('connectArmBtn').addEventListener('click',    () => connectDevice('arm'));
+    $('disconnectArmBtn').addEventListener('click', () => disconnectDevice('arm'));
+    $('calibrateArmBtn').addEventListener('click',  () => calibrateDevice('arm'));
+    $('connectTrunkBtn').addEventListener('click',    () => connectDevice('trunk'));
+    $('disconnectTrunkBtn').addEventListener('click', () => disconnectDevice('trunk'));
+    $('calibrateTrunkBtn').addEventListener('click',  () => calibrateDevice('trunk'));
+    $('calibrateBothBtn').addEventListener('click',   () => calibrateBoth());
+
+    // Recording
+    $('startBtn').addEventListener('click', startRecording);
+    $('pauseBtn').addEventListener('click', () => {
+        if (session.isPaused) resumeRecording(); else pauseRecording();
+    });
+    $('stopBtn').addEventListener('click', stopRecording);
+
+    // Export
+    $('exportArmBtn').addEventListener('click',   () => downloadCSV('arm'));
+    $('exportTrunkBtn').addEventListener('click', () => downloadCSV('trunk'));
+
+    // Clear cache
+    $('clearCacheBtn').addEventListener('click', () => {
+        if (confirm('Clear all cached recording data?')) {
+            clearStorage();
+            rec.arm.records   = [];
+            rec.trunk.records = [];
+            updateCountUI();
+            $('exportArmBtn').disabled   = true;
+            $('exportTrunkBtn').disabled = true;
+            log('Cache cleared', 'warn');
+        }
+    });
+
+    // Check for existing cached data
+    loadFromStorage();
+
+    log('Live Recording page ready.', 'info');
+});
+</script>
+</body>
+</html>
