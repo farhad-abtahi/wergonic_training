@@ -1,4 +1,4 @@
-# Wergonic Device Manager - Web App
+# Wergonic Device Manager - Web App 
 
 A web-based client for configuring and managing Wergonic haptic feedback devices via Bluetooth Low Energy (BLE).
 
