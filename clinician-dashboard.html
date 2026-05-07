@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RehabGame · Clinician Dashboard</title>
+  <style>
+    :root {
+      --bg:      #070c18;
+      --bg1:     #0d1628;
+      --bg2:     #131e38;
+      --cyan:    #22d3ee;
+      --purple:  #a78bfa;
+      --green:   #34d399;
+      --orange:  #fbbf24;
+      --red:     #f87171;
+      --text:    #f1f5f9;
+      --text2:   #8898b8;
+      --border:  rgba(255,255,255,0.07);
+      --gc:      rgba(34,211,238,0.25);
+      --gp:      rgba(167,139,250,0.25);
+      --gg:      rgba(52,211,153,0.25);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 60% 60% at 10% 70%, rgba(34,211,238,0.05) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 50% at 90% 15%, rgba(167,139,250,0.05) 0%, transparent 70%);
+      color: var(--text);
+      font-family: -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────── */
+    .header {
+      background: rgba(10,18,35,0.94);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 17px; font-weight: 800;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+    }
+    .hdr-badge {
+      background: rgba(52,211,153,0.15);
+      border: 1px solid rgba(52,211,153,0.4);
+      color: var(--green);
+      border-radius: 20px; padding: 3px 12px;
+      font-size: 11px; font-weight: 700;
+    }
+    .hdr-right {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .hdr-date {
+      font-size: 12px; color: var(--text2);
+    }
+    .hdr-nav {
+      display: flex; gap: 8px;
+    }
+    .nav-btn {
+      padding: 6px 16px; border-radius: 10px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04); color: var(--text2);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: all .16s;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.09); color: var(--text); }
+    .nav-btn.active { background: rgba(34,211,238,0.12); border-color: rgba(34,211,238,0.35); color: var(--cyan); }
+
+    /* ── PAGE WRAPPER ───────────────────────────── */
+    .page { max-width: 1280px; margin: 0 auto; padding: 20px 22px 40px; }
+
+    /* ── SECTION HEADING ────────────────────────── */
+    .sec-head {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-bottom: 14px; margin-top: 28px;
+    }
+    .sec-head:first-child { margin-top: 0; }
+    .sec-title { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text2); }
+    .sec-sub { font-size: 11px; color: rgba(136,152,184,0.6); }
+
+    /* ── CARD BASE ──────────────────────────────── */
+    .card {
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px 20px;
+      position: relative;
+    }
+    .card-title {
+      font-size: 10px; font-weight: 700; color: var(--text2);
+      text-transform: uppercase; letter-spacing: .08em;
+      margin-bottom: 12px;
+    }
+
+    /* ── GC ANNOTATION TAG ──────────────────────── */
+    .gc-tag {
+      position: absolute; top: -12px; right: 16px;
+      display: flex; align-items: center; gap: 5px;
+      background: var(--bg); border: 1.5px solid;
+      border-radius: 30px; padding: 2px 10px 2px 6px;
+      font-size: 9px; font-weight: 800; letter-spacing: .07em;
+      white-space: nowrap; text-transform: uppercase; pointer-events: none;
+    }
+    .gc-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .gc-c { border-color: var(--cyan);   color: var(--cyan); }
+    .gc-p { border-color: var(--purple); color: var(--purple); }
+    .gc-g { border-color: var(--green);  color: var(--green); }
+    .gc-o { border-color: var(--orange); color: var(--orange); }
+    .gc-r { border-color: var(--red);    color: var(--red); }
+    .gc-dot.c { background: var(--cyan); }
+    .gc-dot.p { background: var(--purple); }
+    .gc-dot.g { background: var(--green); }
+    .gc-dot.o { background: var(--orange); }
+    .gc-dot.r { background: var(--red); }
+
+    /* ── GRID LAYOUTS ───────────────────────────── */
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+    .grid-13 { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; }
+    .grid-31 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+
+    /* ── KPI CARD ───────────────────────────────── */
+    .kpi-val { font-size: 36px; font-weight: 900; line-height: 1.1; }
+    .kpi-lbl { font-size: 11px; color: var(--text2); margin-top: 3px; }
+    .kpi-delta {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 10px; font-weight: 700;
+      border-radius: 20px; padding: 2px 8px; margin-top: 6px;
+    }
+    .delta-up   { background: rgba(52,211,153,.12); color: var(--green); }
+    .delta-down { background: rgba(248,113,113,.12); color: var(--red); }
+    .delta-flat { background: rgba(148,163,184,.08); color: var(--text2); }
+
+    /* ── ADHERENCE CALENDAR ─────────────────────── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px; margin-top: 4px;
+    }
+    .cal-day-lbl {
+      font-size: 8.5px; color: var(--text2); text-align: center; font-weight: 700;
+      padding-bottom: 2px;
+    }
+    .cal-cell {
+      aspect-ratio: 1;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.04);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700; color: var(--text2);
+      cursor: default; transition: transform .15s;
+    }
+    .cal-cell:hover { transform: scale(1.15); }
+    .cal-cell.done-4 { background: var(--green);  color: #064e3b; }
+    .cal-cell.done-3 { background: rgba(52,211,153,.65); color: #064e3b; }
+    .cal-cell.done-2 { background: rgba(52,211,153,.35); color: var(--text); }
+    .cal-cell.done-1 { background: rgba(52,211,153,.15); color: var(--text2); }
+    .cal-cell.miss   { background: rgba(248,113,113,.15); color: var(--red); }
+    .cal-cell.future { background: transparent; color: rgba(136,152,184,.3); }
+    .cal-cell.today  { outline: 1.5px solid var(--cyan); }
+
+    /* ── SPARKLINE ──────────────────────────────── */
+    .sparkline { width: 100%; height: 52px; overflow: visible; }
+    .spark-area { fill: url(#sa); opacity: .35; }
+    .spark-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── SESSION HISTORY TABLE ──────────────────── */
+    .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .tbl th {
+      text-align: left; font-size: 9.5px; font-weight: 700; color: var(--text2);
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: 0 10px 8px; border-bottom: 1px solid var(--border);
+    }
+    .tbl td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      vertical-align: middle;
+    }
+    .tbl tr:last-child td { border-bottom: none; }
+    .tbl tr:hover td { background: rgba(255,255,255,0.025); }
+    .qual-pill {
+      display: inline-block; border-radius: 20px; padding: 2px 9px;
+      font-size: 10px; font-weight: 700;
+    }
+    .q-perfect   { background: rgba(52,211,153,.15); color: var(--green); }
+    .q-excellent { background: rgba(34,211,238,.15); color: var(--cyan); }
+    .q-good      { background: rgba(251,191,36,.15); color: var(--orange); }
+    .q-fair      { background: rgba(248,113,113,.15); color: var(--red); }
+
+    /* ── ROM CHART ──────────────────────────────── */
+    .rom-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .rom-bar-row:last-child { margin-bottom: 0; }
+    .rom-bar-lbl { font-size: 11px; color: var(--text2); min-width: 56px; }
+    .rom-bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+    .rom-bar-fill  { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(.34,1.56,.64,1); }
+    .rom-bar-val   { font-size: 11px; font-weight: 800; min-width: 36px; text-align: right; }
+
+    /* ── PAIN / FATIGUE TIMELINE ────────────────── */
+    .timeline-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .tl-date { font-size: 10px; color: var(--text2); min-width: 48px; }
+    .tl-dots { display: flex; gap: 4px; flex: 1; }
+    .tl-dot  { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; }
+
+    /* ── GOALS CHECKLIST ────────────────────────── */
+    .goal-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .goal-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .goal-check {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; margin-top: 1px;
+    }
+    .g-done { background: rgba(52,211,153,.2); color: var(--green); border: 1.5px solid var(--green); }
+    .g-prog { background: rgba(251,191,36,.12); color: var(--orange); border: 1.5px solid var(--orange); }
+    .g-todo { background: rgba(255,255,255,.04); color: var(--text2); border: 1.5px solid rgba(255,255,255,.12); }
+    .goal-text { flex: 1; }
+    .goal-title { font-size: 12px; font-weight: 700; }
+    .goal-sub   { font-size: 10px; color: var(--text2); margin-top: 2px; }
+    .goal-pct   { font-size: 12px; font-weight: 800; align-self: center; }
+
+    /* ── ALERTS ─────────────────────────────────── */
+    .alert {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 10px 14px; border-radius: 12px; margin-bottom: 8px;
+      border: 1px solid;
+    }
+    .alert:last-child { margin-bottom: 0; }
+    .alert-warn  { background: rgba(251,191,36,.07); border-color: rgba(251,191,36,.2); }
+    .alert-ok    { background: rgba(52,211,153,.07); border-color: rgba(52,211,153,.2); }
+    .alert-info  { background: rgba(34,211,238,.07); border-color: rgba(34,211,238,.2); }
+    .alert-icon  { font-size: 18px; flex-shrink: 0; line-height: 1.2; }
+    .alert-title { font-size: 12px; font-weight: 700; }
+    .alert-desc  { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+    /* ── PATIENT SELECTOR ───────────────────────── */
+    .pt-list { display: flex; flex-direction: column; gap: 6px; }
+    .pt-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px 12px; border-radius: 12px;
+      background: rgba(255,255,255,0.03); border: 1px solid transparent;
+      cursor: pointer; transition: all .15s;
+    }
+    .pt-row:hover  { background: rgba(255,255,255,0.06); border-color: var(--border); }
+    .pt-row.active { background: rgba(34,211,238,0.07); border-color: rgba(34,211,238,0.25); }
+    .pt-avatar {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800;
+    }
+    .pt-name { font-size: 13px; font-weight: 700; }
+    .pt-meta { font-size: 10px; color: var(--text2); margin-top: 1px; }
+    .pt-badge {
+      margin-left: auto; flex-shrink: 0;
+      font-size: 9px; font-weight: 700; border-radius: 20px; padding: 2px 8px;
+    }
+    .pt-ok   { background: rgba(52,211,153,.15); color: var(--green); }
+    .pt-warn { background: rgba(251,191,36,.15);  color: var(--orange); }
+    .pt-low  { background: rgba(248,113,113,.15); color: var(--red); }
+
+    /* ── LEADERBOARD ────────────────────────────── */
+    .lb-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank { font-size: 13px; font-weight: 900; min-width: 22px; color: var(--text2); }
+    .lb-rank.gold   { color: #f59e0b; }
+    .lb-rank.silver { color: #94a3b8; }
+    .lb-rank.bronze { color: #b45309; }
+    .lb-avatar {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+    }
+    .lb-name { font-size: 12px; font-weight: 700; flex: 1; }
+    .lb-pts  { font-size: 13px; font-weight: 900; color: var(--orange); }
+    .lb-bar  { flex: 1; height: 4px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; max-width: 80px; }
+    .lb-fill { height: 100%; border-radius: 2px; }
+
+    /* ── ENGAGEMENT RING ────────────────────────── */
+    .eng-rings { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
+    .eng-ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .eng-ring-svg { width: 72px; height: 72px; transform: rotate(-90deg); }
+    .er-bg   { fill: none; stroke: rgba(255,255,255,.05); stroke-width: 7; }
+    .er-main { fill: none; stroke-width: 7; stroke-linecap: round; }
+    .eng-ring-lbl { font-size: 9px; color: var(--text2); text-align: center; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .eng-ring-val { font-size: 14px; font-weight: 900; text-align: center; margin-top: -4px; }
+
+    /* ── PROGRESS BAR ───────────────────────────── */
+    .prog-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .prog-fill  { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(.34,1.56,.64,1); }
+
+    /* ── TOOLTIP ────────────────────────────────── */
+    [data-tip] { position: relative; cursor: default; }
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 10px;
+      font-size: 10px; white-space: nowrap; z-index: 99;
+      pointer-events: none; color: var(--text);
+    }
+
+    /* ── PRINT STYLES ───────────────────────────── */
+    @media print {
+      .header .hdr-nav, .no-print { display: none !important; }
+      body { background: white; color: #111; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🦵</div>
+    <span>RehabGame</span>
+  </div>
+  <span class="hdr-badge">Clinician Dashboard</span>
+  <nav class="hdr-nav">
+    <span class="nav-btn active">Overview</span>
+    <span class="nav-btn">Session Log</span>
+    <span class="nav-btn">ROM Tracking</span>
+    <span class="nav-btn">Reports</span>
+  </nav>
+  <div class="hdr-right">
+    <span class="hdr-date" id="hdr-date">—</span>
+    <a href="rehab-game.html" class="nav-btn" style="background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.3);color:var(--cyan)">▶ Patient View</a>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ── PATIENT SELECTOR + ALERTS ─────────────── -->
+  <div class="sec-head">
+    <span class="sec-title">Patient Roster</span>
+    <span class="sec-sub">Click a patient to load their data</span>
+  </div>
+  <div class="grid-13">
+
+    <!-- Patient List -->
+    <div class="card" style="padding:14px 16px;">
+      <div class="gc-tag gc-g"><span class="gc-dot g"></span>Social / Cohort</div>
+      <div class="card-title">Active Patients</div>
+      <div class="pt-list">
+        <div class="pt-row active" onclick="selectPatient(0)">
+          <div class="pt-avatar" style="background:rgba(34,211,238,.15);color:var(--cyan)">JL</div>
+          <div>
+            <div class="pt-name">Jane Liu</div>
+            <div class="pt-meta">TKR Post-Op · Day 21 · Lv.12</div>
+          </div>
+          <span class="pt-badge pt-ok">On Track</span>
+        </div>
+        <div class="pt-row" onclick="selectPatient(1)">
+          <div class="pt-avatar" style="background:rgba(167,139,250,.15);color:var(--purple)">MK</div>
+          <div>
+            <div class="pt-name">Marcus Kim</div>
+            <div class="pt-meta">ACL Rehab · Day 45 · Lv.8</div>
+          </div>
+          <span class="pt-badge pt-warn">Missed 2d</span>
+        </div>
+        <div class="pt-row" onclick="selectPatient(2)">
+          <div class="pt-avatar" style="background:rgba(52,211,153,.15);color:var(--green)">SR</div>
+          <div>
+            <div class="pt-name">Sofia Reyes</div>
+            <div class="pt-meta">Stroke Rehab · Day 12 · Lv.5</div>
+          </div>
+          <span class="pt-badge pt-ok">On Track</span>
+        </div>
+        <div class="pt-row" onclick="selectPatient(3)">
+          <div class="pt-avatar" style="background:rgba(251,191,36,.15);color:var(--orange)">DT</div>
+          <div>
+            <div class="pt-name">David Tran</div>
+            <div class="pt-meta">Ankle Sprain · Day 8 · Lv.3</div>
+          </div>
+          <span class="pt-badge pt-low">Low Adhere.</span>
+        </div>
+        <div class="pt-row" onclick="selectPatient(4)">
+          <div class="pt-avatar" style="background:rgba(248,113,113,.15);color:var(--red)">EP</div>
+          <div>
+            <div class="pt-name">Emma Park</div>
+            <div class="pt-meta">Hip Fracture · Day 60 · Lv.19</div>
+          </div>
+          <span class="pt-badge pt-ok">Excellent</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="card">
+      <div class="gc-tag gc-r"><span class="gc-dot r"></span>Feedback Loop</div>
+      <div class="card-title">Clinical Alerts &amp; Insights · Jane Liu</div>
+      <div class="alert alert-warn">
+        <div class="alert-icon">⚠️</div>
+        <div>
+          <div class="alert-title">ROM plateau detected — 3-day trend</div>
+          <div class="alert-desc">Peak extension angle has not improved beyond 78° over the last 3 sessions. Consider adjusting resistance or technique cue.</div>
+        </div>
+      </div>
+      <div class="alert alert-ok">
+        <div class="alert-icon">🏆</div>
+        <div>
+          <div class="alert-title">7-day adherence streak maintained</div>
+          <div class="alert-desc">Patient completed all prescribed sessions this week. Streak gamification is driving consistent engagement.</div>
+        </div>
+      </div>
+      <div class="alert alert-info">
+        <div class="alert-icon">📈</div>
+        <div>
+          <div class="alert-title">Rep quality improving — +12% vs. last week</div>
+          <div class="alert-desc">Average quality score rose from 71% to 83%. "Perfect" reps up from 18% to 34% of total reps logged.</div>
+        </div>
+      </div>
+      <div class="alert alert-warn">
+        <div class="alert-icon">😓</div>
+        <div>
+          <div class="alert-title">Self-reported fatigue elevated post-session (Day 19)</div>
+          <div class="alert-desc">Patient rated fatigue 8/10 after Session 19. Recommend reviewing set volume or rest intervals.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── KPI ROW ────────────────────────────────── -->
+  <div class="sec-head" style="margin-top:24px">
+    <span class="sec-title">Session KPIs</span>
+    <span class="sec-sub">Jane Liu · last 21 days</span>
+  </div>
+  <div class="grid-4">
+
+    <div class="card">
+      <div class="gc-tag gc-o"><span class="gc-dot o"></span>Streak / Habit</div>
+      <div class="card-title">Adherence Rate</div>
+      <div class="kpi-val" style="color:var(--green)">86%</div>
+      <div class="kpi-lbl">18 / 21 sessions completed</div>
+      <div class="kpi-delta delta-up">▲ +9% vs. prev. 3 weeks</div>
+    </div>
+
+    <div class="card">
+      <div class="gc-tag gc-p"><span class="gc-dot p"></span>Progress Ring</div>
+      <div class="card-title">Avg. Rep Quality</div>
+      <div class="kpi-val" style="color:var(--cyan)">83%</div>
+      <div class="kpi-lbl">across 648 logged reps</div>
+      <div class="kpi-delta delta-up">▲ +12% vs. prev. period</div>
+    </div>
+
+    <div class="card">
+      <div class="gc-tag gc-c"><span class="gc-dot c"></span>Biofeedback</div>
+      <div class="card-title">Peak ROM</div>
+      <div class="kpi-val" style="color:var(--purple)">78°</div>
+      <div class="kpi-lbl">best extension angle (target 90°)</div>
+      <div class="kpi-delta delta-flat">→ Plateau last 3 sessions</div>
+    </div>
+
+    <div class="card">
+      <div class="gc-tag gc-g"><span class="gc-dot g"></span>XP / Level</div>
+      <div class="card-title">Total XP Earned</div>
+      <div class="kpi-val" style="color:var(--orange)">9,420</div>
+      <div class="kpi-lbl">Lv.12 · next level at 10,000 XP</div>
+      <div class="kpi-delta delta-up">▲ +780 XP this week</div>
+    </div>
+
+  </div>
+
+  <!-- ── ADHERENCE + ENGAGEMENT ─────────────────── -->
+  <div class="sec-head">
+    <span class="sec-title">Adherence &amp; Engagement</span>
+  </div>
+  <div class="grid-31">
+
+    <!-- Calendar heatmap -->
+    <div class="card">
+      <div class="gc-tag gc-o"><span class="gc-dot o"></span>Streak / Daily Habit</div>
+      <div class="card-title">Session Calendar — Last 4 Weeks</div>
+      <div class="cal-grid" id="cal-grid">
+        <!-- day-of-week headers -->
+        <div class="cal-day-lbl">Mon</div>
+        <div class="cal-day-lbl">Tue</div>
+        <div class="cal-day-lbl">Wed</div>
+        <div class="cal-day-lbl">Thu</div>
+        <div class="cal-day-lbl">Fri</div>
+        <div class="cal-day-lbl">Sat</div>
+        <div class="cal-day-lbl">Sun</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:12px;font-size:9.5px;color:var(--text2)">
+        <span>Legend:</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(52,211,153,.15);vertical-align:middle;margin-right:3px"></span>Partial</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--green);vertical-align:middle;margin-right:3px"></span>Full RX</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(248,113,113,.15);vertical-align:middle;margin-right:3px"></span>Missed</span>
+      </div>
+    </div>
+
+    <!-- Engagement rings -->
+    <div class="card">
+      <div class="gc-tag gc-g"><span class="gc-dot g"></span>Engagement Metrics</div>
+      <div class="card-title">Gamification Engagement</div>
+      <div class="eng-rings">
+        <div class="eng-ring-wrap">
+          <svg class="eng-ring-svg" viewBox="0 0 72 72">
+            <circle class="er-bg" cx="36" cy="36" r="28"/>
+            <circle class="er-main" cx="36" cy="36" r="28"
+              stroke="var(--green)"
+              stroke-dasharray="175.93"
+              stroke-dashoffset="25"/>
+          </svg>
+          <div class="eng-ring-val" style="color:var(--green)">86%</div>
+          <div class="eng-ring-lbl">Adherence</div>
+        </div>
+        <div class="eng-ring-wrap">
+          <svg class="eng-ring-svg" viewBox="0 0 72 72">
+            <circle class="er-bg" cx="36" cy="36" r="28"/>
+            <circle class="er-main" cx="36" cy="36" r="28"
+              stroke="var(--cyan)"
+              stroke-dasharray="175.93"
+              stroke-dashoffset="30"/>
+          </svg>
+          <div class="eng-ring-val" style="color:var(--cyan)">83%</div>
+          <div class="eng-ring-lbl">Rep Quality</div>
+        </div>
+        <div class="eng-ring-wrap">
+          <svg class="eng-ring-svg" viewBox="0 0 72 72">
+            <circle class="er-bg" cx="36" cy="36" r="28"/>
+            <circle class="er-main" cx="36" cy="36" r="28"
+              stroke="var(--orange)"
+              stroke-dasharray="175.93"
+              stroke-dashoffset="88"/>
+          </svg>
+          <div class="eng-ring-val" style="color:var(--orange)">50%</div>
+          <div class="eng-ring-lbl">XP Progress</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--text2)">🔥 Current Streak</span>
+          <span style="font-weight:800;color:var(--orange)">7 days</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--text2)">⭐ Total Points</span>
+          <span style="font-weight:800;color:var(--orange)">2,480</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--text2)">🏆 Achievements Unlocked</span>
+          <span style="font-weight:800;color:var(--purple)">11 / 20</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--text2)">📅 Sessions This Month</span>
+          <span style="font-weight:800;color:var(--cyan)">18</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── ROM TREND + REP QUALITY OVER TIME ─────── -->
+  <div class="sec-head">
+    <span class="sec-title">Clinical Progress</span>
+    <span class="sec-sub">Sensor-measured data · last 21 sessions</span>
+  </div>
+  <div class="grid-2">
+
+    <!-- ROM over time sparkline -->
+    <div class="card">
+      <div class="gc-tag gc-c"><span class="gc-dot c"></span>Biofeedback / ROM</div>
+      <div class="card-title">Peak Extension Angle per Session (°)</div>
+      <svg class="sparkline" id="rom-spark" viewBox="0 0 400 56" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="sa-rom" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#22d3ee" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path class="spark-area" style="fill:url(#sa-rom)" id="rom-area"/>
+        <path class="spark-line" stroke="var(--cyan)" id="rom-line"/>
+        <line id="target-line" x1="0" y1="0" x2="400" y2="0"
+          stroke="rgba(52,211,153,.4)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text id="target-lbl" x="396" y="0" fill="rgba(52,211,153,.75)" font-size="9" text-anchor="end"></text>
+      </svg>
+      <div class="rom-bar-row" style="margin-top:10px">
+        <div class="rom-bar-lbl" style="color:var(--text2)">Baseline</div>
+        <div class="rom-bar-track"><div class="rom-bar-fill" style="width:51%;background:rgba(136,152,184,.4)"></div></div>
+        <div class="rom-bar-val" style="color:var(--text2)">46°</div>
+      </div>
+      <div class="rom-bar-row">
+        <div class="rom-bar-lbl" style="color:var(--cyan)">Current</div>
+        <div class="rom-bar-track"><div class="rom-bar-fill" style="width:87%;background:var(--cyan)"></div></div>
+        <div class="rom-bar-val" style="color:var(--cyan)">78°</div>
+      </div>
+      <div class="rom-bar-row">
+        <div class="rom-bar-lbl" style="color:var(--green)">Target</div>
+        <div class="rom-bar-track"><div class="rom-bar-fill" style="width:100%;background:rgba(52,211,153,.35);border:1px dashed var(--green)"></div></div>
+        <div class="rom-bar-val" style="color:var(--green)">90°</div>
+      </div>
+    </div>
+
+    <!-- Rep quality trend -->
+    <div class="card">
+      <div class="gc-tag gc-p"><span class="gc-dot p"></span>Progress Ring / Quality</div>
+      <div class="card-title">Rep Quality Score per Session (%)</div>
+      <svg class="sparkline" id="qual-spark" viewBox="0 0 400 56" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="sa-qual" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a78bfa" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path class="spark-area" style="fill:url(#sa-qual)" id="qual-area"/>
+        <path class="spark-line" stroke="var(--purple)" id="qual-line"/>
+      </svg>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;">
+        <div style="text-align:center;padding:8px;background:rgba(52,211,153,.08);border-radius:10px;">
+          <div style="font-size:18px;font-weight:900;color:var(--green)">34%</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px">Perfect</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:rgba(34,211,238,.08);border-radius:10px;">
+          <div style="font-size:18px;font-weight:900;color:var(--cyan)">41%</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px">Excellent</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:rgba(251,191,36,.08);border-radius:10px;">
+          <div style="font-size:18px;font-weight:900;color:var(--orange)">18%</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px">Good</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:rgba(248,113,113,.08);border-radius:10px;">
+          <div style="font-size:18px;font-weight:900;color:var(--red)">7%</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px">Improve</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SESSION HISTORY + GOALS ───────────────── -->
+  <div class="sec-head">
+    <span class="sec-title">Session History &amp; Treatment Goals</span>
+  </div>
+  <div class="grid-31">
+
+    <!-- Session log table -->
+    <div class="card" style="padding-bottom:14px">
+      <div class="gc-tag gc-c"><span class="gc-dot c"></span>Progress Tracking</div>
+      <div class="card-title">Recent Sessions</div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Sets / Reps</th>
+            <th>Peak ROM</th>
+            <th>Avg Quality</th>
+            <th>XP</th>
+            <th>Duration</th>
+            <th>Fatigue</th>
+          </tr>
+        </thead>
+        <tbody id="session-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Treatment goals -->
+    <div class="card">
+      <div class="gc-tag gc-g"><span class="gc-dot g"></span>Daily Mission / Goals</div>
+      <div class="card-title">Treatment Goals</div>
+      <div class="goal-item">
+        <div class="goal-check g-done">✓</div>
+        <div class="goal-text">
+          <div class="goal-title">Independent ambulation without aid</div>
+          <div class="goal-sub">Achieved Day 14 · 1 week ahead of schedule</div>
+        </div>
+        <div class="goal-pct" style="color:var(--green)">✓</div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-check g-prog">↗</div>
+        <div class="goal-text">
+          <div class="goal-title">Knee extension ROM ≥ 90°</div>
+          <div class="goal-sub">Current 78° · Target by Week 5</div>
+          <div class="prog-track" style="margin-top:6px">
+            <div class="prog-fill" style="width:87%;background:linear-gradient(90deg,var(--cyan),var(--purple))"></div>
+          </div>
+        </div>
+        <div class="goal-pct" style="color:var(--cyan)">87%</div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-check g-prog">↗</div>
+        <div class="goal-text">
+          <div class="goal-title">Complete 3×12 reps at "Excellent" quality</div>
+          <div class="goal-sub">Current avg 83% · Threshold 80% ✓ days: 5/7</div>
+          <div class="prog-track" style="margin-top:6px">
+            <div class="prog-fill" style="width:71%;background:linear-gradient(90deg,var(--purple),var(--cyan))"></div>
+          </div>
+        </div>
+        <div class="goal-pct" style="color:var(--purple)">71%</div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-check g-todo">○</div>
+        <div class="goal-text">
+          <div class="goal-title">Return to stair climbing (functional test)</div>
+          <div class="goal-sub">Scheduled assessment Week 6</div>
+          <div class="prog-track" style="margin-top:6px">
+            <div class="prog-fill" style="width:35%;background:linear-gradient(90deg,var(--orange),var(--green))"></div>
+          </div>
+        </div>
+        <div class="goal-pct" style="color:var(--orange)">35%</div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-check g-todo">○</div>
+        <div class="goal-text">
+          <div class="goal-title">Discharge from supervised rehab</div>
+          <div class="goal-sub">Estimated Week 8 based on current trajectory</div>
+        </div>
+        <div class="goal-pct" style="color:var(--text2)">—</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── LEADERBOARD + PAIN TIMELINE ───────────── -->
+  <div class="sec-head">
+    <span class="sec-title">Cohort &amp; Wellness</span>
+  </div>
+  <div class="grid-2">
+
+    <!-- Cohort leaderboard -->
+    <div class="card">
+      <div class="gc-tag gc-g"><span class="gc-dot g"></span>Leaderboard / Social</div>
+      <div class="card-title">Clinic Leaderboard — This Month</div>
+      <div id="lb-list"></div>
+    </div>
+
+    <!-- Pain / fatigue self-report -->
+    <div class="card">
+      <div class="gc-tag gc-r"><span class="gc-dot r"></span>Feedback / Self-Report</div>
+      <div class="card-title">Pain &amp; Fatigue Self-Report · Jane Liu</div>
+      <div style="display:flex;gap:12px;margin-bottom:10px;font-size:9.5px;color:var(--text2)">
+        <span>🔴 Pain (0–10)</span><span>🟠 Fatigue (0–10)</span>
+      </div>
+      <div id="pain-timeline"></div>
+    </div>
+
+  </div>
+
+</div><!-- /page -->
+
+<script>
+/* ══════════════════════════════════════════════
+   DATA (mock — replace with API calls)
+══════════════════════════════════════════════ */
+const SESSIONS = [
+  { date:'Apr 14', sets:'3/3', reps:'36/36', rom:46, qual:62, xp:420, dur:'18:22', fatigue:3 },
+  { date:'Apr 15', sets:'3/3', reps:'36/36', rom:51, qual:65, xp:448, dur:'19:10', fatigue:4 },
+  { date:'Apr 16', sets:'3/3', reps:'36/36', rom:54, qual:68, xp:460, dur:'18:55', fatigue:4 },
+  { date:'Apr 17', sets:'2/3', reps:'24/36', rom:55, qual:66, xp:310, dur:'14:03', fatigue:6 },
+  { date:'Apr 18', sets:'3/3', reps:'36/36', rom:58, qual:70, xp:470, dur:'20:01', fatigue:5 },
+  { date:'Apr 19', sets:'3/3', reps:'36/36', rom:60, qual:72, xp:490, dur:'20:30', fatigue:4 },
+  { date:'Apr 20', sets:'—',   reps:'—',     rom:null,qual:null,xp:0,  dur:'—',    fatigue:null },
+  { date:'Apr 21', sets:'3/3', reps:'36/36', rom:63, qual:74, xp:510, dur:'21:15', fatigue:5 },
+  { date:'Apr 22', sets:'3/3', reps:'36/36', rom:65, qual:76, xp:520, dur:'21:40', fatigue:4 },
+  { date:'Apr 23', sets:'3/3', reps:'36/36', rom:67, qual:78, xp:535, dur:'22:00', fatigue:4 },
+  { date:'Apr 24', sets:'3/3', reps:'36/36', rom:69, qual:80, xp:548, dur:'21:55', fatigue:3 },
+  { date:'Apr 25', sets:'3/3', reps:'36/36', rom:70, qual:80, xp:550, dur:'22:10', fatigue:3 },
+  { date:'Apr 26', sets:'—',   reps:'—',     rom:null,qual:null,xp:0,  dur:'—',    fatigue:null },
+  { date:'Apr 27', sets:'—',   reps:'—',     rom:null,qual:null,xp:0,  dur:'—',    fatigue:null },
+  { date:'Apr 28', sets:'3/3', reps:'36/36', rom:71, qual:82, xp:560, dur:'22:30', fatigue:3 },
+  { date:'Apr 29', sets:'3/3', reps:'36/36', rom:73, qual:83, xp:568, dur:'22:45', fatigue:4 },
+  { date:'Apr 30', sets:'3/3', reps:'36/36', rom:74, qual:83, xp:572, dur:'23:00', fatigue:4 },
+  { date:'May  1', sets:'3/3', reps:'36/36', rom:76, qual:84, xp:580, dur:'23:10', fatigue:3 },
+  { date:'May  2', sets:'3/3', reps:'36/36', rom:77, qual:83, xp:575, dur:'23:05', fatigue:4 },
+  { date:'May  3', sets:'3/3', reps:'36/36', rom:78, qual:83, xp:580, dur:'23:20', fatigue:4 },
+  { date:'May  4', sets:'—',   reps:'—',     rom:null,qual:null,xp:0,  dur:'—',    fatigue:null, today:true },
+];
+
+const LEADERBOARD = [
+  { name:'Emma Park',  initials:'EP', pts:18420, color:'var(--red)',    lv:19 },
+  { name:'Jane Liu',   initials:'JL', pts:9420,  color:'var(--cyan)',   lv:12, self:true },
+  { name:'Sofia Reyes',initials:'SR', pts:7130,  color:'var(--green)',  lv:5 },
+  { name:'Marcus Kim', initials:'MK', pts:6280,  color:'var(--purple)', lv:8 },
+  { name:'David Tran', initials:'DT', pts:2940,  color:'var(--orange)', lv:3 },
+];
+
+/* ══════════════════════════════════════════════
+   HEADER DATE
+══════════════════════════════════════════════ */
+document.getElementById('hdr-date').textContent =
+  new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+
+/* ══════════════════════════════════════════════
+   SESSION TABLE
+══════════════════════════════════════════════ */
+function qualLabel(q) {
+  if (q === null) return '<span style="color:var(--text2)">—</span>';
+  if (q >= 95) return '<span class="qual-pill q-perfect">Perfect</span>';
+  if (q >= 80) return '<span class="qual-pill q-excellent">Excellent</span>';
+  if (q >= 65) return '<span class="qual-pill q-good">Good</span>';
+  return '<span class="qual-pill q-fair">Improve</span>';
+}
+function fatigueColor(f) {
+  if (f === null) return 'var(--text2)';
+  if (f <= 3) return 'var(--green)';
+  if (f <= 6) return 'var(--orange)';
+  return 'var(--red)';
+}
+
+const tbody = document.getElementById('session-tbody');
+[...SESSIONS].reverse().slice(0, 10).forEach(s => {
+  const missed = s.rom === null;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:${s.today ? 'var(--cyan)' : missed ? 'var(--red)' : 'var(--text)'}">
+      ${s.date}${s.today ? ' <span style="font-size:9px;color:var(--cyan)">(today)</span>' : ''}
+    </td>
+    <td style="color:${missed ? 'var(--text2)' : 'var(--text)'}">${s.sets}</td>
+    <td style="font-weight:700;color:${missed ? 'var(--text2)' : 'var(--cyan)'}">${s.rom !== null ? s.rom + '°' : '—'}</td>
+    <td>${qualLabel(s.qual)}</td>
+    <td style="color:var(--orange);font-weight:700">${s.xp ? '+' + s.xp : '—'}</td>
+    <td style="color:var(--text2)">${s.dur}</td>
+    <td style="font-weight:700;color:${fatigueColor(s.fatigue)}">${s.fatigue !== null ? s.fatigue + '/10' : '—'}</td>
+  `;
+  tbody.appendChild(tr);
+});
+
+/* ══════════════════════════════════════════════
+   SPARKLINES
+══════════════════════════════════════════════ */
+function buildSparkline(data, lineId, areaId, minV, maxV) {
+  const W = 400, H = 48, pad = 4;
+  const valid = data.filter(v => v !== null);
+  const lo = minV ?? Math.min(...valid) - 2;
+  const hi = maxV ?? Math.max(...valid) + 2;
+  const total = data.length;
+
+  const pts = data.map((v, i) => {
+    const x = (i / (total - 1)) * W;
+    const y = v !== null ? H - ((v - lo) / (hi - lo)) * (H - pad * 2) + pad : null;
+    return { x, y };
+  });
+
+  const linePts = pts.filter(p => p.y !== null);
+  const d = linePts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+  document.getElementById(lineId).setAttribute('d', d);
+
+  const aD = d + ` L ${linePts[linePts.length-1].x} ${H+4} L ${linePts[0].x} ${H+4} Z`;
+  document.getElementById(areaId).setAttribute('d', aD);
+}
+
+const romData  = SESSIONS.map(s => s.rom);
+const qualData = SESSIONS.map(s => s.qual);
+buildSparkline(romData,  'rom-line',  'rom-area',  40, 95);
+buildSparkline(qualData, 'qual-line', 'qual-area', 55, 100);
+
+// Target line for ROM chart (90°)
+(function() {
+  const hi = 95, lo = 40, H = 48, pad = 4;
+  const y = H - ((90 - lo) / (hi - lo)) * (H - pad*2) + pad;
+  document.getElementById('target-line').setAttribute('y1', y);
+  document.getElementById('target-line').setAttribute('y2', y);
+  const lbl = document.getElementById('target-lbl');
+  lbl.setAttribute('y', y - 2);
+  lbl.textContent = '90° target';
+})();
+
+/* ══════════════════════════════════════════════
+   CALENDAR
+══════════════════════════════════════════════ */
+(function buildCal() {
+  const grid = document.getElementById('cal-grid');
+  // We'll show Mon Apr 13 – Sun May 10 (28 days)
+  const calData = [
+    // Week 1 (Mon Apr 13 – Sun Apr 19)
+    'done-3','done-4','done-4','done-1','done-4','done-4','miss',
+    // Week 2 (Apr 20–26)
+    'done-4','done-4','done-4','done-4','done-4','miss','miss',
+    // Week 3 (Apr 27 – May 3)
+    'miss','done-4','done-4','done-4','done-4','done-4','done-4',
+    // Week 4 (May 4–10)
+    'today future','future','future','future','future','future','future',
+  ];
+  const dayNums = [
+    13,14,15,16,17,18,19,
+    20,21,22,23,24,25,26,
+    27,28,29,30,1,2,3,
+    4,5,6,7,8,9,10,
+  ];
+  const months = [
+    'Apr','Apr','Apr','Apr','Apr','Apr','Apr',
+    'Apr','Apr','Apr','Apr','Apr','Apr','Apr',
+    'Apr','Apr','Apr','Apr','May','May','May',
+    'May','May','May','May','May','May','May',
+  ];
+  calData.forEach((cls, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell ' + cls;
+    cell.textContent = dayNums[i];
+    cell.setAttribute('data-tip', months[i] + ' ' + dayNums[i]);
+    grid.appendChild(cell);
+  });
+})();
+
+/* ══════════════════════════════════════════════
+   LEADERBOARD
+══════════════════════════════════════════════ */
+(function buildLB() {
+  const cont = document.getElementById('lb-list');
+  const maxPts = LEADERBOARD[0].pts;
+  const rankClass = ['gold','silver','bronze','',''];
+  LEADERBOARD.forEach((p, i) => {
+    const pct = Math.round(p.pts / maxPts * 100);
+    cont.innerHTML += `
+      <div class="lb-row">
+        <div class="lb-rank ${rankClass[i]}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i+1)}</div>
+        <div class="lb-avatar" style="background:rgba(255,255,255,0.06);color:${p.color}">${p.initials}</div>
+        <div>
+          <div class="lb-name" style="${p.self ? 'color:var(--cyan)' : ''}">${p.name}${p.self ? ' ★' : ''}</div>
+          <div style="font-size:9.5px;color:var(--text2)">Lv.${p.lv}</div>
+        </div>
+        <div class="lb-bar"><div class="lb-fill" style="width:${pct}%;background:${p.color};opacity:.7"></div></div>
+        <div class="lb-pts">${p.pts.toLocaleString()}</div>
+      </div>`;
+  });
+})();
+
+/* ══════════════════════════════════════════════
+   PAIN / FATIGUE TIMELINE
+══════════════════════════════════════════════ */
+(function buildPainTimeline() {
+  const cont = document.getElementById('pain-timeline');
+  const weeks = [
+    { label:'Week 1', pain:[3,4,3,5,4,null,null], fatigue:[3,4,4,6,5,null,null] },
+    { label:'Week 2', pain:[3,3,3,3,3,null,null],  fatigue:[5,4,4,3,3,null,null] },
+    { label:'Week 3', pain:[null,3,3,2,3,3,2],      fatigue:[null,3,4,4,4,3,3] },
+    { label:'Week 4', pain:[2,null,null,null,null,null,null], fatigue:[4,null,null,null,null,null,null] },
+  ];
+  const pColor = v => v === null ? 'rgba(255,255,255,.04)' : v <= 3 ? 'var(--green)' : v <= 6 ? 'var(--orange)' : 'var(--red)';
+
+  weeks.forEach(w => {
+    const row = document.createElement('div');
+    row.className = 'timeline-row';
+    let dots = '';
+    w.pain.forEach((p, i) => {
+      const f = w.fatigue[i];
+      dots += `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">
+        <div class="tl-dot" style="background:${pColor(p)};opacity:${p===null?.18:1};font-size:8px;width:16px;height:16px;">${p !== null ? p : ''}</div>
+        <div class="tl-dot" style="background:${pColor(f)};opacity:${f===null?.18:1};font-size:8px;width:16px;height:16px;">${f !== null ? f : ''}</div>
+      </div>`;
+    });
+    row.innerHTML = `<div class="tl-date">${w.label}</div><div class="tl-dots" style="flex-wrap:nowrap;">${dots}</div>`;
+    cont.appendChild(row);
+  });
+  // Day labels
+  const labelRow = document.createElement('div');
+  labelRow.className = 'timeline-row';
+  labelRow.innerHTML = `<div class="tl-date"></div><div class="tl-dots" style="flex-wrap:nowrap;">${
+    ['M','T','W','T','F','S','S'].map(d =>
+      `<div style="width:16px;text-align:center;font-size:8.5px;color:var(--text2)">${d}</div>`
+    ).join('')
+  }</div>`;
+  cont.prepend(labelRow);
+})();
+
+/* ══════════════════════════════════════════════
+   PATIENT SWITCH (UI only — shows alert)
+══════════════════════════════════════════════ */
+function selectPatient(idx) {
+  document.querySelectorAll('.pt-row').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+</script>
+</body>
+</html>
