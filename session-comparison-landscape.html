@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="gamification.css">
     <script src="config.js"></script>
+    <script src="mission-cards-data.js"></script>
     <script src="gamification.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
@@ -31,7 +32,7 @@
         }
 
         html {
-            font-size: clamp(16px, 0.35vw + 13px, 19px);
+            font-size: clamp(16px, 1.3vw, 26px);
         }
 
         html, body {
@@ -68,17 +69,67 @@
             width: min(100vw, calc(100vh * 16 / 9));
             height: min(100vh, calc(100vw * 9 / 16));
             margin: auto;
-            padding: 16px;
+            padding: 10px;
             display: grid;
             grid-template-rows: auto minmax(0, 1fr) auto;
-            gap: 16px;
+            gap: 10px;
         }
 
         .hero-header {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
+            grid-template-columns: 1fr minmax(180px, 240px);
+            gap: 10px;
             align-items: stretch;
+        }
+
+        .mission-card-panel {
+            padding: 8px 12px;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 8px;
+        }
+
+        .mission-title {
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.35;
+            color: var(--dash-text);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .mission-action {
+            font-size: 0.88rem;
+            line-height: 1.45;
+            color: var(--dash-muted);
+            margin-top: 6px;
+        }
+
+        .mission-check {
+            font-size: 0.82rem;
+            color: #06d6a0;
+            margin-top: 6px;
+        }
+
+        .mission-empty {
+            font-size: 0.82rem;
+            color: var(--dash-muted);
+            font-style: italic;
+        }
+
+        .mission-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .mission-tag {
+            font-size: 0.72rem;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(6, 214, 160, 0.14);
+            color: #06d6a0;
+            border: 1px solid rgba(6, 214, 160, 0.25);
         }
 
         .glass-card {
@@ -90,11 +141,22 @@
         }
 
         .score-card {
-            padding: 16px 18px;
+            padding: 10px 14px;
             display: grid;
-            grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
-            gap: 18px;
+            grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) minmax(220px, 300px);
+            gap: 12px;
             align-items: center;
+        }
+
+        .score-coaching {
+            display: grid;
+            gap: 8px;
+            border-left: 1px solid var(--dash-border);
+            padding-left: 18px;
+        }
+
+        .score-coaching .panel-label {
+            margin-bottom: 4px;
         }
 
         .score-main {
@@ -119,7 +181,7 @@
 
         .score-value {
             font-family: 'Space Grotesk', 'Roboto Flex', sans-serif;
-            font-size: 58px;
+            font-size: 3.4rem;
             font-weight: 700;
             letter-spacing: -0.08em;
             color: var(--dash-text);
@@ -213,7 +275,7 @@
             position: absolute;
             inset: 0 auto 0 0;
             width: 0;
-            background: linear-gradient(90deg, var(--dash-good) 0%, var(--dash-warning) 54%, var(--dash-risk) 100%);
+            background: linear-gradient(90deg, #06d6a0 0%, #0096c7 100%);
             border-radius: inherit;
             transition: width 1200ms cubic-bezier(0.22, 1, 0.36, 1);
         }
@@ -281,15 +343,15 @@
         .body-grid {
             min-height: 0;
             display: grid;
-            grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
-            gap: 16px;
+            grid-template-columns: minmax(300px, 0.92fr) minmax(0, 1.08fr);
+            gap: 10px;
         }
 
         .left-stack,
         .right-stack {
             min-height: 0;
             display: grid;
-            gap: 16px;
+            gap: 10px;
         }
 
         .left-stack {
@@ -297,10 +359,10 @@
         }
 
         .merged-panel {
-            padding: 16px;
+            padding: 10px 12px;
             display: grid;
             grid-template-rows: auto minmax(0, 1fr);
-            gap: 14px;
+            gap: 10px;
             min-height: 0;
         }
 
@@ -327,27 +389,27 @@
 
         .merged-body {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
-            gap: 14px;
+            grid-template-columns: minmax(0, 1fr) minmax(180px, 230px);
+            gap: 10px;
             min-height: 0;
         }
 
         .merged-parts {
             display: grid;
-            gap: 12px;
+            gap: 8px;
             min-height: 0;
         }
 
         .part-card {
-            padding: 14px 14px 12px;
+            padding: 8px 10px 8px;
             display: grid;
             grid-template-rows: auto auto auto 1fr;
-            gap: 10px;
+            gap: 7px;
             min-height: 0;
         }
 
         .part-card.compact {
-            padding: 12px 12px 10px;
+            padding: 7px 9px 7px;
         }
 
         .part-card.compact .part-title {
@@ -361,12 +423,12 @@
         }
 
         .ring-card {
-            border-radius: 20px;
-            padding: 14px;
+            border-radius: 16px;
+            padding: 10px;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
             display: grid;
-            gap: 10px;
+            gap: 8px;
             min-height: 0;
         }
 
@@ -381,12 +443,13 @@
         .ring-chart-wrap {
             display: grid;
             place-items: center;
-            min-height: 180px;
+            min-height: 100px;
         }
 
         .ring-chart {
-            width: 180px;
-            height: 180px;
+            width: 100%;
+            max-width: 200px;
+            height: auto;
             display: block;
         }
 
@@ -408,36 +471,7 @@
             text-transform: uppercase;
         }
 
-        .ring-legend {
-            display: grid;
-            gap: 6px;
-            font-size: 0.76rem;
-            color: var(--dash-muted);
-        }
-
-        .ring-legend-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .ring-legend-left {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .ring-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            flex: 0 0 auto;
-        }
-
-        .ring-legend .good .ring-dot { background: var(--dash-good); }
-        .ring-legend .warning .ring-dot { background: var(--dash-warning); }
-        .ring-legend .risk .ring-dot { background: var(--dash-risk); }
+        .ring-legend { display: none; }
 
         @media (max-width: 1180px) {
             .merged-body {
@@ -775,8 +809,8 @@
         }
 
         .footer-bar {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            display: flex;
+            justify-content: flex-end;
             gap: 12px;
             align-items: center;
         }
@@ -811,8 +845,12 @@
 
         .feedback-row {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .score-coaching .feedback-row {
+            grid-template-columns: 1fr 1fr;
         }
 
         .feedback-card {
@@ -1237,7 +1275,7 @@
             .screen-shell {
                 width: 100vw;
                 height: 100vh;
-                padding: 12px;
+                padding: 8px;
             }
 
             .hero-header,
@@ -1248,12 +1286,104 @@
             }
 
             .score-card {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .score-coaching {
+                grid-column: 1 / -1;
+                border-left: none;
+                border-top: 1px solid var(--dash-border);
+                padding-left: 0;
+                padding-top: 12px;
+            }
+
+            .score-coaching .feedback-row {
+                grid-template-columns: 1fr 1fr;
             }
 
             .left-stack {
                 grid-template-rows: repeat(2, minmax(180px, 1fr));
             }
+        }
+
+        /* ── Floating Angle Chart ────────────────────────────────── */
+        #angleFloat {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 460px;
+            background: var(--dash-surface-2);
+            border: 1px solid var(--dash-border);
+            border-radius: 16px;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+            backdrop-filter: blur(18px);
+            z-index: 9000;
+            overflow: hidden;
+            font-family: 'Roboto Flex', 'Space Grotesk', system-ui, sans-serif;
+        }
+        #angleFloatHandle {
+            display: flex;
+            align-items: center;
+            padding: 9px 14px;
+            cursor: pointer;
+            user-select: none;
+            gap: 8px;
+            border-bottom: 1px solid var(--dash-border);
+        }
+        #angleFloatTitle {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--dash-muted);
+            flex: 1;
+        }
+        .af-legend {
+            display: flex;
+            gap: 10px;
+            font-size: 10px;
+            color: var(--dash-muted);
+            align-items: center;
+        }
+        .af-swatch {
+            display: inline-block;
+            width: 12px;
+            height: 3px;
+            border-radius: 2px;
+            vertical-align: middle;
+            margin-right: 3px;
+        }
+        #angleFloatToggle {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 1px solid var(--dash-border);
+            background: rgba(255,255,255,0.05);
+            color: var(--dash-muted);
+            font-size: 10px;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            transition: transform 240ms ease;
+            flex-shrink: 0;
+        }
+        #angleFloat.af-collapsed #angleFloatToggle { transform: rotate(180deg); }
+        #angleFloatBody {
+            padding: 8px 12px 12px;
+            height: 200px;
+            overflow: hidden;
+            transition: height 240ms ease, padding 240ms ease;
+        }
+        #angleFloat.af-collapsed #angleFloatBody {
+            height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        #angleFloatCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 6px;
         }
     </style>
 </head>
@@ -1282,14 +1412,14 @@
                     <div class="score-part-row">
                         <span class="score-part-label">ARM</span>
                         <div class="progress-shell score-part-track">
-                            <div class="progress-fill" id="armScoreFill" style="background:linear-gradient(90deg,#4caf50,#4bd5aa)"></div>
+                            <div class="progress-fill" id="armScoreFill"></div>
                         </div>
                         <span class="score-part-num" id="armScoreNum">--</span>
                     </div>
                     <div class="score-part-row">
                         <span class="score-part-label">TRUNK</span>
                         <div class="progress-shell score-part-track">
-                            <div class="progress-fill" id="trunkScoreFill" style="background:linear-gradient(90deg,#ffc107,#f4b400)"></div>
+                            <div class="progress-fill" id="trunkScoreFill"></div>
                         </div>
                         <span class="score-part-num" id="trunkScoreNum">--</span>
                     </div>
@@ -1299,6 +1429,14 @@
                     <span id="unlockHint">Target: keep score above 80</span>
                 </div>
             </div>
+            <div class="score-coaching">
+                <div class="panel-label">Coaching Feedback</div>
+                <div class="feedback-row" id="feedbackRow"></div>
+            </div>
+        </section>
+        <section class="glass-card mission-card-panel" id="missionCardPanelEl">
+            <div class="panel-label">Today's Mission</div>
+            <div id="missionCardDisplay"><span style="color:var(--dash-muted);font-size:0.82rem">Loading...</span></div>
         </section>
     </header>
 
@@ -1336,8 +1474,8 @@
                                     <span class="legend-item"><i class="legend-dot" style="background:var(--dash-risk)"></i><span id="armRiskText">Risk</span></span>
                                 </div>
                             </div>
-                            <div class="feedback-line" id="armFeedback">Control is stable. Keep the arm slightly closer to your torso.</div>
-                            <div class="feedback-line muted" id="armSourceHint">🦾 Arm Coach</div>
+                            <div class="feedback-line" id="armFeedback" style="display:none">Control is stable. Keep the arm slightly closer to your torso.</div>
+                            <div class="feedback-line muted" id="armSourceHint" style="display:none">🦾 Arm Coach</div>
                         </article>
 
                         <article class="glass-card part-card compact" id="trunkCard">
@@ -1361,8 +1499,8 @@
                                 </div>
                             </div>
                             <div class="warning-box hidden" id="trunkUnavailableBox">Data unavailable</div>
-                            <div class="feedback-line" id="trunkFeedback">Trunk Guardian is analyzing posture quality.</div>
-                            <div class="feedback-line muted" id="trunkSourceHint">🧍 Trunk Guardian</div>
+                            <div class="feedback-line" id="trunkFeedback" style="display:none">Trunk Guardian is analyzing posture quality.</div>
+                            <div class="feedback-line muted" id="trunkSourceHint" style="display:none">🧍 Trunk Guardian</div>
                         </article>
                     </div>
 
@@ -1420,13 +1558,6 @@
     </section>
 
     <footer class="footer-bar">
-        <section class="glass-card footer-card">
-            <div class="footer-icon">🧠</div>
-            <div class="footer-text">
-                <h3>Coaching Feedback</h3>
-                <div class="feedback-row" id="feedbackRow"></div>
-            </div>
-        </section>
         <button class="expand-btn" id="expandBtn">View More Analysis ▼</button>
     </footer>
 </main>
@@ -2032,16 +2163,28 @@ function _findBestWorstIndex(states) {
     if (states.length === 0) return { best: 0, worst: 0 };
     const score = s => s === 'good' ? 2 : s === 'warn' ? -1 : -4;
     const win = Math.max(1, Math.round(states.length / 8));
-    let bestScore = -Infinity, worstScore = Infinity;
-    let bestIdx = 0, worstIdx = 0;
+
+    // Precompute all window sums
+    const centers = [], sums = [];
     for (let i = 0; i <= states.length - win; i++) {
         let sum = 0;
         for (let j = i; j < i + win; j++) sum += score(states[j]);
-        const center = i + Math.floor(win / 2);
-        if (sum > bestScore)  { bestScore  = sum;  bestIdx  = center; }
-        if (sum < worstScore) { worstScore = sum;  worstIdx = center; }
+        centers.push(i + Math.floor(win / 2));
+        sums.push(sum);
     }
-    return { best: bestIdx, worst: worstIdx };
+    if (sums.length === 0) return { best: 0, worst: 0 };
+
+    const maxSum = Math.max(...sums);
+    const minSum = Math.min(...sums);
+
+    // Among all windows tied for max/min, pick the MEDIAN center index.
+    // Prevents always returning the first segment when many windows tie
+    // (e.g. when the whole session is green-dominant).
+    const bestCenters  = centers.filter((_, i) => sums[i] === maxSum);
+    const worstCenters = centers.filter((_, i) => sums[i] === minSum);
+    const median = arr => arr[Math.floor(arr.length / 2)];
+
+    return { best: median(bestCenters), worst: median(worstCenters) };
 }
 
 function chooseBestAndWorst(combinedTrack) {
@@ -2450,37 +2593,75 @@ function renderZoneRing(part, good, warning, risk, unavailable) {
     if (!container) return;
 
     const segments = [
-        { key: 'good', value: unavailable ? 0 : Math.max(0, Number(good) || 0), color: 'var(--dash-good)' },
+        { key: 'good',    value: unavailable ? 0 : Math.max(0, Number(good)    || 0), color: 'var(--dash-good)'    },
         { key: 'warning', value: unavailable ? 0 : Math.max(0, Number(warning) || 0), color: 'var(--dash-warning)' },
-        { key: 'risk', value: unavailable ? 0 : Math.max(0, Number(risk) || 0), color: 'var(--dash-risk)' }
+        { key: 'risk',    value: unavailable ? 0 : Math.max(0, Number(risk)    || 0), color: 'var(--dash-risk)'    }
     ];
-    const total = segments.reduce((sum, segment) => sum + segment.value, 0) || 1;
+    const total = segments.reduce((sum, s) => sum + s.value, 0) || 1;
     let offset = 0;
 
-    const arcs = segments.map(segment => {
+    const arcs = [];
+    const labels = [];
+
+    segments.forEach(segment => {
         const pct = (segment.value / total) * 100;
-        const dash = `${pct} ${100 - pct}`;
-        const svg = `<circle cx="60" cy="60" r="40" pathLength="100" fill="none" stroke="${segment.color}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${dash}" stroke-dashoffset="${-offset}" />`;
+        arcs.push(`<circle cx="100" cy="70" r="52" pathLength="100" fill="none" stroke="${segment.color}" stroke-width="16" stroke-linecap="round" stroke-dasharray="${pct} ${100 - pct}" stroke-dashoffset="${-offset}" />`);
+
+        if (pct >= 6) {
+            const midRatio = (offset + pct / 2) / 100;
+            const midAngle = midRatio * 2 * Math.PI - Math.PI / 2;
+            const lr = 80;
+            const lx = (100 + lr * Math.cos(midAngle)).toFixed(1);
+            const ly = (70 + lr * Math.sin(midAngle)).toFixed(1);
+            const cos = Math.cos(midAngle);
+            const anchor = cos > 0.15 ? 'start' : cos < -0.15 ? 'end' : 'middle';
+            labels.push(`<text x="${lx}" y="${ly}" fill="${segment.color}" font-size="16" font-weight="700" font-family="Space Grotesk, sans-serif" text-anchor="${anchor}" dominant-baseline="middle">${Math.round(pct)}%</text>`);
+        }
+
         offset += pct;
-        return svg;
-    }).join('');
+    });
 
     const displayPct = unavailable ? '--' : `${Math.round((segments[0].value / total) * 100)}%`;
-    const legendRows = segments.map(segment => {
-        const pct = unavailable ? '--' : `${segment.value.toFixed(1)}%`;
-        return `<div class="ring-legend-row ${segment.key}"><span class="ring-legend-left"><i class="ring-dot"></i>${segment.key[0].toUpperCase() + segment.key.slice(1)}</span><span>${pct}</span></div>`;
-    }).join('');
 
     container.innerHTML = `
-        <svg class="ring-chart" viewBox="0 0 120 120" role="img" aria-label="${part} zone split">
-            <circle cx="60" cy="60" r="40" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12"></circle>
-            <g transform="rotate(-90 60 60)">${arcs}</g>
-            <text x="60" y="56" class="ring-center ring-total">${displayPct}</text>
-            <text x="60" y="74" class="ring-center ring-label">${part.toUpperCase()} GOOD</text>
+        <svg class="ring-chart" viewBox="0 0 200 140" role="img" aria-label="${part} zone split">
+            <circle cx="100" cy="70" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="16"></circle>
+            <g transform="rotate(-90 100 70)">${arcs.join('')}</g>
+            ${labels.join('')}
         </svg>
-        <div class="ring-legend">${legendRows}</div>
     `;
 }
+
+function renderMissionCard() {
+    const panel = document.getElementById('missionCardDisplay');
+    if (!panel) return;
+
+    let card = null;
+    try {
+        const engine = (typeof MissionCardEngine !== 'undefined') ? MissionCardEngine
+            : (window.MissionCardEngine || null);
+        card = (engine && typeof engine.getTodayCard === 'function')
+            ? engine.getTodayCard(null)
+            : null;
+    } catch (_e) { card = null; }
+
+    if (!card) {
+        panel.innerHTML = '<div class="mission-empty">No mission set. Open Teacher Control to assign one.</div>';
+        return;
+    }
+
+    const tagsHtml = Array.isArray(card.tags) && card.tags.length
+        ? `<div class="mission-tags">${card.tags.map(t => `<span class="mission-tag">${t}</span>`).join('')}</div>`
+        : '';
+
+    panel.innerHTML = `
+        <div class="mission-title">${card.title || ''}</div>
+        ${card.action ? `<div class="mission-action"><strong>Do:</strong> ${card.action}</div>` : ''}
+        ${card.checkpoint ? `<div class="mission-check">✓ ${card.checkpoint}</div>` : ''}
+        ${tagsHtml}
+    `;
+}
+
 
 function updateCombinedStatePill(score) {
     const pill = document.getElementById('combinedStatePill');
@@ -2765,6 +2946,7 @@ async function initPage() {
     if (_upTrunk) APP_STATE.session.trunkFile = _upTrunk;
 
     await loadSession();
+    renderMissionCard();
 
     UI.scoreFill.style.width = '0';
     requestAnimationFrame(() => {
@@ -2801,6 +2983,146 @@ initPage().catch(error => {
         btn.textContent = isLight ? '☀' : '☾';
         localStorage.setItem(STORAGE_KEY, isLight ? 'light' : 'dark');
     });
+})();
+</script>
+
+<!-- ── Floating Angle Chart ──────────────────────────────────────── -->
+<div id="angleFloat">
+    <div id="angleFloatHandle">
+        <span id="angleFloatTitle">📐 Angle Over Time</span>
+        <div class="af-legend">
+            <span><span class="af-swatch" style="background:#5fb2ff"></span>Arm</span>
+            <span><span class="af-swatch" style="background:#ffc107"></span>Trunk</span>
+        </div>
+        <button id="angleFloatToggle" title="Collapse/Expand">▲</button>
+    </div>
+    <div id="angleFloatBody">
+        <canvas id="angleFloatCanvas"></canvas>
+    </div>
+</div>
+
+<script>
+(function () {
+    function downsample(arr, maxPts) {
+        if (arr.length <= maxPts) return arr;
+        const step = arr.length / maxPts;
+        return Array.from({ length: maxPts }, (_, i) => arr[Math.floor(i * step)]);
+    }
+
+    function drawAngleChart(canvas, datasets) {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+        const pad = { top: 14, right: 14, bottom: 30, left: 36 };
+        const pw = w - pad.left - pad.right;
+        const ph = h - pad.top - pad.bottom;
+
+        let minT = Infinity, maxT = -Infinity, maxV = 0;
+        for (const ds of datasets) {
+            for (const p of ds.data) {
+                if (p.t < minT) minT = p.t;
+                if (p.t > maxT) maxT = p.t;
+                if (Math.abs(p.v) > maxV) maxV = Math.abs(p.v);
+            }
+        }
+        if (!isFinite(minT) || minT >= maxT) return;
+        maxV = Math.max(maxV * 1.1, 30);
+        const dur = maxT - minT;
+
+        const isLight = document.documentElement.classList.contains('light');
+        const bg = isLight ? 'rgba(240,244,248,0.97)' : 'rgba(10,22,38,0.97)';
+        const gridC = isLight ? 'rgba(0,40,100,0.07)' : 'rgba(255,255,255,0.07)';
+        const labelC = isLight ? 'rgba(0,40,100,0.5)' : 'rgba(255,255,255,0.45)';
+
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.strokeStyle = gridC;
+        ctx.lineWidth = 1;
+        const yTicks = [0, 30, 60, 90].filter(v => v <= maxV + 5);
+        for (const yv of yTicks) {
+            const y = pad.top + ph - (yv / maxV) * ph;
+            ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+            ctx.fillStyle = labelC;
+            ctx.font = '10px Manrope, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(`${yv}°`, pad.left - 4, y + 3.5);
+        }
+
+        const numX = 5;
+        for (let i = 0; i <= numX; i++) {
+            const t = minT + (dur * i / numX);
+            const x = pad.left + ((t - minT) / dur) * pw;
+            ctx.fillStyle = labelC;
+            ctx.textAlign = 'center';
+            ctx.font = '10px Manrope, sans-serif';
+            ctx.fillText(`${((t - minT) / 1000).toFixed(0)}s`, x, pad.top + ph + 18);
+        }
+
+        for (const ds of datasets) {
+            if (ds.data.length < 2) continue;
+            ctx.beginPath();
+            ctx.strokeStyle = ds.color;
+            ctx.lineWidth = 1.5;
+            ctx.lineJoin = 'round';
+            let first = true;
+            for (const p of ds.data) {
+                const x = pad.left + ((p.t - minT) / dur) * pw;
+                const y = pad.top + ph - (Math.abs(p.v) / maxV) * ph;
+                if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+    }
+
+    function refreshAngleFloat() {
+        const combined = (typeof APP_STATE !== 'undefined') ? APP_STATE.session.combined : [];
+        if (!combined || combined.length < 2) return;
+        const canvas = document.getElementById('angleFloatCanvas');
+        if (!canvas) return;
+        requestAnimationFrame(() => {
+            const sampled = downsample(combined, 600);
+            drawAngleChart(canvas, [
+                { label: 'Arm',   color: '#5fb2ff', data: sampled.map(p => ({ t: p.adjusted_elapsed_ms, v: p.armAngle })) },
+                { label: 'Trunk', color: '#ffc107', data: sampled.map(p => ({ t: p.adjusted_elapsed_ms, v: p.trunkAngle })) }
+            ]);
+        });
+    }
+
+    // Toggle collapse/expand on handle click
+    const handle = document.getElementById('angleFloatHandle');
+    const body   = document.getElementById('angleFloatBody');
+    const float  = document.getElementById('angleFloat');
+    if (handle && float && body) {
+        handle.addEventListener('click', () => {
+            float.classList.toggle('af-collapsed');
+            if (!float.classList.contains('af-collapsed')) {
+                // Wait for CSS height transition to finish before drawing
+                body.addEventListener('transitionend', function onEnd(e) {
+                    if (e.propertyName !== 'height') return;
+                    body.removeEventListener('transitionend', onEnd);
+                    refreshAngleFloat();
+                });
+            }
+        });
+    }
+
+    // Poll until data is ready, then draw
+    const _afTimer = setInterval(() => {
+        const combined = (typeof APP_STATE !== 'undefined') ? APP_STATE.session.combined : [];
+        if (combined && combined.length >= 2) {
+            clearInterval(_afTimer);
+            refreshAngleFloat();
+        }
+    }, 400);
+
+    window.addEventListener('resize', refreshAngleFloat);
+    window.refreshAngleFloat = refreshAngleFloat;
 })();
 </script>
 </body>
