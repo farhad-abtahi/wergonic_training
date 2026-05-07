@@ -329,6 +329,9 @@
                     <button class="btn btn-small btn-primary" id="exportTrunkBtn" disabled>
                         ⬇ TRUNK CSV <span class="lr-record-count-chip" id="trunkExportCount">0</span>
                     </button>
+                    <button class="btn btn-small btn-success" id="viewReportBtn" disabled>
+                        📊 View Report
+                    </button>
                     <button class="btn btn-small btn-secondary" id="clearCacheBtn">🗑 Clear Cache</button>
                 </div>
             </div>
@@ -899,8 +902,42 @@ function updateRecordingUI() {
 }
 
 function enableExportButtons() {
+    const hasData = rec.arm.records.length > 0 || rec.trunk.records.length > 0;
     $('exportArmBtn').disabled   = rec.arm.records.length === 0;
     $('exportTrunkBtn').disabled = rec.trunk.records.length === 0;
+    $('viewReportBtn').disabled  = !hasData;
+}
+
+// ═══════════════════════════════════════════════
+// Open single-session report in new tab
+// ═══════════════════════════════════════════════
+function openReport() {
+    if (!rec.arm.records.length && !rec.trunk.records.length) {
+        alert('No recording data to report.');
+        return;
+    }
+    const subject = ($('subjectNameInput').value.trim() || 'live').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+    const armFilename   = `${subject}_arm_${ts}.csv`;
+    const trunkFilename = `${subject}_trunk_${ts}.csv`;
+
+    // Build CSV strings (re-use existing buildCSV)
+    const armCSV   = buildCSV(rec.arm.records);
+    const trunkCSV = buildCSV(rec.trunk.records);
+
+    // Clear previous wergonic single-session keys
+    Object.keys(sessionStorage)
+        .filter(k => k.startsWith('wergonic_'))
+        .forEach(k => sessionStorage.removeItem(k));
+
+    sessionStorage.setItem(`wergonic_csv_${armFilename}`,   armCSV);
+    sessionStorage.setItem(`wergonic_csv_${trunkFilename}`, trunkCSV);
+    sessionStorage.setItem('wergonic_single_arm',   armFilename);
+    sessionStorage.setItem('wergonic_single_trunk', trunkFilename);
+
+    window.open('session-comparison-landscape.html', '_blank');
+    log(`Report opened in new tab (${rec.arm.records.length} ARM + ${rec.trunk.records.length} TRUNK pts)`, 'ok');
 }
 
 // ═══════════════════════════════════════════════
@@ -931,6 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Export
     $('exportArmBtn').addEventListener('click',   () => downloadCSV('arm'));
     $('exportTrunkBtn').addEventListener('click', () => downloadCSV('trunk'));
+    $('viewReportBtn').addEventListener('click',  openReport);
 
     // Clear cache
     $('clearCacheBtn').addEventListener('click', () => {
