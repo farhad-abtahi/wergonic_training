@@ -17,6 +17,10 @@ void bleService(werg_unit *werg_device);
 void bleAdvertise(werg_unit *werg_device);
 bool isBleConnected(void);
 
+// Shared with device.cpp so parseCommand can push an immediate update when
+// the calibration-restore-on-boot preference changes via serial/BLE command.
+extern BLEByteCharacteristic switchCharacteristicCalibRestore;
+
 const uint8_t UUID_MODE_VARIANT4 = 0;
 const uint8_t UUID_MODE_RANDOM = 1;
 

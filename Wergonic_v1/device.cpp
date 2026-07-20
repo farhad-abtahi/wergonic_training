@@ -5,6 +5,7 @@
 #include "simpleFusion.h"
 #include "vibrator.h"
 #include "version.h"
+#include "ble_service.h"
 // Support for calculating the angle from the IMU data.
 
 static void getAngleArm(werg_unit* werg_device, float* angles);
@@ -90,8 +91,56 @@ void configDevCalib(werg_unit* werg_device, float calibRoll, float calibPitch)
     Serial.println(calibPitch);
     werg_device->calibRoll = calibRoll;
     werg_device->calibPitch = calibPitch;
-    savePreferencesCalib(calibRoll, calibPitch);
+    savePreferencesCalib(calibRoll, calibPitch, werg_device->imuVal->calibValues);
     werg_device->calibrated = true;
+}
+
+// Sanity-check a saved calibration record before trusting it at boot: the
+// raw accel vector's magnitude should be roughly 1 g (~9.82 m/s^2), and the
+// saved angles should be within a plausible range. Guards against restoring
+// garbage even if calibMagic happens to match by chance.
+static bool isCalibDataSane(const flashStruct& savedPrefs)
+{
+    double x = savedPrefs.calibValues[0];
+    double y = savedPrefs.calibValues[1];
+    double z = savedPrefs.calibValues[2];
+    double magnitude = sqrt(x * x + y * y + z * z);
+    bool magnitudeOk = magnitude >= 5.0 && magnitude <= 15.0;
+    bool rollOk = abs(savedPrefs.calibRoll) <= 180.0;
+    bool pitchOk = abs(savedPrefs.calibPitch) <= 180.0;
+    return magnitudeOk && rollOk && pitchOk;
+}
+
+// Restore calibration state saved in flash at boot, if the user has enabled
+// calibRestoreOnBoot and the saved record is valid. calibValues is set
+// directly (not via configDevCalib) so boot doesn't trigger a redundant
+// flash write every time. This sketch's filter is accel-only, so there is
+// no gyro-bias/filter-seed step to restore, unlike the flagship firmware.
+void restoreDevCalib(werg_unit* werg_device, const flashStruct& savedPrefs)
+{
+    // The toggle preference survives reboots regardless of whether the
+    // calibration itself is restorable.
+    werg_device->calibRestoreOnBoot = savedPrefs.calibRestoreOnBoot;
+
+    if (savedPrefs.calibRestoreOnBoot && savedPrefs.calibMagic == CALIB_MAGIC)
+    {
+        if (isCalibDataSane(savedPrefs))
+        {
+            werg_device->imuVal->calibValues[0] = savedPrefs.calibValues[0];
+            werg_device->imuVal->calibValues[1] = savedPrefs.calibValues[1];
+            werg_device->imuVal->calibValues[2] = savedPrefs.calibValues[2];
+            werg_device->calibRoll = savedPrefs.calibRoll;
+            werg_device->calibPitch = savedPrefs.calibPitch;
+            werg_device->calibrated = true;
+            Serial.println(
+                "Restored calibration from flash (recalibrate with C if remounted).");
+        }
+        else
+        {
+            Serial.println(
+                "Saved calibration failed sanity check; not restoring.");
+        }
+    }
 }
 
 // 100 Hz sample cadence (IMU_FREQ = 10 ms); favorings stay 0 (accel-only)
@@ -460,6 +509,20 @@ void parseCommand(const String readString, werg_unit* werg_device)
     {
         Serial.print("Version: ");
         Serial.println(FIRMWARE_VERSION);
+    }
+    else if (readString == CALIB_RESTORE_ON)
+    {
+        werg_device->calibRestoreOnBoot = true;
+        savePreferencesCalibRestore(true);
+        switchCharacteristicCalibRestore.writeValue(true);
+        Serial.println("Calibration-restore-on-boot: ENABLED");
+    }
+    else if (readString == CALIB_RESTORE_OFF)
+    {
+        werg_device->calibRestoreOnBoot = false;
+        savePreferencesCalibRestore(false);
+        switchCharacteristicCalibRestore.writeValue(false);
+        Serial.println("Calibration-restore-on-boot: DISABLED");
     }
     else
     {

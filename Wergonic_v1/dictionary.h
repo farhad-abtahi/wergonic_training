@@ -17,5 +17,7 @@
 #define DEBUG_ON (String('E', HEX))
 #define DEBUG_OFF (String('Q', HEX))
 #define VERSION_CMD (String('V', HEX))
+#define CALIB_RESTORE_ON (String('U', HEX))
+#define CALIB_RESTORE_OFF (String('Y', HEX))
 
 #endif // DICTIONARY_H_

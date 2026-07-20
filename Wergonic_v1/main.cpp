@@ -93,9 +93,5 @@ void configInit()
     configDevIntensity(&werg_device, savedIntensity);
     configDevID(&werg_device, savedPrefs.devID);
     configDevType(&werg_device, savedPrefs.devType);
-    // if (savedPrefs.calibRoll != 0)
-    // {
-    //     configDevCalib(&werg_device, savedPrefs.calibRoll,
-    //                    savedPrefs.calibPitch);
-    // }
+    restoreDevCalib(&werg_device, savedPrefs);
 }

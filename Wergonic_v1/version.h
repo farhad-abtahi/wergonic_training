@@ -3,6 +3,6 @@
 
 // Single source of truth for the firmware version.
 // Printed in the boot banner and returned by the V command.
-#define FIRMWARE_VERSION "2.1"
+#define FIRMWARE_VERSION "2.2"
 
 #endif // VERSION_H_

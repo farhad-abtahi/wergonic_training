@@ -42,6 +42,9 @@ BLEByteCharacteristic
 BLEByteCharacteristic
     switchCharacteristicIntensity("5d81b042-2c71-11ee-be56-0242ac120002",
                                   BLERead | BLEWrite);
+BLEByteCharacteristic
+    switchCharacteristicCalibRestore("6f2e9b1a-3c7d-4e2f-9a6b-1d8c5f0a72e3",
+                                     BLERead | BLEWrite);
 
 // long previousTime = 0;
 
@@ -95,6 +98,9 @@ void bleService(werg_unit* werg_device)
         Serial.print("Send Intensity: ");
         Serial.println(werg_device->myVib->vibIntensity);
         delay(10);
+        switchCharacteristicCalibRestore.writeValue(
+            werg_device->calibRestoreOnBoot);
+        delay(10);
         // print the central's MAC address:
         Serial.println(central.address());
         // while the central is still connected to peripheral:
@@ -114,6 +120,21 @@ void bleService(werg_unit* werg_device)
                 Serial.print("Received value in HEX:");
                 Serial.println(readString);
                 parseCommand(readString, werg_device);
+            }
+            if (switchCharacteristicCalibRestore.written())
+            {
+                byte readValue;
+                switchCharacteristicCalibRestore.readValue(readValue);
+                Serial.print("Received calib-restore-on-boot value:");
+                Serial.println(readValue);
+                if (readValue)
+                {
+                    parseCommand(CALIB_RESTORE_ON, werg_device);
+                }
+                else
+                {
+                    parseCommand(CALIB_RESTORE_OFF, werg_device);
+                }
             }
             float angles[2] = {0, 0};
             bool angle_available = false;
@@ -181,6 +202,7 @@ void bleAdvertise(werg_unit* werg_device)
     vibService.addCharacteristic(switchCharacteristicSound);
     vibService.addCharacteristic(switchCharacteristicType);
     vibService.addCharacteristic(switchCharacteristicIntensity);
+    vibService.addCharacteristic(switchCharacteristicCalibRestore);
 
     // add service
     BLE.addService(vibService);

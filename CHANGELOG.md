@@ -6,19 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 2026-07-20
 
-### Firmware Wergonic_v1 [2.1]
+### Firmware Wergonic_v1 [2.2]
 
 Version is defined in `Wergonic_v1/version.h` (`FIRMWARE_VERSION`), printed in the boot banner, and reported by the new `V` command.
 
 #### Added
 
+- Calibration-restore-on-boot preference, off by default, toggled via `U` (enable) / `Y` (disable) serial+BLE commands or the new BLE characteristic (UUID `6f2e9b1a-3c7d-4e2f-9a6b-1d8c5f0a72e3`, shared with `firmware/`'s implementation so the webapp toggle works against either firmware unmodified). Persists the raw calibration accel vector (`calibValues`) alongside `calibRoll`/`calibPitch`, guarded by a `calibMagic` validity marker and a boot-time sanity range check, so a stale/short flash record from an older firmware version is never mistaken for valid calibration data.
 - `E`/`Q` serial+BLE commands to toggle verbose periodic debug prints (angle/zone every 500 ms, BLE send-angle). Off by default; one-shot prints (command ACKs, calibration) are unaffected.
-- `V` serial+BLE command prints the firmware version (`Version: 2.1`).
+- `V` serial+BLE command prints the firmware version (`Version: 2.2`).
 - `Wergonic_v1/version.h` as the single source of truth for the firmware version string.
 
 #### Changed
 
-- Full command set is now: `r`/`y` (test vibrations), `S`/`M`/`W` (intensity), `C` (calibrate), `A`/`B` (arm/back), `F`/`N` (feedback on/off), `E`/`Q` (debug prints on/off), `V` (version).
+- Full command set is now: `r`/`y` (test vibrations), `S`/`M`/`W` (intensity), `C` (calibrate), `A`/`B` (arm/back), `F`/`N` (feedback on/off), `E`/`Q` (debug prints on/off), `V` (version), `U`/`Y` (calibration-restore-on-boot on/off).
 - `N` (feedback off) now only silences vibration — angle measurement and BLE angle streaming continue running. `N` also stops a running vibration immediately.
 - Gyro readings are converted to rad/s before being passed to the fusion filter (the LSM6DS3 reports deg/s); sensor values remain stored in deg/s elsewhere.
 
@@ -35,7 +36,6 @@ Version is defined in `Wergonic_v1/version.h` (`FIRMWARE_VERSION`), printed in t
 
 - Complementary filter term still disabled (accel-only tilt).
 - BLE angle characteristics are single bytes (whole degrees).
-- Calibration is saved to flash but not restored on boot (restore code is commented out).
 
 ### Firmware 4.2 (firmware/)
 

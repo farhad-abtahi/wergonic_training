@@ -5,6 +5,16 @@
 #include "Wire.h"
 #include "vibrator.h"
 
+// flashPrefs (struct flashStruct) is defined in config.h, which itself
+// includes this file (for the "type" enum) -- forward-declare rather than
+// #include "config.h" here to avoid a circular include.
+struct flashStruct;
+
+// Validity marker for a saved calibration record. Same numeric value as the
+// flagship firmware/device.h for documentation consistency (independent
+// binaries, so it doesn't need to match functionally).
+#define CALIB_MAGIC 0x43414C32UL // "CAL2"
+
 // Thresholds for angles.
 #define YELLOW_LIMIT_ARM 30 // degrees. Above that angle a yellow warning is triggered.
 #define RED_LIMIT_ARM 60 // degrees. Above that angle a red warning is triggered.
@@ -44,6 +54,7 @@ struct werg_unit
   bool feedback = false;
   int feedback_rest = 0; // time to wait before giving feedback again.
   int devID = 0; // default value for serial number if one has not been set.
+  bool calibRestoreOnBoot = false; // restore saved calibration on boot. Off by default.
 };
 
 // Verbose periodic debug prints (angle/zone every DEV_FREQ, BLE send-angle).
@@ -56,6 +67,7 @@ bool isCalibrated(werg_unit *werg_device);
 void configDevID(werg_unit *werg_device, int devID); // save device ID to flash.
 void configDevType(werg_unit *werg_device, type devType); // save device type (arm or back) to flash.
 void configDevCalib(werg_unit *werg_device, float calibRoll, float calibPitch); // save device calibration angle to flash.
+void restoreDevCalib(werg_unit *werg_device, const struct flashStruct &savedPrefs); // restore calibration from flash at boot, if valid and enabled.
 void configDevIntensity(werg_unit *werg_device, uint8_t intensity); // save device vibration intesity to flash.
 void measure(werg_unit *werg_device, float *angles, bool *angle_available); // periodically measure angle (used when no BLE connection).
 void wergInit(werg_unit *werg_device); // initialize the Wergonic device.
