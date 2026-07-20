@@ -15,9 +15,16 @@
 
 function wergonicApplyTheme(light) {
     document.documentElement.classList.toggle('light', light);
+    var glyph = light ? '☀' : '☾';
     var btns = document.querySelectorAll('.app-shell-theme-toggle');
     for (var i = 0; i < btns.length; i++) {
-        btns[i].textContent = light ? '☀ Light' : '☾ Dark';
+        // The desktop pill-bar toggle is a 32x32 round icon button (glyph
+        // only). The mobile drawer toggle additionally carries the
+        // app-shell-drawer-toggle class and is a full-width text row, so it
+        // gets the descriptive "Light"/"Dark" label too.
+        btns[i].textContent = btns[i].classList.contains('app-shell-drawer-toggle')
+            ? glyph + (light ? ' Light' : ' Dark')
+            : glyph;
     }
     wergonicApplyChartDefaults();
 }
@@ -113,6 +120,7 @@ function wergonicInjectStyles() {
         '  .app-shell-drawer-link{padding:12px 14px;border-radius:8px;color:#e8f3ff;text-decoration:none;}' +
         '  :root.light .app-shell-drawer-link{color:#1a2a3a;}' +
         '  body{padding-bottom:64px;}' +
+        '  body.app-shell-embed{padding-bottom:0 !important;}' +
         '}' +
         '.app-shell-update-toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:10px;background:#1a5fb4;color:#fff;padding:10px 16px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,0.35);font-size:14px;}' +
         '.app-shell-update-toast button{background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13px;}' +
@@ -249,11 +257,16 @@ function wergonicRegisterServiceWorker() {
 
 document.addEventListener('DOMContentLoaded', function () {
     wergonicInjectStyles();
-    if (!wergonicIsEmbedMode()) {
+    var embed = wergonicIsEmbedMode();
+    if (!embed) {
         wergonicRenderNav();
         wergonicRenderMobileTabs();
+    } else {
+        document.body.classList.add('app-shell-embed');
     }
     wergonicApplyChartDefaults();
-    wergonicInitVersionCheck();
+    if (!embed) {
+        wergonicInitVersionCheck();
+    }
     wergonicRegisterServiceWorker();
 });
