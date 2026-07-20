@@ -40,11 +40,15 @@ void readConsole(werg_unit* werg_device)
     if (Serial.available())
     {
         incomingByte = Serial.read();
+        // Skip CR and LF bytes without dispatching them as commands
+        if (incomingByte == '\r' || incomingByte == '\n')
+        {
+            return;
+        }
         const String input = String(incomingByte, HEX);
         Serial.print("Received from user:");
         Serial.println(input);
         parseCommand(input, werg_device);
-        incomingByte = Serial.read();
     }
 }
 
