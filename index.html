@@ -10,6 +10,21 @@
     <title>Wergonic Device Manager</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="gamification.css">
+    <style>
+        /* Mobile fix: styles.css forces .config-grid to 2 columns between
+           600px and 768px, which overflows narrow phone viewports (e.g. the
+           606px content width reported for a 390px device). Collapse the
+           Device Configuration grid to a single column below the tablet
+           breakpoint so it never overflows on mobile. */
+        @media (max-width: 700px) {
+            .config-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .config-item-wide {
+                grid-column: 1 !important;
+            }
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="config.js"></script>
     <script src="app-shell.js"></script>

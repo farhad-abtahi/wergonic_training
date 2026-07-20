@@ -105,6 +105,32 @@
       font-size: 13px; font-weight: 800; color: var(--orange);
       display: flex; align-items: center; gap: 5px;
     }
+    .hdr-stats {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    /* ── RESPONSIVE (MOBILE) ─────────────────────── */
+    @media (max-width: 700px) {
+      .header {
+        padding: 10px 16px;
+        gap: 12px;
+      }
+      .hdr-stats {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      .hdr-stats > * {
+        flex-shrink: 0;
+      }
+      .xp-wrap {
+        max-width: 140px;
+      }
+    }
 
     /* ── MAIN GRID ───────────────────────────────── */
     .main {
@@ -376,31 +402,33 @@
     <div class="logo-icon">🦵</div>
     <span>RehabGame</span>
   </div>
-  <div class="hdr-ann">
-    <span class="lv-badge" id="lv-badge">Lv.12</span>
-    <span class="gc-mini gc-o">Level System</span>
+  <div class="hdr-stats">
+    <div class="hdr-ann">
+      <span class="lv-badge" id="lv-badge">Lv.12</span>
+      <span class="gc-mini gc-o">Level System</span>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-lbl"><span>XP</span><span id="xp-txt">780 / 1000</span></div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:78%"></div></div>
+      <div style="text-align:center;margin-top:3px"><span class="gc-mini gc-c">XP Progress</span></div>
+    </div>
+    <div class="hdr-ann">
+      <div class="streak">🔥 <span id="streak-n">7</span> Day Streak</div>
+      <span class="gc-mini gc-o">Daily Streak</span>
+    </div>
+    <div class="hdr-ann">
+      <div class="pts">⭐ <span id="pts-n">2480</span></div>
+      <span class="gc-mini gc-o">Points</span>
+    </div>
+    <a href="clinician-dashboard.html"
+       style="margin-left:10px;padding:7px 15px;border-radius:11px;border:1px solid rgba(52,211,153,0.35);
+              background:rgba(52,211,153,0.08);color:var(--green);font-size:12px;font-weight:700;
+              text-decoration:none;white-space:nowrap;transition:all .15s;flex-shrink:0;"
+       onmouseover="this.style.background='rgba(52,211,153,0.16)'"
+       onmouseout="this.style.background='rgba(52,211,153,0.08)'">
+      📊 Clinician View
+    </a>
   </div>
-  <div class="xp-wrap">
-    <div class="xp-lbl"><span>XP</span><span id="xp-txt">780 / 1000</span></div>
-    <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:78%"></div></div>
-    <div style="text-align:center;margin-top:3px"><span class="gc-mini gc-c">XP Progress</span></div>
-  </div>
-  <div class="hdr-ann">
-    <div class="streak">🔥 <span id="streak-n">7</span> Day Streak</div>
-    <span class="gc-mini gc-o">Daily Streak</span>
-  </div>
-  <div class="hdr-ann">
-    <div class="pts">⭐ <span id="pts-n">2480</span></div>
-    <span class="gc-mini gc-o">Points</span>
-  </div>
-  <a href="clinician-dashboard.html"
-     style="margin-left:10px;padding:7px 15px;border-radius:11px;border:1px solid rgba(52,211,153,0.35);
-            background:rgba(52,211,153,0.08);color:var(--green);font-size:12px;font-weight:700;
-            text-decoration:none;white-space:nowrap;transition:all .15s;"
-     onmouseover="this.style.background='rgba(52,211,153,0.16)'"
-     onmouseout="this.style.background='rgba(52,211,153,0.08)'">
-    📊 Clinician View
-  </a>
 </header>
 
 <!-- ── MAIN ───────────────────────────────────── -->
