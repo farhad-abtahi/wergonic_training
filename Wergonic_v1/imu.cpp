@@ -113,9 +113,10 @@ static void calibRoll(werg_unit* werg_device, FusedAngles* fusedAngles,
     accelerometer.x = werg_device->imuVal->calibValues[0];
     accelerometer.y = werg_device->imuVal->calibValues[1];
     accelerometer.z = werg_device->imuVal->calibValues[2];
-    gyroscope.x = werg_device->imuVal->gyroValues[0];
-    gyroscope.y = werg_device->imuVal->gyroValues[1];
-    gyroscope.z = werg_device->imuVal->gyroValues[2];
+    // LSM6DS3 reports deg/s; SimpleFusion expects rad/s.
+    gyroscope.x = werg_device->imuVal->gyroValues[0] * DEG_TO_RAD;
+    gyroscope.y = werg_device->imuVal->gyroValues[1] * DEG_TO_RAD;
+    gyroscope.z = werg_device->imuVal->gyroValues[2] * DEG_TO_RAD;
 
     fuser->getFilteredAngles(accelerometer, gyroscope, fusedAngles,
                              UNIT_DEGREES);
