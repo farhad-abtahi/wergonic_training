@@ -87,7 +87,10 @@ function wergonicInjectStyles() {
         '  .app-shell-drawer-link{padding:12px 14px;border-radius:8px;color:#e8f3ff;text-decoration:none;}' +
         '  :root.light .app-shell-drawer-link{color:#1a2a3a;}' +
         '  body{padding-bottom:64px;}' +
-        '}';
+        '}' +
+        '.app-shell-update-toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:10px;background:#1a5fb4;color:#fff;padding:10px 16px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,0.35);font-size:14px;}' +
+        '.app-shell-update-toast button{background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13px;}' +
+        '#app-shell-dismiss-btn{padding:4px 8px;}';
     document.head.appendChild(style);
 }
 
@@ -170,9 +173,59 @@ function wergonicRenderMobileTabs() {
     });
 }
 
+function wergonicInitVersionCheck() {
+    if (!window.APP_CONFIG) return;
+    var current = window.APP_CONFIG.version;
+    var toastShown = false;
+
+    function showToast() {
+        if (toastShown) return;
+        toastShown = true;
+        var toast = document.createElement('div');
+        toast.className = 'app-shell-update-toast';
+        toast.innerHTML =
+            '<span>Update available</span>' +
+            '<button type="button" id="app-shell-reload-btn">Reload</button>' +
+            '<button type="button" id="app-shell-dismiss-btn" aria-label="Dismiss">✕</button>';
+        document.body.appendChild(toast);
+        document.getElementById('app-shell-reload-btn').addEventListener('click', function () {
+            window.location.reload();
+        });
+        document.getElementById('app-shell-dismiss-btn').addEventListener('click', function () {
+            toast.remove();
+            toastShown = false;
+        });
+    }
+
+    function check() {
+        fetch('/version.json', { cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (data && data.version && data.version !== current) showToast();
+            })
+            .catch(function () {});
+    }
+
+    check();
+    setInterval(check, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') check();
+    });
+}
+
+function wergonicRegisterServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     wergonicInjectStyles();
     wergonicRenderNav();
     wergonicRenderMobileTabs();
     wergonicApplyChartDefaults();
+    wergonicInitVersionCheck();
+    wergonicRegisterServiceWorker();
 });
