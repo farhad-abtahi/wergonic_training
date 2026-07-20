@@ -94,7 +94,10 @@ void configDevCalib(werg_unit* werg_device, float calibRoll, float calibPitch)
     werg_device->calibrated = true;
 }
 
-void fuserInit() { fuser.init(0, 0, 0); }
+// 100 Hz sample cadence (IMU_FREQ = 10 ms); favorings stay 0 (accel-only)
+// so behavior is unchanged, but the rate can no longer divide-by-zero if
+// the complementary filter term is re-enabled.
+void fuserInit() { fuser.init(100, 0, 0); }
 
 void calibDevice(werg_unit* werg_device) { calibIMU(werg_device, &fuser); }
 
