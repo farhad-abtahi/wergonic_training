@@ -4,6 +4,7 @@
 #include "imu.h"
 #include "simpleFusion.h"
 #include "vibrator.h"
+#include "version.h"
 // Support for calculating the angle from the IMU data.
 
 static void getAngleArm(werg_unit* werg_device, float* angles);
@@ -454,6 +455,11 @@ void parseCommand(const String readString, werg_unit* werg_device)
     {
         debug_prints = false;
         Serial.println("Debug prints disabled.");
+    }
+    else if (readString == VERSION_CMD)
+    {
+        Serial.print("Version: ");
+        Serial.println(FIRMWARE_VERSION);
     }
     else
     {

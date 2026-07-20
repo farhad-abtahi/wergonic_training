@@ -1,4 +1,5 @@
 #include "main.h"
+#include "version.h"
 
 // Support for the main application of Wergonic device.//
 // Initialize the appropriate services and advertise the device.//
@@ -9,7 +10,7 @@ void mainTask()
 {
     gpioInit();
     hwInit();
-    Serial.println("Wergonic Vibrator v. 2.0");
+    Serial.println("Wergonic Vibrator v. " FIRMWARE_VERSION);
     configInit();
     bleAdvertise(&werg_device);
     while (1)

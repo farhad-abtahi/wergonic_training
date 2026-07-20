@@ -16,5 +16,6 @@
 #define FEEDBACK_OFF (String('N', HEX))
 #define DEBUG_ON (String('E', HEX))
 #define DEBUG_OFF (String('Q', HEX))
+#define VERSION_CMD (String('V', HEX))
 
 #endif // DICTIONARY_H_
