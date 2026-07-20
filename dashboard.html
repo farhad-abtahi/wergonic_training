@@ -96,6 +96,10 @@
             background: linear-gradient(90deg, rgba(220, 232, 248, 0.5), rgba(230, 240, 252, 0.45));
         }
 
+        :root.light .row-text {
+            color: var(--text-main);
+        }
+
         :root.light .chip {
             border-color: rgba(0, 40, 100, 0.12);
             background: rgba(0, 40, 100, 0.06);
@@ -1249,6 +1253,26 @@
 
             .bottom {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        /* Mobile: kiosk/TV layout gives way to a normally-scrolling document
+           so every element (incl. content behind the app-shell tab bar) is
+           reachable by scrolling. Desktop/tablet (>768px) kiosk behavior above
+           is untouched. */
+        @media (max-width: 768px) {
+            html,
+            body {
+                overflow: auto;
+            }
+
+            .screen {
+                height: auto;
+                min-height: 100vh;
+            }
+
+            .compare-grid {
+                overflow: visible;
             }
         }
 

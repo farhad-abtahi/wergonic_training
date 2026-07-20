@@ -1310,6 +1310,22 @@
             }
         }
 
+        /* Mobile: kiosk/TV layout gives way to a normally-scrolling document
+           so every element (incl. content behind the app-shell tab bar) is
+           reachable by scrolling. Desktop/tablet (>768px) kiosk behavior above
+           is untouched. */
+        @media (max-width: 768px) {
+            html,
+            body {
+                overflow: auto;
+            }
+
+            .screen-shell {
+                height: auto;
+                min-height: 100vh;
+            }
+        }
+
         /* ── Floating Angle Chart ────────────────────────────────── */
         #angleFloat {
             position: fixed;
