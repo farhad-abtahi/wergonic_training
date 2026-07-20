@@ -523,3 +523,10 @@ bool sd_file_exists(const char* filename)
     if (!sd_available) return false;
     return SD.exists(filename);
 }
+
+// Delete a file from the SD card
+bool sd_delete_file(const char* filename)
+{
+    if (!sd_available) return false;
+    return SD.remove(filename);
+}

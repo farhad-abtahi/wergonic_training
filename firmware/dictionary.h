@@ -44,5 +44,6 @@
 #define LIST_FILES (String('D'))      // List files on SD card
 #define READ_FILE_PREFIX "R:"         // Format: R:filename.csv - Read file content
 #define READ_META_PREFIX "M:"         // Format: M:filename - Read metadata for session
+#define DELETE_FILE_PREFIX "DEL:"     // Format: DEL:filename - Delete file (data or metadata)
 
 #endif // DICTIONARY_H_

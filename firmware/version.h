@@ -5,6 +5,6 @@
 // Printed in the boot banner, returned by the V command, and used by the
 // webapp for feature detection. Bump it here and record the change in
 // firmware/CHANGELOG.md.
-#define FIRMWARE_VERSION "4.1"
+#define FIRMWARE_VERSION "4.2"
 
 #endif // VERSION_H_

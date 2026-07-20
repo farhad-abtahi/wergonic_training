@@ -1211,6 +1211,65 @@ void parseCommand(const String readString, werg_unit* werg_device)
         }
     }
 
+    // Delete file command: DEL:filename - deletes a data (.csv) or
+    // metadata (_m.txt) file. Refused while that file is the active
+    // session's file (session_active), so a running session can never be
+    // deleted out from under itself.
+    else if (readString.startsWith(DELETE_FILE_PREFIX))
+    {
+        String filename = readString.substring(4);
+        filename.trim();
+
+        if (filename.length() == 0)
+        {
+            Serial.println(F("ERROR:No filename specified"));
+            ble_send_error("DEL", "No filename");
+        }
+        else if (!sd_is_available())
+        {
+            Serial.println(F("ERROR:SD not available"));
+            if (isBleConnected())
+            {
+                ble_send_string("ERROR:SD not available");
+            }
+        }
+        else if (!sd_file_exists(filename.c_str()))
+        {
+            Serial.print(F("ERROR:File not found: "));
+            Serial.println(filename);
+            ble_send_error("DEL", "File not found");
+        }
+        else if (werg_device->session_active &&
+                 (filename.equals(session_filename) || filename.equals(metadata_filename)))
+        {
+            Serial.print(F("ERROR:File in use (active session): "));
+            Serial.println(filename);
+            ble_send_error("DEL", "Session active");
+        }
+        else if (sd_delete_file(filename.c_str()))
+        {
+            Serial.print(F("DELETED:"));
+            Serial.println(filename);
+            if (isBleConnected())
+            {
+                char msg[64];
+                snprintf(msg, sizeof(msg), "DELETED:%s", filename.c_str());
+                ble_send_string(msg);
+            }
+        }
+        else
+        {
+            Serial.print(F("ERROR:DELETE:"));
+            Serial.println(filename);
+            if (isBleConnected())
+            {
+                char msg[64];
+                snprintf(msg, sizeof(msg), "ERROR:DELETE:%s", filename.c_str());
+                ble_send_string(msg);
+            }
+        }
+    }
+
     else
     {
         Serial.println(F("Unknown command"));

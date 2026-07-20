@@ -23,10 +23,11 @@ BLEService
     vibService("34802252-7185-4d5d-b431-630e7050e8f0"); // Bluetooth® Low Energy
                                                         // LED Service
 // Command characteristic - must support strings for multi-char commands
-// Max length: R:/M: prefix (2) + filename (18) = 20 bytes total
+// Max length: R:/M: prefix (2) or DEL: prefix (4) + filename (18) = 22
+// bytes total
 BLEStringCharacteristic
     switchCharacteristic("34802252-7185-4d5d-b431-630e7050e8f0",
-                         BLERead | BLEWrite, 20);  // 20 bytes max for all commands
+                         BLERead | BLEWrite, 22);  // 22 bytes max for all commands
 BLEByteCharacteristic
     switchCharacteristicArm("872a73a9-ad52-47f3-8622-10e06c24c65f",
                             BLERead | BLEWrite);

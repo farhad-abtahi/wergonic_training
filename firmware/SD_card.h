@@ -51,6 +51,11 @@ int sd_read_file_to_buffer(const char* filename, char* buffer, size_t max_len);
 // Check if file exists
 bool sd_file_exists(const char* filename);
 
+// Delete a file from the SD card. Returns false if SD is unavailable or
+// the underlying remove() fails; caller is responsible for guarding
+// against deleting the active session's files.
+bool sd_delete_file(const char* filename);
+
 // Legacy functions (kept for compatibility)
 bool sd_read(void);
 bool sd_write(float angle, bool feedback, int seconds, int mseconds,

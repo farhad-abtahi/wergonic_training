@@ -5,6 +5,22 @@ All notable changes to the Wergonic Vibrator firmware. Format loosely follows
 `firmware/version.h` and is reported in the boot banner and by the `V` command
 (the webapp uses it for feature detection).
 
+## [4.2] — 2026-07-20
+
+### Added
+- `DEL:filename` command to delete a file from the SD card (data `.csv` or
+  metadata `_m.txt`/`_meta.txt`). Accepted over both Serial and BLE, same as
+  `R:`/`M:`. Responds `DELETED:filename` on success. Refused with
+  `ERROR:DEL:Session active` while `filename` is the active session's data
+  or metadata file (`session_active == true`), so a running session can
+  never be deleted out from under itself. Same `ERROR:SD not available` /
+  `ERROR:File not found: filename` responses as the other file commands
+  when SD is down or the file doesn't exist; `ERROR:DELETE:filename` if the
+  underlying SD remove() call itself fails.
+- BLE command characteristic (`switchCharacteristic`) grown from 20 to 22
+  bytes so `DEL:` (4-byte prefix) plus an 18-byte filename fits, matching
+  the existing headroom `R:`/`M:` (2-byte prefix) already had.
+
 ## [4.1] — 2026-07-18
 
 Stability/accuracy release: fixes every defect from the firmware review
