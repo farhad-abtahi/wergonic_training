@@ -589,23 +589,38 @@
                 .forEach(k => sessionStorage.removeItem(k));
 
             const f = state.files;
+            const btn = document.getElementById('launchBtn');
 
-            if (state.mode === 'single') {
-                sessionStorage.setItem(SS.csv(f.single_arm.name),   f.single_arm.content);
-                sessionStorage.setItem(SS.csv(f.single_trunk.name), f.single_trunk.content);
-                sessionStorage.setItem(SS.SINGLE_ARM,   f.single_arm.name);
-                sessionStorage.setItem(SS.SINGLE_TRUNK, f.single_trunk.name);
-                window.location.href = 'session-comparison-landscape.html';
-            } else {
-                sessionStorage.setItem(SS.csv(f.a_arm.name),   f.a_arm.content);
-                sessionStorage.setItem(SS.csv(f.a_trunk.name), f.a_trunk.content);
-                sessionStorage.setItem(SS.csv(f.b_arm.name),   f.b_arm.content);
-                sessionStorage.setItem(SS.csv(f.b_trunk.name), f.b_trunk.content);
-                sessionStorage.setItem(SS.CMP_A_ARM,   f.a_arm.name);
-                sessionStorage.setItem(SS.CMP_A_TRUNK, f.a_trunk.name);
-                sessionStorage.setItem(SS.CMP_B_ARM,   f.b_arm.name);
-                sessionStorage.setItem(SS.CMP_B_TRUNK, f.b_trunk.name);
-                window.location.href = 'dashboard.html';
+            try {
+                if (state.mode === 'single') {
+                    sessionStorage.setItem(SS.csv(f.single_arm.name),   f.single_arm.content);
+                    sessionStorage.setItem(SS.csv(f.single_trunk.name), f.single_trunk.content);
+                    sessionStorage.setItem(SS.SINGLE_ARM,   f.single_arm.name);
+                    sessionStorage.setItem(SS.SINGLE_TRUNK, f.single_trunk.name);
+                    window.location.href = 'session-comparison-landscape.html';
+                } else {
+                    sessionStorage.setItem(SS.csv(f.a_arm.name),   f.a_arm.content);
+                    sessionStorage.setItem(SS.csv(f.a_trunk.name), f.a_trunk.content);
+                    sessionStorage.setItem(SS.csv(f.b_arm.name),   f.b_arm.content);
+                    sessionStorage.setItem(SS.csv(f.b_trunk.name), f.b_trunk.content);
+                    sessionStorage.setItem(SS.CMP_A_ARM,   f.a_arm.name);
+                    sessionStorage.setItem(SS.CMP_A_TRUNK, f.a_trunk.name);
+                    sessionStorage.setItem(SS.CMP_B_ARM,   f.b_arm.name);
+                    sessionStorage.setItem(SS.CMP_B_TRUNK, f.b_trunk.name);
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (err) {
+                // Roll back any partial writes so a half-populated dashboard can't load
+                Object.keys(sessionStorage)
+                    .filter(k => k.startsWith('wergonic_'))
+                    .forEach(k => sessionStorage.removeItem(k));
+
+                const isQuota = err && (err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014);
+                btn.textContent = isQuota
+                    ? 'Storage full — file(s) too large to load. Try smaller CSV files.'
+                    : 'Failed to prepare session data. Please try again.';
+                btn.style.color = '#ff9f96';
+                console.error('sessionStorage write failed:', err);
             }
         });
 

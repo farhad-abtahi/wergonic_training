@@ -1910,7 +1910,8 @@ function parseCSVData(csvText) {
         if (parts.length >= 5) {
             try {
                 const elapsed_ms = parseInt(parts[0]);
-                
+                if (!Number.isFinite(elapsed_ms)) continue;
+
                 // Detect sequence reset (elapsed_ms decreases or resets to near 0)
                 if (i > 1 && elapsed_ms < previousElapsed) {
                     // New sequence detected, add offset
@@ -1952,8 +1953,10 @@ function parseMetadata(metaText) {
     console.log('Metadata lines:', lines.length);
     
     for (const line of lines) {
-        if (line.includes('=')) {
-            const [key, value] = line.split('=');
+        const idx = line.indexOf('=');
+        if (idx !== -1) {
+            const key = line.slice(0, idx);
+            const value = line.slice(idx + 1);
             metadata[key.trim()] = value.trim();
         }
     }

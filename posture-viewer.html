@@ -322,6 +322,7 @@ function parseCSV(text) {
         if (p.length < 5) continue;
         try {
             const ms = parseInt(p[0]);
+            if (!Number.isFinite(ms)) continue;
             if (i > 1 && ms < prev) { offset += prev; seq++; }
             out.push({ t: ms + offset, angle: parseFloat(p[2]), zone: p[4].trim().toLowerCase() });
             prev = ms;

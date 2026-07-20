@@ -13,10 +13,10 @@ const APP_CONFIG = {
         // '2_trunk.csv',
         'S10.CSV',
         'S11.CSV',
-        'rightArm_VCBC04_reformatted.csv',
-        'rightArm_VCBC08_reformatted.csv',
-        'trunk_VCBC04_reformatted.csv',
-        'trunk_VCBC08_reformatted.csv'
+        'rightarm-C04-1.csv',
+        'rightarm-C08-1.csv',
+        'trunk-C04-1.csv',
+        'trunk-C08-1.csv'
     ]
 };
 
