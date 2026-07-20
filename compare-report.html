@@ -507,7 +507,7 @@
         function updateActiveSegment(value) {
             const track = document.getElementById('minuteTrack');
             if (!track) return;
-            const segmentMinute = Math.round(Number(value) / 5) * 5;
+            const segmentMinute = Math.min(55, Math.round(Number(value) / 5) * 5);
             track.querySelectorAll('.minute-segment').forEach(segment => {
                 const isActive = Number(segment.dataset.minute) === segmentMinute;
                 segment.classList.toggle('active', isActive);
