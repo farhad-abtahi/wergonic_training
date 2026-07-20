@@ -12,6 +12,24 @@ A web-based client for configuring and managing Wergonic haptic feedback devices
 - **File Manager**: List, preview, and download session files from SD card
 - **Console**: Send raw commands and view device responses
 
+## Installing as an App (PWA)
+
+The web app is installable as a Progressive Web App:
+
+- **Chrome / Edge**: click the install icon in the address bar (or menu → "Install Wergonic Training").
+- **Safari**: tap Share → **Add to Home Screen**.
+
+### Safari / Web Bluetooth caveat
+
+Safari has no Web Bluetooth support at all, on desktop or iOS. Pages that connect to a device (e.g. `index.html`, `live-record.html`) are **view-only** in Safari — device connection, configuration, and live monitoring won't work. Dashboard and report pages (`demo-report.html`, `compare-report.html`, `clinician-dashboard.html`, etc.), which only read previously downloaded session files, work normally in Safari.
+
+### Release checklist
+
+Shipping a new version requires bumping **both** of these — missing either one leaves the version-check toast and the offline cache out of sync:
+
+1. `config.js` → `APP_CONFIG.version` (read by the version-check toast, which polls `/version.json`).
+2. `sw.js` → `CACHE_NAME` (invalidates the service worker's cached app shell so clients pick up the new files).
+
 ## Requirements
 
 - **Browser**: Chrome 56+, Edge 79+, or Opera 43+ (Web Bluetooth support required)

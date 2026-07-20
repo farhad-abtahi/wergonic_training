@@ -65,3 +65,17 @@ Version is defined in `firmware/version.h` (`FIRMWARE_VERSION`), printed in the 
 - Feedback (vibration) is now correctly re-enabled after a `K` (stop) command, instead of staying disabled until the device was manually re-armed.
 - Added `NaN` guards for sessions containing only a single data point (previously produced `NaN` in duration/statistics).
 - Fixed a `RangeError` thrown when processing very long recordings.
+
+### Web application — PWA & responsive redesign
+
+#### Added
+
+- Unified navigation and dark/light theme across all pages via a new shared `app-shell.js`, replacing previously copy-pasted, inconsistent, or missing per-page nav/theme code. Clinician Dashboard and Rehab Game are now included in the shared navigation (previously unreachable from any nav).
+- Theme now syncs live across same-origin iframes/tabs: a `storage` event listener in `app-shell.js` applies the new theme to already-open documents (e.g. an already-open `compare-report.html` embedded report previously kept showing a stale theme after the parent page's toggle was used).
+- PWA installability: web app manifest, icon set (standard + maskable), a network-first service worker, and app-shell-only offline caching.
+- Version-check toast that polls `/version.json` and prompts the user to refresh when a new version is deployed.
+- Responsive layout pass across all 11 patient/clinician-facing pages for mobile/tablet, including a fix for two floating chart panels (`dashboard.html`, `session-comparison-landscape.html`) that previously overflowed narrow viewports.
+
+#### Fixed
+
+- `window.APP_CONFIG` was never actually assigned onto `window` in `config.js`, a pre-existing bug that broke the demo-file fallback logic on two pages.
