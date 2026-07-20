@@ -96,7 +96,7 @@ void configDevCalib(werg_unit* werg_device, float calibRoll, float calibPitch)
 }
 
 // Sanity-check a saved calibration record before trusting it at boot: the
-// raw accel vector's magnitude should be roughly 1 g (~9.82 m/s^2), and the
+// raw accel vector's magnitude should be roughly 1.0 g (g-units, not m/s^2), and the
 // saved angles should be within a plausible range. Guards against restoring
 // garbage even if calibMagic happens to match by chance.
 static bool isCalibDataSane(const flashStruct& savedPrefs)
@@ -105,7 +105,7 @@ static bool isCalibDataSane(const flashStruct& savedPrefs)
     double y = savedPrefs.calibValues[1];
     double z = savedPrefs.calibValues[2];
     double magnitude = sqrt(x * x + y * y + z * z);
-    bool magnitudeOk = magnitude >= 5.0 && magnitude <= 15.0;
+    bool magnitudeOk = magnitude >= 0.5 && magnitude <= 1.5;
     bool rollOk = abs(savedPrefs.calibRoll) <= 180.0;
     bool pitchOk = abs(savedPrefs.calibPitch) <= 180.0;
     return magnitudeOk && rollOk && pitchOk;
