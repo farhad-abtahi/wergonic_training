@@ -11,15 +11,37 @@ const WERGONIC_SERVICE_UUID = '34802252-7185-4d5d-b431-630e7050e8f0';
 const COMMAND_CHARACTERISTIC_UUID = '34802252-7185-4d5d-b431-630e7050e8f0';
 const FILE_TRANSFER_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 const ARM_ANGLE_CHARACTERISTIC_UUID = '872a73a9-ad52-47f3-8622-10e06c24c65f';
+const TRUNK_BEND_CHARACTERISTIC_UUID = '4d3a9874-27e5-11ee-be56-0242ac120002';
 
 // Minimum firmware version for advanced features
 const MIN_VERSION_ADVANCED_FEATURES = 4.0;
+// Minimum firmware version for the SD-file delete command (DEL:)
+const MIN_VERSION_DELETE_FILE = 4.2;
 
 // Default thresholds by device type
 const THRESHOLDS = {
     ARM:   { yellow: 30, red: 60 },
     TRUNK: { yellow: 20, red: 45 }
 };
+
+// Reduce-based min/max helpers: long recordings (multi-hour sessions at
+// 25 Hz => 100k+ points) can exceed the JS engine's argument limit if
+// spread into Math.max(...arr)/Math.min(...arr), throwing a RangeError.
+function arrayMax(arr) {
+    let max = -Infinity;
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i] > max) max = arr[i];
+    }
+    return max;
+}
+
+function arrayMin(arr) {
+    let min = Infinity;
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i] < min) min = arr[i];
+    }
+    return min;
+}
 
 // Device state template
 function createDeviceState() {
@@ -38,10 +60,6 @@ function createDeviceState() {
         files: [],
         fileBuffer: '',
         isReceivingFile: false,
-        binaryBuffer: new Uint8Array(0), // Buffer for raw binary data (Uint8Array)
-        binaryHexBuffer: '', // Fallback buffer for hex string format
-        isReceivingBinary: false, // Flag for binary file reception
-        binaryFileSize: 0, // Expected binary file size in bytes
         currentFilename: '', // Current file being downloaded
         commandQueue: [],
         isProcessingQueue: false,
@@ -409,8 +427,10 @@ async function connectDevice(deviceType) {
         }
 
         // Get angle characteristic (for polling - firmware doesn't support notifications)
+        // ARM and TRUNK devices expose different angle characteristics (mirrors live-record.html)
         try {
-            deviceState.angleCharacteristic = await deviceState.service.getCharacteristic(ARM_ANGLE_CHARACTERISTIC_UUID);
+            const angleUUID = deviceType === 'arm' ? ARM_ANGLE_CHARACTERISTIC_UUID : TRUNK_BEND_CHARACTERISTIC_UUID;
+            deviceState.angleCharacteristic = await deviceState.service.getCharacteristic(angleUUID);
             logToConsole(`${deviceLabel} angle characteristic found (polling mode)`, 'info');
         } catch (e) {
             logToConsole(`${deviceLabel} angle characteristic not available`, 'info');
@@ -815,6 +835,14 @@ function parseAckResponse(message, deviceType) {
         const cmdName = cmdNames[cmd] || cmd;
         showNotification(`[${deviceLabel}] ${cmdName}: ${result}`);
         logToConsole(`[${deviceLabel}] ACK: ${cmdName} = ${result}`, 'received');
+
+        // Firmware disables vibration feedback as a side effect of Stop & Save (K).
+        // If the UI's feedback toggle is still ON, re-enable it on the device now the
+        // stop has completed, so the next session keeps haptics.
+        if (cmd === 'K' && state.feedbackEnabled) {
+            sendCommand(deviceType, 'F');
+        }
+
         return true;
     }
 
@@ -1025,9 +1053,6 @@ function listFiles() {
     deviceState.files = [];
     deviceState.isReceivingFile = false;
     deviceState.fileBuffer = '';
-    deviceState.isReceivingBinary = false;
-    deviceState.binaryBuffer = new Uint8Array(0);
-    deviceState.binaryHexBuffer = '';
 
     elements.fileList.innerHTML = '<p class="placeholder">Loading files...</p>';
     sendCommand(state.fileDevice, 'D');
@@ -1104,32 +1129,35 @@ function renderFileList(deviceType) {
         return;
     }
 
-    // Filter out _m.txt metadata files and .bin files from display (case insensitive)
+    // Filter out _m.txt metadata files from display (case insensitive)
     const visibleFiles = deviceState.files.filter(file => {
         if (!file || !file.name) return false;  // Safety check
         const name = file.name.toLowerCase();
-        return !name.endsWith('_m.txt') && !name.endsWith('.bin');
+        return !name.endsWith('_m.txt');
     });
-    
+
     if (visibleFiles.length === 0) {
         elements.fileList.innerHTML = '<p class="placeholder">No session files found</p>';
         return;
     }
 
+    // Delete requires firmware v4.2+ (DEL: command); checked once per render since
+    // all rows in this list belong to the same connected device.
+    const deviceVersion = deviceState.firmwareVersion;
+    const deleteSupported = deviceVersion !== null && deviceVersion !== undefined && deviceVersion >= MIN_VERSION_DELETE_FILE;
+
     try {
         const html = visibleFiles.map(file => {
             const isCSV = file.name.toLowerCase().endsWith('.csv');
             const baseName = file.name.replace(/\.csv$/i, '');
-            const binFilename = baseName + '.bin';
             const metaName = baseName + '_m.txt';
-            
-            // Check if we have CSV+meta OR bin+meta
+
+            // Check if we have CSV+meta for the report
             const fileCache = deviceState.fileCache || {};
             const csvCached = fileCache[file.name] !== undefined;
-            const binCached = fileCache[binFilename] !== undefined;
             const metaCached = fileCache[metaName] !== undefined;
-            const reportReady = isCSV && (csvCached || binCached) && metaCached;
-            
+            const reportReady = isCSV && csvCached && metaCached;
+
             return `
             <div class="file-item" data-filename="${file.name}">
                 <div class="file-info">
@@ -1139,16 +1167,21 @@ function renderFileList(deviceType) {
                 <div class="file-actions-inline">
                     ${isCSV ? `
                         <button class="btn btn-small btn-info" onclick="viewMetadata('${file.name}', '${deviceType}')">Meta</button>
-                        <button class="btn btn-small btn-primary" onclick="downloadFile('${binFilename}', '${deviceType}')">Bin</button>
                         <button class="btn btn-small btn-warning" onclick="setReportSlot('${deviceType}', '${file.name}')">Set ${deviceType.toUpperCase()} Slot</button>
-                        <button class="btn btn-small btn-success" 
-                                onclick="generateReport('${file.name}', '${deviceType}')" 
+                        <button class="btn btn-small btn-success"
+                                onclick="generateReport('${file.name}', '${deviceType}')"
                                 ${reportReady ? '' : 'disabled'}
-                                title="${reportReady ? 'Generate Report' : 'Download Bin/CSV and Meta files first'}">
+                                title="${reportReady ? 'Generate Report' : 'Download CSV and Meta files first'}">
                             Report
                         </button>
                     ` : ''}
                     <button class="btn btn-small btn-primary" onclick="downloadFile('${file.name}', '${deviceType}')">Download</button>
+                    <button class="btn btn-small btn-danger"
+                            onclick="handleDeleteFile(this, '${file.name}', '${deviceType}')"
+                            ${deleteSupported ? '' : 'disabled'}
+                            title="${deleteSupported ? 'Delete this file from the device' : 'Requires firmware v4.2+'}">
+                        Delete
+                    </button>
                 </div>
             </div>
         `;
@@ -1175,32 +1208,51 @@ async function downloadFile(filename, deviceType) {
     }
 
     deviceState.currentFilename = filename;
-    
-    // Check if it's a binary file
-    if (filename.endsWith('.bin')) {
-        deviceState.binaryBuffer = new Uint8Array(0);
-        deviceState.binaryHexBuffer = '';
-        deviceState.isReceivingBinary = true;
-        deviceState.binaryFileSize = 0;
-        
-        elements.downloadProgress.classList.remove('hidden');
-        elements.progressFill.style.width = '0%';
-        elements.progressText.textContent = `Downloading ${filename}...`;
-        
-        sendCommand(deviceType, `Q:${filename}`);
-    } else {
-        // Original CSV/text file download logic
-        deviceState.fileBuffer = '';
-        deviceState.isReceivingFile = true;
 
-        elements.downloadProgress.classList.remove('hidden');
-        elements.progressFill.style.width = '0%';
-        elements.progressText.textContent = `Downloading ${filename}...`;
+    // CSV/text file download (firmware has no binary/.bin file format)
+    deviceState.fileBuffer = '';
+    deviceState.isReceivingFile = true;
 
-        sendCommand(deviceType, `R:${filename}`);
+    elements.downloadProgress.classList.remove('hidden');
+    elements.progressFill.style.width = '0%';
+    elements.progressText.textContent = `Downloading ${filename}...`;
+
+    sendCommand(deviceType, `R:${filename}`);
+
+    // No timeout - rely on STREAM:END marker from firmware
+}
+
+// ============ File Deletion (DEL:, firmware v4.2+) ============
+
+// Inline confirm-on-second-click pattern (no window.confirm - it blocks BLE)
+function handleDeleteFile(btn, filename, deviceType) {
+    if (btn.classList.contains('active')) {
+        // Second click within the confirm window - proceed with delete
+        clearTimeout(btn._deleteConfirmTimer);
+        btn.classList.remove('active');
+        btn.textContent = 'Delete';
+        deleteFile(filename, deviceType);
+        return;
     }
-    
-    // No timeout - rely on STREAM:END/BIN:END marker from firmware
+
+    // First click - arm confirmation for a few seconds
+    btn.classList.add('active');
+    btn.textContent = 'Confirm?';
+    btn._deleteConfirmTimer = setTimeout(() => {
+        btn.classList.remove('active');
+        btn.textContent = 'Delete';
+    }, 3000);
+}
+
+function deleteFile(filename, deviceType) {
+    const deviceState = devices[deviceType];
+    if (!deviceState.isConnected) {
+        logToConsole(`${deviceType.toUpperCase()} not connected`, 'error');
+        return;
+    }
+
+    logToConsole(`[${deviceType.toUpperCase()}] Deleting ${filename}...`, 'info');
+    sendCommand(deviceType, `DEL:${filename}`);
 }
 
 async function viewMetadata(filename, deviceType) {
@@ -1228,7 +1280,7 @@ function onFileDataReceived(event, deviceType) {
     const value = decoder.decode(event.target.value);
 
     // Always log file protocol data (even in non-debug mode) for diagnostics
-    const isFileProtocol = value.includes('FILE') || value.includes('STREAM') || value.includes('META') || value.includes('ERROR');
+    const isFileProtocol = value.includes('FILE') || value.includes('STREAM') || value.includes('META') || value.includes('ERROR') || value.includes('DELETE');
     if (isFileProtocol) {
         logToConsole(`[${deviceType.toUpperCase()} BLE]: ${value.substring(0, 120)}`, 'error');
     } else {
@@ -1260,73 +1312,18 @@ function onFileDataReceived(event, deviceType) {
         return;
     }
 
-    // Parse binary file protocol (Q: command response)
-    if (value.includes('BIN:BEGIN')) {
-        const match = value.match(/BIN:BEGIN,(\d+)/);
-        if (match) {
-            deviceState.binaryFileSize = parseInt(match[1]);
-            deviceState.binaryBuffer = new Uint8Array(0);  // Use Uint8Array instead of string
-            deviceState.isReceivingBinary = true;
-            logToConsole(`[${deviceType.toUpperCase()}] Binary reception started: ${deviceState.binaryFileSize} bytes`, 'info');
+    // Parse delete-file response (DEL: command, firmware v4.2+)
+    // Success: "DELETED:<filename>". Failures arrive as "ERROR:DEL:<reason>" and are
+    // handled by the generic ERROR handler in parseAckResponse() below.
+    if (value.startsWith('DELETED:')) {
+        const filename = value.substring('DELETED:'.length).trim();
+        deviceState.files = (deviceState.files || []).filter(f => f.name !== filename);
+        if (deviceState.fileCache) {
+            delete deviceState.fileCache[filename];
         }
-        return;
-    }
-
-    if (value === 'BIN:END' || value.startsWith('BIN:END') || value === '<<BINEOF>>' || value.includes('<<BINEOF>>')) {
-        if (deviceState.isReceivingBinary) {
-            logToConsole(`[${deviceType.toUpperCase()}] Binary reception complete`, 'success');
-            finishBinaryDownload(deviceType);
-        }
-        return;
-    }
-
-    // Accumulate binary data (raw bytes or check if it's the old hex format)
-    if (deviceState.isReceivingBinary) {
-        // Check if this is raw binary data or hex string
-        const rawData = event.target.value;  // This is the original DataView
-        
-        if (rawData instanceof DataView || rawData instanceof ArrayBuffer) {
-            // Raw binary data - convert to Uint8Array and append
-            const bytes = new Uint8Array(rawData.buffer || rawData);
-            
-            // Check for end marker in binary data
-            const endMarker = new TextEncoder().encode('<<BINEOF>>');
-            let hasEndMarker = false;
-            if (bytes.length >= endMarker.length) {
-                // Check last bytes for end marker
-                const lastBytes = bytes.slice(-endMarker.length);
-                hasEndMarker = endMarker.every((val, idx) => val === lastBytes[idx]);
-            }
-            
-            if (hasEndMarker) {
-                // Remove end marker and append data
-                const dataWithoutMarker = bytes.slice(0, -endMarker.length);
-                const newBuffer = new Uint8Array(deviceState.binaryBuffer.length + dataWithoutMarker.length);
-                newBuffer.set(deviceState.binaryBuffer);
-                newBuffer.set(dataWithoutMarker, deviceState.binaryBuffer.length);
-                deviceState.binaryBuffer = newBuffer;
-                
-                // Finish download
-                logToConsole(`[${deviceType.toUpperCase()}] Binary reception complete (in-band EOF)`, 'success');
-                finishBinaryDownload(deviceType);
-                return;
-            } else {
-                // Append binary data
-                const newBuffer = new Uint8Array(deviceState.binaryBuffer.length + bytes.length);
-                newBuffer.set(deviceState.binaryBuffer);
-                newBuffer.set(bytes, deviceState.binaryBuffer.length);
-                deviceState.binaryBuffer = newBuffer;
-            }
-        } else if (typeof value === 'string') {
-            // Fallback: hex string format (old method)
-            if (!deviceState.binaryHexBuffer) {
-                deviceState.binaryHexBuffer = '';
-            }
-            deviceState.binaryHexBuffer += value;
-        }
-        
-        const progress = Math.min(100, (deviceState.binaryBuffer.length / deviceState.binaryFileSize) * 100);
-        elements.progressFill.style.width = progress + '%';
+        logToConsole(`[${deviceType.toUpperCase()}] Deleted: ${filename}`, 'success');
+        showNotification(`[${deviceType.toUpperCase()}] Deleted ${filename}`);
+        renderFileList(deviceType);
         return;
     }
 
@@ -1429,47 +1426,6 @@ function finishFileDownload(deviceType) {
         
         // Refresh file list to update button states
         renderFileList(deviceType);
-    }
-}
-
-function finishBinaryDownload(deviceType) {
-    const deviceState = devices[deviceType];
-    deviceState.isReceivingBinary = false;
-    elements.downloadProgress.classList.add('hidden');
-
-    const filename = deviceState.currentFilename;
-    
-    try {
-        let records;
-        
-        // Check if we have raw binary data or hex string
-        if (deviceState.binaryBuffer instanceof Uint8Array) {
-            // Parse raw binary data directly
-            records = BinaryParser.parseFromBytes(deviceState.binaryBuffer);
-        } else if (deviceState.binaryHexBuffer) {
-            // Fallback: parse hex string (old method)
-            records = BinaryParser.parseFromHexString(deviceState.binaryHexBuffer);
-        } else {
-            throw new Error('No binary data received');
-        }
-        
-        // Store in cache as CSV for compatibility
-        const csvData = BinaryParser.toCSV(records);
-        deviceState.fileCache[filename] = csvData;
-        
-        logToConsole(`Parsed ${records.length} records from binary file`, 'success');
-        showNotification(`Downloaded ${filename}: ${records.length} records`);
-        
-        // Clear buffers
-        deviceState.binaryBuffer = new Uint8Array(0);
-        deviceState.binaryHexBuffer = '';
-        
-        // Update file list to show download status
-        renderFileList(deviceType);
-        
-    } catch (error) {
-        logToConsole(`Error parsing binary file: ${error.message}`, 'error');
-        showNotification(`Error parsing ${filename}`, 'error');
     }
 }
 
@@ -1671,11 +1627,10 @@ function getCachedReportFiles(slotInfo) {
     if (!deviceState || !filename) return null;
 
     const baseName = filename.replace(/\.csv$/i, '');
-    const binFilename = baseName + '.bin';
     const metaName = baseName + '_m.txt';
 
     const fileCache = deviceState.fileCache || {};
-    const csvData = fileCache[filename] || fileCache[binFilename];
+    const csvData = fileCache[filename];
     const metaData = fileCache[metaName];
     if (!csvData || !metaData) return null;
 
@@ -1692,7 +1647,7 @@ async function generateCombinedReportFromSlots() {
     const trunkCached = getCachedReportFiles(dualReportSlots.trunk);
 
     if (!armCached || !trunkCached) {
-        alert('Both slots need ready data (CSV/Bin + Meta). Download needed files first, then try again.');
+        alert('Both slots need ready data (CSV + Meta). Download needed files first, then try again.');
         return;
     }
 
@@ -1751,42 +1706,10 @@ async function generateReport(filename, deviceType) {
     }
 
     const baseName = filename.replace(/\.csv$/i, '');
-    const binFilename = baseName + '.bin';
     const metaName = baseName + '_m.txt';
-    
-    console.log('GenerateReport - filename:', filename, 'baseName:', baseName, 'binFilename:', binFilename, 'metaName:', metaName);
-    
-    // Check if we have binary file instead
-    const hasBinFile = deviceState.fileCache[binFilename];
-    const hasMetaFile = deviceState.fileCache[metaName];
-    
-    // Prefer binary + meta if available
-    if (hasBinFile && hasMetaFile) {
-        try {
-            const binData = deviceState.fileCache[binFilename]; // Already converted to CSV
-            const metaText = deviceState.fileCache[metaName];
-            
-            console.log('Using binary file for report generation');
-            logToConsole('Using binary data to generate report...', 'info');
-            
-            reportData.filename = filename;
-            reportData.deviceType = deviceType;
-            reportData.csvData = binData;
-            reportData.metadata = metaText;
-            
-            // Generate report immediately
-            setTimeout(() => {
-                displayReport();
-            }, 100);
-            return;
-            
-        } catch (error) {
-            console.error('Error generating report from binary:', error);
-            showNotification('Error generating report from binary file', 'error');
-            return;
-        }
-    }
-    
+
+    console.log('GenerateReport - filename:', filename, 'baseName:', baseName, 'metaName:', metaName);
+
     // Check if files are cached
     const csvCached = deviceState.fileCache[filename];
     const metaCached = deviceState.fileCache[metaName];
@@ -2259,7 +2182,7 @@ function createReportChart(data, metadata) {
                         text: 'Angle (degrees)'
                     },
                     beginAtZero: true,
-                    suggestedMax: Math.max(redThreshold + 10, Math.max(...angleData) + 5)
+                    suggestedMax: Math.max(redThreshold + 10, arrayMax(angleData) + 5)
                 }
             }
         },
@@ -2325,8 +2248,8 @@ function createHistogram(data) {
     const stats = calculateAdvancedStatistics(angles);
     
     // Create histogram bins with 1-degree resolution
-    const minAngle = Math.floor(Math.min(...angles));
-    const maxAngle = Math.ceil(Math.max(...angles));
+    const minAngle = Math.floor(arrayMin(angles));
+    const maxAngle = Math.ceil(arrayMax(angles));
     const binSize = 1; // 1 degree bins
     const binCount = Math.ceil((maxAngle - minAngle) / binSize);
     
@@ -2452,8 +2375,8 @@ function calculateAdvancedStatistics(angles) {
         variance: variance.toFixed(2),
         stdDev: stdDev.toFixed(2),
         skewness: skewness.toFixed(3),
-        min: Math.min(...angles).toFixed(2),
-        max: Math.max(...angles).toFixed(2),
+        min: arrayMin(angles).toFixed(2),
+        max: arrayMax(angles).toFixed(2),
         p25: p25.toFixed(2),
         p75: p75.toFixed(2),
         p90: p90.toFixed(2),
@@ -2622,9 +2545,9 @@ function calculateStatistics(data, metadata) {
         totalGreenTime,
         totalYellowTime,
         totalRedTime,
-        greenPercentage: (totalGreenTime / totalTime * 100).toFixed(1),
-        yellowPercentage: (totalYellowTime / totalTime * 100).toFixed(1),
-        redPercentage: (totalRedTime / totalTime * 100).toFixed(1),
+        greenPercentage: totalTime > 0 ? (totalGreenTime / totalTime * 100).toFixed(1) : '0.0',
+        yellowPercentage: totalTime > 0 ? (totalYellowTime / totalTime * 100).toFixed(1) : '0.0',
+        redPercentage: totalTime > 0 ? (totalRedTime / totalTime * 100).toFixed(1) : '0.0',
         averageAngle: (data.reduce((sum, d) => sum + d.angle, 0) / data.length).toFixed(2),
         averageGreenAngle: greenAngles.length > 0 ? (greenAngles.reduce((a, b) => a + b, 0) / greenAngles.length).toFixed(2) : 'N/A',
         averageYellowAngle: yellowAngles.length > 0 ? (yellowAngles.reduce((a, b) => a + b, 0) / yellowAngles.length).toFixed(2) : 'N/A',
