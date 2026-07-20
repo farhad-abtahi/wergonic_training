@@ -13,15 +13,30 @@
     if (isLight) document.documentElement.classList.add('light');
 })();
 
-function wergonicSetTheme(light) {
+function wergonicApplyTheme(light) {
     document.documentElement.classList.toggle('light', light);
-    try { localStorage.setItem('wergonic-theme', light ? 'light' : 'dark'); } catch (e) {}
     var btns = document.querySelectorAll('.app-shell-theme-toggle');
     for (var i = 0; i < btns.length; i++) {
         btns[i].textContent = light ? '☀ Light' : '☾ Dark';
     }
     wergonicApplyChartDefaults();
 }
+
+function wergonicSetTheme(light) {
+    wergonicApplyTheme(light);
+    try { localStorage.setItem('wergonic-theme', light ? 'light' : 'dark'); } catch (e) {}
+}
+
+// Same-origin documents (other iframes, other tabs) that are already loaded
+// keep whatever theme class they applied at load time — they have no way to
+// know localStorage's 'wergonic-theme' changed elsewhere. The native
+// 'storage' event fires in every other same-origin browsing context when a
+// write happens (but never in the context that made the write), so it's a
+// safe, feedback-loop-free way to keep them in sync without polling.
+window.addEventListener('storage', function (event) {
+    if (event.key !== 'wergonic-theme') return;
+    wergonicApplyTheme(event.newValue === 'light');
+});
 
 function wergonicApplyChartDefaults() {
     // Best-effort dark/light defaults for Chart.js, if the page loads it
@@ -39,7 +54,9 @@ var APP_SHELL_NAV_ITEMS = [
     { label: 'Comparison', href: 'demo.html', group: 'more' },
     { label: 'Landscape Report', href: 'session-comparison-landscape.html', group: 'more' },
     { label: 'Posture Viewer', href: 'posture-viewer.html', group: 'more' },
-    { label: 'Live Record', href: 'live-record.html', group: 'primary' }
+    { label: 'Live Record', href: 'live-record.html', group: 'primary' },
+    { label: 'Clinician Dashboard', href: 'clinician-dashboard.html', group: 'more' },
+    { label: 'Rehab Game', href: 'rehab-game.html', group: 'more' }
 ];
 
 var APP_SHELL_TABS = [
