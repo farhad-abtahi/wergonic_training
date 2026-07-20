@@ -9,8 +9,8 @@
 static void getAngleArm(werg_unit* werg_device, float* angles);
 static void getAngleBack(werg_unit* werg_device, float* angles);
 static float calcAngleArm(werg_unit* werg_device);
-static float calcAngleSide(werg_unit* werg_device);
-static float calcAngleBack(werg_unit* werg_device);
+static void getFusedDeltas(werg_unit* werg_device, float* deltaPitch,
+                           float* deltaRoll);
 
 SimpleFusion fuser;
 float alpha = 1.2;
@@ -175,16 +175,15 @@ static void getAngleArm(werg_unit* werg_device, float* angles)
 
 static void getAngleBack(werg_unit* werg_device, float* angles)
 {
-    float accelValues[3] = {0, 0, 0};
     // get values from IMU.
     getIMUaccel(werg_device);
     getIMUgyro(werg_device);
-    // calculate angle.
-    float angleBack = calcAngleBack(werg_device);
-    // write angle to app.
-    angles[0] = angleBack;
-    float angleSide = calcAngleSide(werg_device);
-    angles[1] = angleSide;
+    // one filter update; both angles derived from it.
+    float deltaPitch = 0;
+    float deltaRoll = 0;
+    getFusedDeltas(werg_device, &deltaPitch, &deltaRoll);
+    angles[0] = abs(deltaPitch - deltaRoll); // torso bend to the back.
+    angles[1] = deltaRoll;                   // torso inclination to the side.
 }
 
 static float calcAngleArm(werg_unit* werg_device)
@@ -211,12 +210,16 @@ static float calcAngleArm(werg_unit* werg_device)
     return abs(angle) * 180.0 / M_PI;
 }
 
-// Calculate the torso incilation to the back.
+// Run the fusion filter ONCE for the current IMU sample and return the
+// absolute pitch/roll deviations from the calibration pose, in degrees.
+// BACK-mode bend and side angles are both derived from this single update so
+// the filter's effective time constant matches ARM mode.
 //
 // Calculation is dependant on device placement (i.e pitch and roll change
 // depending on IMU placement) Current formula is for device placed with plug
 // reception upwards (i.e vibrator at the bottom)
-static float calcAngleBack(werg_unit* werg_device)
+static void getFusedDeltas(werg_unit* werg_device, float* deltaPitch,
+                           float* deltaRoll)
 {
     ThreeAxis accelerometer;
     ThreeAxis gyroscope;
@@ -230,31 +233,8 @@ static float calcAngleBack(werg_unit* werg_device)
     gyroscope.z = werg_device->imuVal->gyroValues[2];
     fuser.getFilteredAngles(accelerometer, gyroscope, &fusedAngles,
                             UNIT_DEGREES);
-    const float roll = abs(fusedAngles.roll - werg_device->calibRoll);
-    const float pitch = abs(fusedAngles.pitch - werg_device->calibPitch);
-    return abs(pitch - roll);
-}
-
-// Calculate the torso incilation to the side.
-static float calcAngleSide(werg_unit* werg_device)
-{
-    ThreeAxis accelerometer;
-    ThreeAxis gyroscope;
-    FusedAngles fusedAngles;
-
-    accelerometer.x = werg_device->imuVal->accelValues[0];
-    accelerometer.y = werg_device->imuVal->accelValues[1];
-    accelerometer.z = werg_device->imuVal->accelValues[2];
-    gyroscope.x = werg_device->imuVal->gyroValues[0];
-    gyroscope.y = werg_device->imuVal->gyroValues[1];
-    gyroscope.z = werg_device->imuVal->gyroValues[2];
-    fuser.getFilteredAngles(accelerometer, gyroscope, &fusedAngles,
-                            UNIT_DEGREES);
-    fuser.getFilteredAngles(accelerometer, gyroscope, &fusedAngles,
-                            UNIT_DEGREES);
-    const float roll = abs(fusedAngles.roll - werg_device->calibRoll);
-    const float pitch = abs(fusedAngles.pitch - werg_device->calibPitch);
-    return roll;
+    *deltaPitch = abs(fusedAngles.pitch - werg_device->calibPitch);
+    *deltaRoll = abs(fusedAngles.roll - werg_device->calibRoll);
 }
 
 // Check if the angle is between or above the crticial values and trigger a
