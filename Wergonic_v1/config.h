@@ -12,7 +12,7 @@ typedef struct flashStruct
     float calibRoll = 0;
     float calibPitch = 0;
     float calibValues[3] = {0, 0, 0}; // raw averaged accel vector at calibration time.
-    uint32_t calibMagic = 0;          // CALIB_MAGIC when calibValues/calibRoll/calibPitch hold a valid saved calibration.
+    uint32_t calibMagic = 0;          // validity marker for calib fields; must equal CALIB_MAGIC (device.h). NanoBLEFlashPrefs::readPrefs() uses memcpy with full struct size, so old records leave this holding whatever bytes follow in flash — safe because those would need to equal CALIB_MAGIC (~1 in 2^32) to restore.
     bool calibRestoreOnBoot = false;  // restore saved calibration on boot. Off by default.
 } flashPrefs;
 

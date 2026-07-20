@@ -12,7 +12,7 @@ typedef struct flashStruct
     float calibRoll = 0;
     float calibPitch = 0;
     float calibValues[3] = {0, 0, 0}; // raw averaged accel vector at calibration time (see calibIMU); needed by calcAngleArm's filter-off branch.
-    uint32_t calibMagic = 0;          // validity marker for the calib fields above; must equal CALIB_MAGIC (device.h) to be trusted. Defaults to 0, so a fresh device or an old/short flash record (predating these fields) safely reads as "no calibration saved" instead of restoring garbage.
+    uint32_t calibMagic = 0;          // validity marker for the calib fields above; must equal CALIB_MAGIC (device.h) to be trusted. NanoBLEFlashPrefs::readPrefs() memcpy's the full struct size regardless of what was written, so an old/short flash record leaves this field holding whatever bytes follow it in flash (not guaranteed zero) — restore is safe because those bytes would need to coincidentally equal CALIB_MAGIC exactly (~1 in 2^32) to be trusted.
     bool calibRestoreOnBoot = false;  // persisted user preference: restore last calibration on boot (U/Y commands). Default OFF.
 } flashPrefs;
 
