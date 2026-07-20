@@ -6,31 +6,83 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&display=swap');
 
 :root {
-    /* M3 Color Tokens - Primary (Blue) */
+    /* M3 Color Tokens - dark theme (default). Primary/secondary/tertiary
+       tones lightened per M3 dark-theme guidance for contrast on dark
+       surfaces; surfaces darkened; elevation shadows strengthened. */
+    --md-sys-color-primary: #a8c8ff;
+    --md-sys-color-on-primary: #00315f;
+    --md-sys-color-primary-container: #1a5fb4;
+    --md-sys-color-on-primary-container: #d4e3ff;
+
+    --md-sys-color-secondary: #4dded9;
+    --md-sys-color-on-secondary: #003735;
+    --md-sys-color-secondary-container: #006a67;
+    --md-sys-color-on-secondary-container: #6ff7f1;
+
+    --md-sys-color-tertiary: #ffb68d;
+    --md-sys-color-on-tertiary: #5a2000;
+    --md-sys-color-tertiary-container: #9a4520;
+    --md-sys-color-on-tertiary-container: #ffdbc9;
+
+    --md-sys-color-error: #ffb4ab;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #ba1a1a;
+    --md-sys-color-on-error-container: #ffdad6;
+
+    --md-sys-color-surface: #101418;
+    --md-sys-color-on-surface: #e2e2e6;
+    --md-sys-color-surface-variant: #43474e;
+    --md-sys-color-on-surface-variant: #c3c6cf;
+    --md-sys-color-surface-container: #1e2126;
+    --md-sys-color-surface-container-low: #191c20;
+    --md-sys-color-surface-container-high: #282b30;
+    --md-sys-color-surface-container-highest: #33363b;
+
+    --md-sys-color-outline: #8d9199;
+    --md-sys-color-outline-variant: #43474e;
+
+    --md-sys-color-success: #7fdb9c;
+    --md-sys-color-success-container: #00522a;
+    --md-sys-color-warning: #f0c04d;
+    --md-sys-color-warning-container: #5c4200;
+
+    --md-sys-elevation-1: 0 1px 3px 1px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5);
+    --md-sys-elevation-2: 0 2px 6px 2px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5);
+    --md-sys-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.5);
+
+    --md-sys-shape-corner-none: 0;
+    --md-sys-shape-corner-extra-small: 8px;
+    --md-sys-shape-corner-small: 12px;
+    --md-sys-shape-corner-medium: 16px;
+    --md-sys-shape-corner-large: 24px;
+    --md-sys-shape-corner-extra-large: 32px;
+    --md-sys-shape-corner-full: 9999px;
+
+    font-size: 18px;
+}
+
+:root.light {
+    /* M3 Color Tokens - light theme (today's original, unchanged values). */
     --md-sys-color-primary: #1a5fb4;
     --md-sys-color-on-primary: #ffffff;
     --md-sys-color-primary-container: #d4e3ff;
     --md-sys-color-on-primary-container: #001c3a;
 
-    /* Secondary (Teal) */
     --md-sys-color-secondary: #006a67;
     --md-sys-color-on-secondary: #ffffff;
     --md-sys-color-secondary-container: #6ff7f1;
     --md-sys-color-on-secondary-container: #00201f;
 
-    /* Tertiary (Orange/Warm) */
     --md-sys-color-tertiary: #9a4520;
     --md-sys-color-on-tertiary: #ffffff;
     --md-sys-color-tertiary-container: #ffdbc9;
     --md-sys-color-on-tertiary-container: #351000;
 
-    /* Error */
     --md-sys-color-error: #ba1a1a;
     --md-sys-color-on-error: #ffffff;
     --md-sys-color-error-container: #ffdad6;
     --md-sys-color-on-error-container: #410002;
 
-    /* Surface & Background */
     --md-sys-color-surface: #fdfcff;
     --md-sys-color-on-surface: #1a1c1e;
     --md-sys-color-surface-variant: #e0e2ec;
@@ -40,32 +92,13 @@
     --md-sys-color-surface-container-high: #e8e7ec;
     --md-sys-color-surface-container-highest: #e2e2e6;
 
-    /* Outline */
     --md-sys-color-outline: #73777f;
     --md-sys-color-outline-variant: #c3c6cf;
 
-    /* Status Colors */
     --md-sys-color-success: #006d3b;
     --md-sys-color-success-container: #98f7b5;
     --md-sys-color-warning: #7d5800;
     --md-sys-color-warning-container: #ffdf9e;
-
-    /* Elevation (tonal) */
-    --md-sys-elevation-1: 0 1px 3px 1px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.3);
-    --md-sys-elevation-2: 0 2px 6px 2px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.3);
-    --md-sys-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.3);
-
-    /* Shape - Expressive (more rounded) */
-    --md-sys-shape-corner-none: 0;
-    --md-sys-shape-corner-extra-small: 8px;
-    --md-sys-shape-corner-small: 12px;
-    --md-sys-shape-corner-medium: 16px;
-    --md-sys-shape-corner-large: 24px;
-    --md-sys-shape-corner-extra-large: 32px;
-    --md-sys-shape-corner-full: 9999px;
-
-    /* Typography scale */
-    font-size: 18px;
 }
 
 * {
@@ -185,67 +218,6 @@ header h1 {
 
 body.debug-mode .debug-only {
     display: block;
-}
-
-/* ============ Navigation ============ */
-.navigation {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 24px;
-    padding: 14px 24px;
-    background: var(--md-sys-color-surface-container-low);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    border-left: 0;
-    border-right: 0;
-    flex-wrap: wrap;
-}
-
-.nav-link {
-    padding: 12px 20px;
-    background: var(--md-sys-color-surface);
-    color: var(--md-sys-color-primary);
-    text-decoration: none;
-    border-radius: var(--md-sys-shape-corner-full);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    font-weight: 500;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-}
-
-.nav-link:hover {
-    background: var(--md-sys-color-primary-container);
-    border-color: var(--md-sys-color-primary);
-}
-
-.nav-link.active {
-    background: var(--md-sys-color-primary);
-    color: var(--md-sys-color-on-primary);
-    border-color: var(--md-sys-color-primary);
-}
-
-.nav-version {
-    margin-left: auto;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--md-sys-color-on-surface-variant);
-    background: var(--md-sys-color-surface);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: var(--md-sys-shape-corner-full);
-    padding: 7px 12px;
-    white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-    .navigation {
-        padding: 12px 16px;
-    }
-
-    .nav-version {
-        margin-left: 0;
-    }
 }
 
 /* Connection Status - M3 Chip style */
