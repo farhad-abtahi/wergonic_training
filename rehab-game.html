@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RehabGame · Calf Extension Training</title>
+  <script src="config.js"></script>
+  <script src="app-shell.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <style>
     :root {
       --bg:      #070c18;
@@ -20,6 +25,22 @@
       --gc:      rgba(34,211,238,0.25);
       --gp:      rgba(167,139,250,0.25);
       --gg:      rgba(52,211,153,0.25);
+    }
+    :root.light {
+      --bg:      #eef2f8;
+      --bg1:     #e4eaf2;
+      --bg2:     #d9e1ee;
+      --cyan:    #0891b2;
+      --purple:  #7c3aed;
+      --green:   #16a34a;
+      --orange:  #d97706;
+      --red:     #dc2626;
+      --text:    #1a2a3a;
+      --text2:   #4a5a6a;
+      --border:  rgba(0,40,100,0.12);
+      --gc:      rgba(8,145,178,0.15);
+      --gp:      rgba(124,58,237,0.15);
+      --gg:      rgba(22,163,74,0.15);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -345,6 +366,7 @@
   </style>
 </head>
 <body>
+<div id="app-shell-nav"></div>
 
 <canvas id="pcanvas"></canvas>
 

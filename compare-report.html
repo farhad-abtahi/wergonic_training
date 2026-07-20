@@ -6,6 +6,10 @@
     <title>Report Compare - Wergonic</title>
     <link rel="stylesheet" href="styles.css">
     <script src="config.js"></script>
+    <script src="app-shell.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
 
@@ -20,6 +24,19 @@
             --cmp-good: #4caf50;
             --cmp-warning: #ffc107;
             --cmp-risk: #f44336;
+        }
+
+        :root.light {
+            --cmp-bg: #eef2f8;
+            --cmp-bg-2: #e4eaf2;
+            --cmp-surface: rgba(255, 255, 255, 0.92);
+            --cmp-surface-2: rgba(245, 248, 252, 0.9);
+            --cmp-border: rgba(0, 40, 100, 0.12);
+            --cmp-text: #1a2a3a;
+            --cmp-muted: rgba(26, 42, 58, 0.55);
+            --cmp-good: #22a84a;
+            --cmp-warning: #d4a00a;
+            --cmp-risk: #e03830;
         }
 
         html, body {
@@ -292,15 +309,7 @@
     </style>
 </head>
 <body>
-    <nav class="navigation">
-        <a href="index.html" class="nav-link">Home</a>
-        <a href="demo-report.html" class="nav-link">Session Report</a>
-        <a href="compare-report.html" class="nav-link active">Compare Reports</a>
-        <a href="session-comparison-landscape.html" class="nav-link">Landscape Report</a>
-        <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
-        <a href="teacher-control.html" class="nav-link">Teacher Control</a>
-        <span class="nav-version"></span>
-    </nav>
+    <div id="app-shell-nav"></div>
 
     <main class="compare-shell">
         <section class="compare-hero">
