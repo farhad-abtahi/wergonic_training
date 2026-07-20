@@ -9,6 +9,10 @@
     <title>Live Recording - Wergonic</title>
     <link rel="stylesheet" href="styles.css">
     <script src="config.js"></script>
+    <script src="app-shell.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
         /* ── Layout ── */
         .rec-grid {
@@ -200,16 +204,7 @@
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navigation">
-        <a href="index.html" class="nav-link">Home</a>
-        <a href="demo-report.html" class="nav-link">Session Report</a>
-        <a href="demo.html" class="nav-link">Comparison</a>
-        <a href="posture-viewer.html" class="nav-link">Posture Viewer</a>
-        <a href="teacher-control.html" class="nav-link">Teacher Control</a>
-        <a href="live-record.html" class="nav-link active">Live Record</a>
-        <span class="nav-version"></span>
-    </nav>
+    <div id="app-shell-nav"></div>
 
     <div class="container">
         <header>
