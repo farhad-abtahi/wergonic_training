@@ -1,4 +1,5 @@
 #include "ble_service.h"
+#include "main.h"
 
 // Support for the BLE service of Wergonic device. Includes support for
 // generation of UUID.//
@@ -101,6 +102,7 @@ void bleService(werg_unit* werg_device)
         {
             long currentMillis = millis();
             ledsConnected();
+            readConsole(werg_device); // serial commands stay usable during BLE.
             if (switchCharacteristic.written())
             {
                 byte readValue;
