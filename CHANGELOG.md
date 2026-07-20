@@ -29,12 +29,12 @@ Version is defined in `Wergonic_v1/version.h` (`FIRMWARE_VERSION`), printed in t
 - Serial commands now work while BLE is connected (previously blocked).
 - Fusion filter now performs exactly one update per IMU sample in BACK mode (previously 3 updates per sample).
 - Fusion filter is initialized with the real 100 Hz sample rate instead of 0, removing a latent divide-by-zero if the commented-out complementary term is ever re-enabled.
+- Yellow-warning vibration pulse (`warning()`) is now non-blocking, driven by a `millis()`-based state machine advanced via `vibrator_update()` each loop iteration; previously it called `delay()` twice (~600 ms total), stalling IMU sampling and BLE/serial servicing. Behind `VIB_NONBLOCKING_WARNING` in `Wergonic_v1/vibrator.h` (default on; set to 0 to restore the legacy blocking behavior).
 
 #### Known limitations (unchanged)
 
 - Complementary filter term still disabled (accel-only tilt).
 - BLE angle characteristics are single bytes (whole degrees).
-- Yellow-warning vibration blocks the main loop for ~600 ms.
 - Calibration is saved to flash but not restored on boot (restore code is commented out).
 
 ### Firmware 4.2 (firmware/)

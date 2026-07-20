@@ -101,6 +101,7 @@ void bleService(werg_unit* werg_device)
         while (central.connected())
         {
             long currentMillis = millis();
+            vibrator_update(werg_device->myVib); // advance non-blocking warning pulse.
             ledsConnected();
             readConsole(werg_device); // serial commands stay usable during BLE.
             if (switchCharacteristic.written())

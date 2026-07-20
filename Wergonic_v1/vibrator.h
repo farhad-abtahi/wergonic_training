@@ -6,6 +6,10 @@
 #include "leds.h"
 #include "stdint.h"
 
+// Non-blocking yellow-warning pulse (fix for ~600 ms loop stalls). Set to 0
+// to restore the legacy blocking delay() behavior.
+#define VIB_NONBLOCKING_WARNING 1
+
 // Intensity for Vibrator. 100 is quite strong.
 #define STRONG_VIB 8
 #define MEDIUM_VIB 6
@@ -26,6 +30,9 @@ struct vibrator
 void checkVib(vibrator *myVib); // Fast check of the vibrator unit.
 void alert(vibrator* myVib); // Vibrate consistently for duration = ALERT_TIME.
 void warning(vibrator* myVib); // Vibrate two times with a pause = PAUSE_TIME.
+void vibrator_update(vibrator* myVib); // Advance the non-blocking warning
+                           // pulse state machine; call once per loop
+                           // iteration. No-op when VIB_NONBLOCKING_WARNING is 0.
 void noVib(void);              // Stop vibration.
 void vib(vibrator* myVib,uint8_t intensity); // Trigger a vibration with the currently configured
                            // intensity.

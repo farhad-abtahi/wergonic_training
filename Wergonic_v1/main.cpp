@@ -16,6 +16,7 @@ void mainTask()
     while (1)
     {
         // while bluetooth connection isn't established keep polling.
+        vibrator_update(werg_device.myVib); // advance non-blocking warning pulse.
         float angles[2] = {0, 0};
         bool angle_available = false;
         if (isCalibrated(&werg_device) && isTypeSet(&werg_device))

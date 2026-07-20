@@ -8,6 +8,14 @@ static void readRegister(uint8_t reg);
 static void readInfo();
 static void drvInit();
 
+#if VIB_NONBLOCKING_WARNING
+// Non-blocking yellow-warning pulse state machine (see vibrator_update()).
+// Declared ahead of noVib() so noVib() can cancel an in-progress pulse.
+enum vibWarningState_t { VIB_WARN_IDLE, VIB_WARN_PULSING, VIB_WARN_REST };
+static vibWarningState_t vibWarningState = VIB_WARN_IDLE;
+static unsigned long vibWarningStart = 0;
+#endif
+
 void vib(vibrator* myVib, uint8_t intensity)
 {
     drv.setRealtimeValue(intensity);
@@ -17,6 +25,11 @@ void noVib()
 {
     ledsOff();
     drv.setRealtimeValue(0x00);
+#if VIB_NONBLOCKING_WARNING
+    // Cancel any in-progress warning pulse so it can't resume once we go
+    // back to yellow/red -> green (phantom-pulse bug seen in 4.0 firmware).
+    vibWarningState = VIB_WARN_IDLE;
+#endif
 }
 
 void checkVib(vibrator myVib)
@@ -42,6 +55,19 @@ void alert(vibrator* myVib)
 
 void warning(vibrator* myVib)
 {
+#if VIB_NONBLOCKING_WARNING
+    if (vibWarningState != VIB_WARN_IDLE)
+    {
+        return; // Pattern already running; don't restart it.
+    }
+    noVib();
+    Serial.println("Yellow warning.");
+    ledsOff();
+    digitalWrite(LEDB, LOW);
+    vib(myVib, 0.6 * myVib->vibIntensity);
+    vibWarningStart = millis();
+    vibWarningState = VIB_WARN_PULSING;
+#else
     noVib();
     Serial.println("Yellow warning.");
     ledsOff();
@@ -50,7 +76,34 @@ void warning(vibrator* myVib)
     delay(myVib->alert_time);
     noVib();
     delay(myVib->alert_time);
+#endif
 }
+
+// Advance the non-blocking warning pulse: vibration on for alert_time, then
+// off for another alert_time before a new warning() call can fire again.
+// This reproduces the legacy on/delay/off/delay envelope without blocking
+// the caller. Call once per loop iteration.
+#if VIB_NONBLOCKING_WARNING
+void vibrator_update(vibrator* myVib)
+{
+    unsigned long now = millis();
+    if (vibWarningState == VIB_WARN_PULSING &&
+        now - vibWarningStart >= (unsigned long)myVib->alert_time)
+    {
+        ledsOff();
+        drv.setRealtimeValue(0x00);
+        vibWarningStart = now;
+        vibWarningState = VIB_WARN_REST;
+    }
+    else if (vibWarningState == VIB_WARN_REST &&
+             now - vibWarningStart >= (unsigned long)myVib->alert_time)
+    {
+        vibWarningState = VIB_WARN_IDLE;
+    }
+}
+#else
+void vibrator_update(vibrator* myVib) {}
+#endif
 
 // Detect the Adafruit driver and read the registers.
 void vibInit()
