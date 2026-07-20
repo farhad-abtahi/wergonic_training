@@ -1850,6 +1850,9 @@ function parseCSVData(csvText) {
                 const elapsed_ms = parseInt(parts[0]);
                 if (!Number.isFinite(elapsed_ms)) continue;
 
+                const angle = parseFloat(parts[2]);
+                if (!Number.isFinite(angle)) continue;
+
                 // Detect sequence reset (elapsed_ms decreases or resets to near 0)
                 if (i > 1 && elapsed_ms < previousElapsed) {
                     // New sequence detected, add offset
@@ -1857,12 +1860,12 @@ function parseCSVData(csvText) {
                     sequenceCount++;
                     console.log(`Sequence #${sequenceCount} detected at line ${i}, offset: ${timeOffset}ms`);
                 }
-                
+
                 data.push({
                     elapsed_ms: elapsed_ms,  // Original value
                     adjusted_elapsed_ms: elapsed_ms + timeOffset,  // Continuous timeline
                     timestamp: parts[1],
-                    angle: parseFloat(parts[2]),
+                    angle: angle,
                     feedback: parseInt(parts[3]),
                     zone: parts[4].trim(),
                     sequence: sequenceCount

@@ -66,7 +66,6 @@ void hwInit()
     serialInit();
     i2cInit();
     bleInit();
-    bleInit();
     vibInit();
     wergInit(&werg_device);
 }

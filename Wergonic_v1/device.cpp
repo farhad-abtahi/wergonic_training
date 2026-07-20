@@ -160,7 +160,6 @@ void takeSample(werg_unit* werg_device, float* angles)
     }
     else
     {
-        float anglesBack[2];
         getAngleBack(werg_device, angles);
     }
 }
@@ -168,7 +167,6 @@ void takeSample(werg_unit* werg_device, float* angles)
 // Sample the sensor and update the value in the app.
 static void getAngleArm(werg_unit* werg_device, float* angles)
 {
-    float accelValues[3] = {0, 0, 0};
     // get values from IMU.
     getIMUaccel(werg_device);
     getIMUgyro(werg_device);
@@ -247,7 +245,6 @@ static void getFusedDeltas(werg_unit* werg_device, float* deltaPitch,
 // warning if neccessary.
 void checkAngle(float* angles, werg_unit* werg_device)
 {
-    long currentMillis = millis();
     if (debug_prints)
     {
         Serial.print("Check angle limits: ");
