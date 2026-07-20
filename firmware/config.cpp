@@ -57,14 +57,29 @@ void savePreferencesType(type devType)
     printReturnCode(myFlashPrefs.writePrefs(&globalPrefs, sizeof(globalPrefs)));
 }
 
-// Save the device calibration.
-void savePreferencesCalib(float calibRoll, float calibPitch)
+// Save the device calibration: angle + raw averaged accel vector, marked
+// valid, all in one flash write (a separate write just for calibMagic would
+// cost an extra flash cycle every calibration).
+void savePreferencesCalib(float calibRoll, float calibPitch, const float calibValues[3])
 {
     Serial.println("Save calibration");
     globalPrefs.calibRoll = calibRoll;
     globalPrefs.calibPitch = calibPitch;
+    globalPrefs.calibValues[0] = calibValues[0];
+    globalPrefs.calibValues[1] = calibValues[1];
+    globalPrefs.calibValues[2] = calibValues[2];
+    globalPrefs.calibMagic = CALIB_MAGIC;
     Serial.println(globalPrefs.calibRoll);
     Serial.println(globalPrefs.calibPitch);
+    printReturnCode(myFlashPrefs.writePrefs(&globalPrefs, sizeof(globalPrefs)));
+}
+
+// Save calibration-restore-on-boot preference.
+void savePreferencesCalibRestore(bool enabled)
+{
+    Serial.print("Save calib-restore-on-boot: ");
+    globalPrefs.calibRestoreOnBoot = enabled;
+    Serial.println(globalPrefs.calibRestoreOnBoot);
     printReturnCode(myFlashPrefs.writePrefs(&globalPrefs, sizeof(globalPrefs)));
 }
 
@@ -91,6 +106,12 @@ void printPreferences(flashPrefs thePrefs)
     Serial.print("DEVICE CALIB: ");
     Serial.println(thePrefs.calibRoll);
     Serial.println(thePrefs.calibPitch);
+    delay(100);
+    Serial.print("CALIB VALID: ");
+    Serial.println(thePrefs.calibMagic == CALIB_MAGIC ? "yes" : "no");
+    delay(100);
+    Serial.print("CALIB RESTORE ON BOOT: ");
+    Serial.println(thePrefs.calibRestoreOnBoot);
     delay(100);
 }
 

@@ -5,6 +5,16 @@ All notable changes to the Wergonic Vibrator firmware. Format loosely follows
 `firmware/version.h` and is reported in the boot banner and by the `V` command
 (the webapp uses it for feature detection).
 
+## [4.3] — 2026-07-20
+
+### Added
+- Calibration-restore-on-boot, off by default, toggled via `U`/`Y` commands
+  or the new BLE characteristic (UUID
+  `6f2e9b1a-3c7d-4e2f-9a6b-1d8c5f0a72e3`); persists the raw calibration
+  accel vector so restore is valid whether or not the complementary filter
+  is enabled at boot; gyro bias is not restorable and resets to zero until
+  the next calibration.
+
 ## [4.2] — 2026-07-20
 
 ### Added

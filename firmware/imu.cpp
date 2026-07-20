@@ -124,5 +124,5 @@ void calibIMU(werg_unit* werg_device, SimpleFusion* fuser)
     Serial.println("Calibration over.");
     ledsConnect();
     configDevCalib(werg_device, werg_device->calibRoll,
-                   werg_device->calibPitch);
+                   werg_device->calibPitch, werg_device->imuVal->calibValues);
 }

@@ -109,9 +109,27 @@ void configInit()
     configDevIntensity(&werg_device, intensity);
     configDevID(&werg_device, savedPrefs.devID);
     configDevType(&werg_device, savedPrefs.devType);
-    // if (savedPrefs.calibRoll != 0)
-    // {
-    //     configDevCalib(&werg_device, savedPrefs.calibRoll,
-    //                    savedPrefs.calibPitch);
-    // }
+
+    // Restore the calibration-restore-on-boot preference itself regardless
+    // of whether a saved calibration is actually restorable below, so the
+    // toggle state survives reboots even before the first calibration.
+    werg_device.calibRestoreOnBoot = savedPrefs.calibRestoreOnBoot;
+
+    if (savedPrefs.calibRestoreOnBoot &&
+        savedPrefs.calibMagic == CALIB_MAGIC &&
+        isCalibDataSane(savedPrefs))
+    {
+        restoreCalibFromFlash(&werg_device, savedPrefs);
+    }
+    else if (savedPrefs.calibRestoreOnBoot &&
+             savedPrefs.calibMagic == CALIB_MAGIC)
+    {
+        // Magic matched but the values failed the sanity check - defense in
+        // depth against a corrupted-but-magic-matching record. Leave the
+        // device uncalibrated exactly as today.
+        Serial.println(F("WARNING: Saved calibration failed sanity check; skipping restore."));
+    }
+    // else: preference is off, or no valid calibration has ever been saved
+    // - leave the device uncalibrated exactly as today (no behavior change
+    // from current shipped code).
 }

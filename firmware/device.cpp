@@ -227,15 +227,67 @@ void configDevType(werg_unit* werg_device, type devType)
     werg_device->devType = devType;
 }
 
-void configDevCalib(werg_unit* werg_device, float calibRoll, float calibPitch)
+void configDevCalib(werg_unit* werg_device, float calibRoll, float calibPitch, const float calibValues[3])
 {
     Serial.print("Set device calib to :");
     Serial.println(calibRoll);
     Serial.println(calibPitch);
     werg_device->calibRoll = calibRoll;
     werg_device->calibPitch = calibPitch;
-    savePreferencesCalib(calibRoll, calibPitch);
+    savePreferencesCalib(calibRoll, calibPitch, calibValues);
     werg_device->calibrated = true;
+}
+
+// Sanity-range check for a persisted calibration record: the magic marker
+// alone only proves the record has the current field layout, not that the
+// values are physically plausible. accelValues (and therefore calibValues,
+// see calibIMU in imu.cpp) come from LSM6DS3::readFloatAccel*(), which
+// report in g, not m/s^2 - a stationary sensor reads a unit gravity vector
+// regardless of mounting orientation, so its magnitude should sit close to
+// 1 g. The [0.5, 1.5] g band is generous enough for normal calibration
+// noise and mounting tilt while still rejecting a corrupted-but-magic-
+// matching record.
+bool isCalibDataSane(const flashStruct &prefs)
+{
+    float cx = prefs.calibValues[0];
+    float cy = prefs.calibValues[1];
+    float cz = prefs.calibValues[2];
+    float mag = sqrt(cx * cx + cy * cy + cz * cz);
+    if (mag < 0.5f || mag > 1.5f)
+    {
+        return false;
+    }
+    if (fabs(prefs.calibRoll) > 180.0f || fabs(prefs.calibPitch) > 180.0f)
+    {
+        return false;
+    }
+    return true;
+}
+
+// Restore a previously persisted calibration at boot, without a redundant
+// flash write (going through configDevCalib/savePreferencesCalib would
+// re-save the identical record every boot). Only call this after
+// confirming savedPrefs.calibRestoreOnBoot, savedPrefs.calibMagic ==
+// CALIB_MAGIC and isCalibDataSane(savedPrefs) - see configInit() in
+// main.cpp. Gyro bias is NOT restorable (never persisted, see calibIMU)
+// and stays at its default (zero) until the next real calibration.
+void restoreCalibFromFlash(werg_unit* werg_device, const flashStruct &savedPrefs)
+{
+    werg_device->imuVal->calibValues[0] = savedPrefs.calibValues[0];
+    werg_device->imuVal->calibValues[1] = savedPrefs.calibValues[1];
+    werg_device->imuVal->calibValues[2] = savedPrefs.calibValues[2];
+    werg_device->calibRoll = savedPrefs.calibRoll;
+    werg_device->calibPitch = savedPrefs.calibPitch;
+    werg_device->calibrated = true;
+
+    // Seed the complementary filter so it starts at the true mounting
+    // angle instead of zero (same reasoning as calibIMU's
+    // fuser->setAngles call) - needed for calcAngleArm/calcAnglesBackSide's
+    // filter-ON branch to read correctly immediately after boot.
+    fuser.setAngles(savedPrefs.calibPitch * DEG_TO_RAD,
+                    savedPrefs.calibRoll * DEG_TO_RAD);
+
+    Serial.println(F("Restored calibration from flash (recalibrate with C if remounted)."));
 }
 
 void fuserInit()
@@ -1037,6 +1089,24 @@ void parseCommand(const String readString, werg_unit* werg_device)
         werg_device->debug = false;
         Serial.println(F("Debug output: OFF"));
         ble_send_ack("Q", "OFF");
+    }
+
+    // Calibration-restore-on-boot toggle (persisted preference, default OFF)
+    else if (readString == CALIB_RESTORE_ON)
+    {
+        werg_device->calibRestoreOnBoot = true;
+        savePreferencesCalibRestore(true);
+        switchCharacteristicCalibRestore.writeValue((uint8_t)1);
+        Serial.println(F("Calibration-restore-on-boot: ENABLED"));
+        ble_send_ack("U", "ENABLED");
+    }
+    else if (readString == CALIB_RESTORE_OFF)
+    {
+        werg_device->calibRestoreOnBoot = false;
+        savePreferencesCalibRestore(false);
+        switchCharacteristicCalibRestore.writeValue((uint8_t)0);
+        Serial.println(F("Calibration-restore-on-boot: DISABLED"));
+        ble_send_ack("Y", "DISABLED");
     }
 
     // DateTime command: T:YYYYMMDDHHmmss

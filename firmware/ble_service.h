@@ -11,6 +11,11 @@
 
 #define UUID_LIB_VERSION (F("0.1.5"))
 
+// Calibration-restore-on-boot toggle characteristic, read/written directly
+// as 0/1 by a connected central, and by parseCommand's U/Y branches so both
+// paths stay in sync (see device.cpp).
+extern BLEByteCharacteristic switchCharacteristicCalibRestore;
+
 void bleInit(void);
 char* generateUUID(void);
 void bleService(werg_unit *werg_device);

@@ -46,6 +46,9 @@ BLEByteCharacteristic
 BLEByteCharacteristic
     switchCharacteristicIntensity("5d81b042-2c71-11ee-be56-0242ac120002",
                                   BLERead | BLEWrite);
+BLEByteCharacteristic
+    switchCharacteristicCalibRestore("6f2e9b1a-3c7d-4e2f-9a6b-1d8c5f0a72e3",
+                                     BLERead | BLEWrite);
 
 // File transfer characteristic - uses String for larger payloads with notify
 // Max 128 bytes per chunk for file streaming
@@ -105,6 +108,8 @@ void bleService(werg_unit* werg_device)
         Serial.print("Send Intensity: ");
         Serial.println(werg_device->myVib->vibIntensity);
         delay(10);
+        switchCharacteristicCalibRestore.writeValue(werg_device->calibRestoreOnBoot);
+        delay(10);
         // print the central's MAC address:
         Serial.println(central.address());
         // while the central is still connected to peripheral:
@@ -123,6 +128,14 @@ void bleService(werg_unit* werg_device)
                 Serial.print(readString);
                 Serial.println("]");
                 parseCommand(readString, werg_device);
+            }
+            if (switchCharacteristicCalibRestore.written()) {
+                // Direct 0/1 write from the central has the same effect as
+                // sending the U/Y serial-style command.
+                uint8_t v = switchCharacteristicCalibRestore.value();
+                Serial.print("BLE calib-restore-on-boot write: ");
+                Serial.println(v);
+                parseCommand(v ? CALIB_RESTORE_ON : CALIB_RESTORE_OFF, werg_device);
             }
             // Update vibrator state machine (critical for dash pattern)
             vibrator_update();
@@ -203,6 +216,7 @@ void bleAdvertise(werg_unit* werg_device)
     vibService.addCharacteristic(switchCharacteristicSound);
     vibService.addCharacteristic(switchCharacteristicType);
     vibService.addCharacteristic(switchCharacteristicIntensity);
+    vibService.addCharacteristic(switchCharacteristicCalibRestore);
     vibService.addCharacteristic(fileTransferCharacteristic);
 
     // add service

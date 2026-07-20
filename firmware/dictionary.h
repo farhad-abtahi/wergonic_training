@@ -32,6 +32,10 @@
 #define DEBUG_ON (String('E'))    // Enable verbose serial prints
 #define DEBUG_OFF (String('Q'))   // Disable verbose serial prints (quiet)
 
+// Calibration-restore-on-boot toggle (persisted preference, default OFF)
+#define CALIB_RESTORE_ON (String('U'))   // Enable: restore last calibration from flash on boot
+#define CALIB_RESTORE_OFF (String('Y'))  // Disable: boot uncalibrated as before (default)
+
 // Multi-character command prefixes
 #define SET_TIME_PREFIX "T:"      // Format: T:YYYYMMDDHHmmss (14 digits after prefix)
 #define SET_SESSION_PREFIX "N:"   // Format: N:subject_name (max 16 chars)
