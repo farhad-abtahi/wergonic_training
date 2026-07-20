@@ -79,7 +79,13 @@ void configInit()
         savePreferencesID(); // Set device ID.
         savedPrefs = returnPrefs();
     }
-    configDevIntensity(&werg_device, MEDIUM_VIB);
+    int savedIntensity = savedPrefs.intensity;
+    if (savedIntensity != WEAK_VIB && savedIntensity != MEDIUM_VIB &&
+        savedIntensity != STRONG_VIB)
+    {
+        savedIntensity = MEDIUM_VIB; // unset or corrupted flash record.
+    }
+    configDevIntensity(&werg_device, savedIntensity);
     configDevID(&werg_device, savedPrefs.devID);
     configDevType(&werg_device, savedPrefs.devType);
     // if (savedPrefs.calibRoll != 0)
