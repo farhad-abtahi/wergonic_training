@@ -43,7 +43,7 @@ Version is defined in `firmware/version.h` (`FIRMWARE_VERSION`), printed in the 
 
 #### Added
 
-- `DEL:<filename>` serial+BLE command deletes a data (`.csv`) or metadata (`_m.txt`) file from the SD card. Refused with `ERROR:...` if the SD card is unavailable, the file doesn't exist, or the filename is the active session's own data/metadata file (active-session guard prevents deleting a file out from under a running recording). Success responds `DELETED:<filename>`.
+- `DEL:<filename>` serial+BLE command deletes a data (`.csv`) or metadata (`_m.txt`) file from the SD card. Refused with `ERROR:...` if the SD card is unavailable, the file doesn't exist, the filename is the active session's own data/metadata file (active-session guard prevents deleting a file out from under a running recording), or the SD `remove()` call itself fails (`ERROR:DELETE:<filename>`). Success responds `DELETED:<filename>`.
 - BLE command (write) characteristic size increased from 20 to 22 bytes to fit the longest possible command (`DEL:` prefix + 18-char filename).
 
 ### Web application

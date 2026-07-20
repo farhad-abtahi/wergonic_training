@@ -5,7 +5,7 @@
 #include "device.h"
 
 #define CS_PIN 4
-#define MAX_FILENAME_LEN 18  // Max 18 chars (including extension) to fit in 20-byte BLE limit with R:/M: prefix
+#define MAX_FILENAME_LEN 18  // Max 18 chars (including extension) to fit in 22-byte BLE limit with R:/M:/DEL: prefix
 
 extern char session_filename[MAX_FILENAME_LEN];
 extern char metadata_filename[MAX_FILENAME_LEN];

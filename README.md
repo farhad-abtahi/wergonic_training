@@ -79,7 +79,6 @@ The app sends these commands to the device:
 | `C` | Calibrate device |
 | `F`/`N` | Enable/disable feedback |
 | `X`/`Z` | Enable/disable filter |
-| `E`/`Q` | Enable/disable verbose debug prints |
 | `T:YYYYMMDDHHmmss` | Set datetime |
 | `N:name` | Set session name |
 | `V` | Get firmware version |
@@ -89,6 +88,8 @@ The app sends these commands to the device:
 | `DEL:filename` | Delete a data or metadata file (refused while it's the active session's file) |
 | `K` | Stop and save session |
 | `?` | Get device status |
+
+Additional serial/BLE commands available to developers: `E`/`Q` toggle verbose periodic debug prints (angle/zone, BLE send-angle), not sent by the app — see `firmware/CHANGELOG.md`.
 
 ## BLE UUIDs
 

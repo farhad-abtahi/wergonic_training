@@ -852,6 +852,21 @@ function parseAckResponse(message, deviceType) {
         const cmd = parts[0] || '';
         const reason = parts.slice(1).join(':') || 'Unknown error';
 
+        // Special case: ERROR:DELETE:<filename> - SD remove() failed for a delete request.
+        if (cmd === 'DELETE') {
+            const filename = reason;
+            logToConsole(`[${deviceLabel}] ERROR: DELETE - ${filename}`, 'error');
+            showNotification(`[${deviceLabel}] Delete failed: ${filename}`);
+            return true;
+        }
+
+        // Special case: ERROR:SD not available - no <cmd> token, the whole message is the reason.
+        if (cmd === 'SD not available') {
+            logToConsole(`[${deviceLabel}] ERROR: ${cmd}`, 'error');
+            showNotification(`[${deviceLabel}] Error: ${cmd}`);
+            return true;
+        }
+
         logToConsole(`[${deviceLabel}] ERROR: ${cmd} - ${reason}`, 'error');
         showNotification(`[${deviceLabel}] Error: ${reason}`);
         return true;
