@@ -1,6 +1,6 @@
 #include "main.h"
 
-/* App: Wergonic Vib v2.0
+/* App: Wergonic Vib v2.1 (version.h is the source of truth)
    Author : Dimitris Markou
 */
 

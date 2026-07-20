@@ -143,7 +143,6 @@ void bleService(werg_unit* werg_device)
                         switchCharacteristicSide.writeValue(angles[1]);
                     }
                 }
-
             }
         }
         // when the central disconnects, print it out:

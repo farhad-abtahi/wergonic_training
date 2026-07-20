@@ -42,7 +42,7 @@ The device accepts single-character commands over serial and BLE. Since v2.1, se
 | Command | Description |
 |---------|-------------|
 | `r` / `y` | Trigger a test vibration |
-| `S` / `M` / `W` | Set vibration intensity: Soft / Medium / Strong |
+| `S` / `M` / `W` | Set vibration intensity: Strong / Medium / Weak |
 | `C` | Calibrate device |
 | `A` / `B` | Set device type: Arm / Back |
 | `F` / `N` | Feedback on / off |
