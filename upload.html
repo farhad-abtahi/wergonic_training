@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Session — Wergonic Training</title>
+    <script src="config.js"></script>
+    <script src="app-shell.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
         :root {
             --bg-0: #050e1d;
@@ -324,7 +329,7 @@
     </style>
 </head>
 <body>
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
+    <div id="app-shell-nav"></div>
 
     <main class="page">
         <header class="header">
@@ -624,21 +629,6 @@
             }
         });
 
-        // ── Theme toggle ────────────────────────────────────────────────────────
-        (function () {
-            const btn = document.getElementById('themeToggle');
-            const KEY = 'wergonic-upload-theme';
-            if (localStorage.getItem(KEY) === 'light') {
-                document.documentElement.classList.add('light');
-                btn.textContent = '☀';
-            }
-            btn.addEventListener('click', () => {
-                document.documentElement.classList.toggle('light');
-                const isLight = document.documentElement.classList.contains('light');
-                btn.textContent = isLight ? '☀' : '☾';
-                localStorage.setItem(KEY, isLight ? 'light' : 'dark');
-            });
-        })();
     </script>
 </body>
 </html>

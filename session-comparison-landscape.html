@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="gamification.css">
     <script src="config.js"></script>
+    <script src="app-shell.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <script src="mission-cards-data.js"></script>
     <script src="gamification.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -1388,7 +1392,7 @@
     </style>
 </head>
 <body>
-<button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle light/dark mode">☾</button>
+<div id="app-shell-nav"></div>
 <main class="screen-shell" id="appShell">
     <header class="hero-header">
         <section class="glass-card score-card">
@@ -2968,22 +2972,6 @@ initPage().catch(error => {
     UI.sessionStamp.textContent = `Initialization failed: ${error.message}`;
 });
 
-// ── Theme toggle (mirrors dashboard.html) ──────────────────────────────────
-(function () {
-    const btn = document.getElementById('themeToggle');
-    if (!btn) return;
-    const STORAGE_KEY = 'landscape-theme';
-    if (localStorage.getItem(STORAGE_KEY) === 'light') {
-        document.documentElement.classList.add('light');
-        btn.textContent = '☀';
-    }
-    btn.addEventListener('click', () => {
-        document.documentElement.classList.toggle('light');
-        const isLight = document.documentElement.classList.contains('light');
-        btn.textContent = isLight ? '☀' : '☾';
-        localStorage.setItem(STORAGE_KEY, isLight ? 'light' : 'dark');
-    });
-})();
 </script>
 
 <!-- ── Floating Angle Chart ──────────────────────────────────────── -->

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <script src="config.js"></script>
+    <script src="app-shell.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
@@ -1372,6 +1376,7 @@
     </style>
 </head>
 <body>
+    <div id="app-shell-nav"></div>
     <main class="screen">
         <section class="card compare-header load-appear">
             <div class="session-tag" id="headerA">Session A</div>
@@ -1379,7 +1384,6 @@
                 <span class="delta-pill-text" id="deltaPill">Session Comparison</span>
                 <div class="delta-pill-controls">
                     <button type="button" class="config-toggle" id="configToggle" aria-label="Scoring config">⚙</button>
-                    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
                 </div>
             </div>
             <div class="session-tag" id="headerB" style="text-align: right;">Session B</div>
@@ -2571,19 +2575,6 @@
                 if (event.key === 'Escape' && !document.getElementById('scoreModal').hidden) closeScoreDetails();
             });
             document.getElementById('applyBtn').addEventListener('click', applyAll);
-
-            // Theme toggle
-            const themeBtn = document.getElementById('themeToggle');
-            if (localStorage.getItem('dashboard-theme') === 'light') {
-                document.documentElement.classList.add('light');
-                themeBtn.textContent = '☀';
-            }
-            themeBtn.addEventListener('click', () => {
-                document.documentElement.classList.toggle('light');
-                const isLight = document.documentElement.classList.contains('light');
-                themeBtn.textContent = isLight ? '☀' : '☾';
-                localStorage.setItem('dashboard-theme', isLight ? 'light' : 'dark');
-            });
 
             // Config panel
             renderConfigPanel();
