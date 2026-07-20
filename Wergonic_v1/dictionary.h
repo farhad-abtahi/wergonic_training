@@ -14,5 +14,7 @@
 #define BACK (String('B', HEX))
 #define FEEDBACK_ON (String('F', HEX))
 #define FEEDBACK_OFF (String('N', HEX))
+#define DEBUG_ON (String('E', HEX))
+#define DEBUG_OFF (String('Q', HEX))
 
 #endif // DICTIONARY_H_

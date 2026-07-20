@@ -33,6 +33,7 @@ long last_feedback_green = 0;          // Last time there was no warning.
         // red to green and vice versa.
 
 const float g = 9.82;
+bool debug_prints = false;
 
 void wergInit(werg_unit* werg_device)
 {
@@ -243,7 +244,10 @@ static void getFusedDeltas(werg_unit* werg_device, float* deltaPitch,
 void checkAngle(float* angles, werg_unit* werg_device)
 {
     long currentMillis = millis();
-    Serial.print("Check angle limits: ");
+    if (debug_prints)
+    {
+        Serial.print("Check angle limits: ");
+    }
     long now = millis();
     // This way we try to prevent triggering a yellow warning every time we move
     // fast from red to green.
@@ -261,8 +265,11 @@ void checkAngle(float* angles, werg_unit* werg_device)
         if (angle > YELLOW_LIMIT_ARM && angle < RED_LIMIT_ARM &&
             transition_over)
         {
-            Serial.println(angle);
-            Serial.println("Yellow warning.");
+            if (debug_prints)
+            {
+                Serial.println(angle);
+                Serial.println("Yellow warning.");
+            }
             if (now - last_feedback_yellow_warning >=
                 werg_device->feedback_rest)
             {
@@ -272,8 +279,11 @@ void checkAngle(float* angles, werg_unit* werg_device)
         }
         else if (angle >= RED_LIMIT_ARM)
         {
-            Serial.println(angle);
-            Serial.println("Red warning.");
+            if (debug_prints)
+            {
+                Serial.println(angle);
+                Serial.println("Red warning.");
+            }
             if (now - last_feedback_red_warning >= werg_device->feedback_rest)
             {
                 alert(werg_device->myVib);
@@ -282,10 +292,16 @@ void checkAngle(float* angles, werg_unit* werg_device)
         }
         else if (angle < YELLOW_LIMIT_ARM)
         {
-            Serial.println(angle);
+            if (debug_prints)
+            {
+                Serial.println(angle);
+            }
             noVib();
             last_feedback_green = millis();
-            Serial.println("No warning.");
+            if (debug_prints)
+            {
+                Serial.println("No warning.");
+            }
         }
         else
         {
@@ -299,8 +315,11 @@ void checkAngle(float* angles, werg_unit* werg_device)
         if (angleBack > YELLOW_LIMIT_NECK && angleBack < RED_LIMIT_NECK &&
             transition_over)
         {
-            Serial.println(angleBack);
-            Serial.println("Yellow warning.");
+            if (debug_prints)
+            {
+                Serial.println(angleBack);
+                Serial.println("Yellow warning.");
+            }
             if (now - last_feedback_yellow_warning >=
                 werg_device->feedback_rest)
             {
@@ -310,8 +329,11 @@ void checkAngle(float* angles, werg_unit* werg_device)
         }
         else if (angleBack >= RED_LIMIT_NECK)
         {
-            Serial.println(angleBack);
-            Serial.println("Red warning.");
+            if (debug_prints)
+            {
+                Serial.println(angleBack);
+                Serial.println("Red warning.");
+            }
             if (now - last_feedback_red_warning >= werg_device->feedback_rest)
             {
                 alert(werg_device->myVib);
@@ -345,12 +367,15 @@ void checkAngle(float* angles, werg_unit* werg_device)
         // }
         else
         {
-            Serial.print("Trunk: ");
-            Serial.println(angleBack);
-            // Serial.print("Bent: ");
-            // Serial.println(angleSide);
+            if (debug_prints)
+            {
+                Serial.print("Trunk: ");
+                Serial.println(angleBack);
+                // Serial.print("Bent: ");
+                // Serial.println(angleSide);
+                Serial.println("No warning.");
+            }
             noVib();
-            Serial.println("No warning.");
         }
     }
 }
@@ -419,6 +444,16 @@ void parseCommand(const String readString, werg_unit* werg_device)
         werg_device->feedback = false;
         noVib(); // stop a running vibration immediately.
         Serial.println("Disable feedback.");
+    }
+    else if (readString == DEBUG_ON)
+    {
+        debug_prints = true;
+        Serial.println("Debug prints enabled.");
+    }
+    else if (readString == DEBUG_OFF)
+    {
+        debug_prints = false;
+        Serial.println("Debug prints disabled.");
     }
     else
     {

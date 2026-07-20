@@ -46,6 +46,11 @@ struct werg_unit
   int devID = 0; // default value for serial number if one has not been set.
 };
 
+// Verbose periodic debug prints (angle/zone every DEV_FREQ, BLE send-angle).
+// Toggled with the E (on) / Q (off) commands; one-shot event prints are
+// always emitted. Off by default.
+extern bool debug_prints;
+
 bool isTypeSet(werg_unit *werg_device);
 bool isCalibrated(werg_unit *werg_device);
 void configDevID(werg_unit *werg_device, int devID); // save device ID to flash.

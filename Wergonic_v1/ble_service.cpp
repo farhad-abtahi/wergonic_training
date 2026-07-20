@@ -123,15 +123,21 @@ void bleService(werg_unit* werg_device)
                 {
                     if (werg_device->devType == ARM_DEV)
                     {
-                        Serial.print("Send angle:");
-                        Serial.println(angles[0]);
+                        if (debug_prints)
+                        {
+                            Serial.print("Send angle:");
+                            Serial.println(angles[0]);
+                        }
                         switchCharacteristicArm.writeValue(angles[0]);
                     }
                     else
                     {
-                        Serial.print("Send angles:");
-                        Serial.println(angles[0]);
-                        Serial.println(angles[1]);
+                        if (debug_prints)
+                        {
+                            Serial.print("Send angles:");
+                            Serial.println(angles[0]);
+                            Serial.println(angles[1]);
+                        }
                         switchCharacteristicBend.writeValue(angles[0]);
                         delay(10);
                         switchCharacteristicSide.writeValue(angles[1]);
