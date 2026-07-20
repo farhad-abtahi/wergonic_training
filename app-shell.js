@@ -73,6 +73,15 @@ function wergonicCurrentPage() {
     return path || 'index.html';
 }
 
+// Matches the embed-detection convention already established in
+// demo-report.html (see REPORT_EMBED_MODE there): pages loaded inside an
+// iframe (e.g. by compare-report.html) get this query param and should not
+// render their own nav chrome on top of the embedding page's nav.
+function wergonicIsEmbedMode() {
+    var params = new URLSearchParams(window.location.search);
+    return params.get('embed') === '1' || params.get('mode') === 'embed';
+}
+
 function wergonicInjectStyles() {
     var style = document.createElement('style');
     style.textContent =
@@ -240,8 +249,10 @@ function wergonicRegisterServiceWorker() {
 
 document.addEventListener('DOMContentLoaded', function () {
     wergonicInjectStyles();
-    wergonicRenderNav();
-    wergonicRenderMobileTabs();
+    if (!wergonicIsEmbedMode()) {
+        wergonicRenderNav();
+        wergonicRenderMobileTabs();
+    }
     wergonicApplyChartDefaults();
     wergonicInitVersionCheck();
     wergonicRegisterServiceWorker();
