@@ -134,11 +134,8 @@ void bleService(werg_unit* werg_device)
                         delay(10);
                         switchCharacteristicSide.writeValue(angles[1]);
                     }
-                    if (werg_device->feedback)
-                    {
-                        checkAngle(angles, werg_device);
-                    }
                 }
+
             }
         }
         // when the central disconnects, print it out:

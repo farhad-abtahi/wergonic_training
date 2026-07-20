@@ -118,17 +118,13 @@ void measure(werg_unit* werg_device, float* angles, bool* angle_available)
         }
 
         long currentMillisFilter = millis();
-        if (werg_device->feedback &&
-            (currentMillisFilter - previousMillisFilter >= DEV_FREQ))
+        if (currentMillisFilter - previousMillisFilter >= DEV_FREQ)
         {
             if (werg_device->devType == ARM_DEV)
             {
                 angles[0] = sum_of_angles / num_of_samples;
                 sum_of_angles = 0;
                 num_of_samples = 0;
-                *angle_available = true;
-                checkAngle(angles, werg_device);
-                previousMillisFilter = currentMillisFilter;
             }
             else
             {
@@ -137,10 +133,15 @@ void measure(werg_unit* werg_device, float* angles, bool* angle_available)
                 sum_of_angles = 0;
                 sum_of_angles_2 = 0;
                 num_of_samples = 0;
-                *angle_available = true;
-                checkAngle(angles, werg_device);
-                previousMillisFilter = currentMillisFilter;
             }
+            *angle_available = true;
+            // Feedback off only silences vibration; measurement, BLE angle
+            // streaming and averaging continue.
+            if (werg_device->feedback)
+            {
+                checkAngle(angles, werg_device);
+            }
+            previousMillisFilter = currentMillisFilter;
         }
     }
 }
@@ -435,6 +436,7 @@ void parseCommand(const String readString, werg_unit* werg_device)
     else if (readString == FEEDBACK_OFF)
     {
         werg_device->feedback = false;
+        noVib(); // stop a running vibration immediately.
         Serial.println("Disable feedback.");
     }
     else
