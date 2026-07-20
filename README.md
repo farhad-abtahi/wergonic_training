@@ -69,6 +69,8 @@ chrome --enable-features=WebBluetoothNewPermissionsBackend
 
 ## BLE Commands
 
+`firmware/` is the current 4.2 firmware (SD logging, file transfer, `DEL:` command). `Wergonic_v1/` is the legacy 2.1 firmware (no SD card support) — see `Wergonic_v1/README.md`.
+
 The app sends these commands to the device:
 
 | Command | Description |
@@ -77,11 +79,14 @@ The app sends these commands to the device:
 | `C` | Calibrate device |
 | `F`/`N` | Enable/disable feedback |
 | `X`/`Z` | Enable/disable filter |
+| `E`/`Q` | Enable/disable verbose debug prints |
 | `T:YYYYMMDDHHmmss` | Set datetime |
 | `N:name` | Set session name |
+| `V` | Get firmware version |
 | `D` | List SD card files |
 | `R:filename` | Read file content |
 | `M:filename` | Read metadata |
+| `DEL:filename` | Delete a data or metadata file (refused while it's the active session's file) |
 | `K` | Stop and save session |
 | `?` | Get device status |
 

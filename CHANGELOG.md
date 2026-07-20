@@ -37,7 +37,20 @@ Version is defined in `Wergonic_v1/version.h` (`FIRMWARE_VERSION`), printed in t
 - Yellow-warning vibration blocks the main loop for ~600 ms.
 - Calibration is saved to flash but not restored on boot (restore code is commented out).
 
+### Firmware 4.2 (firmware/)
+
+Version is defined in `firmware/version.h` (`FIRMWARE_VERSION`), printed in the boot banner, and reported by the `V` command. See `firmware/CHANGELOG.md` for the full 4.x history.
+
+#### Added
+
+- `DEL:<filename>` serial+BLE command deletes a data (`.csv`) or metadata (`_m.txt`) file from the SD card. Refused with `ERROR:...` if the SD card is unavailable, the file doesn't exist, or the filename is the active session's own data/metadata file (active-session guard prevents deleting a file out from under a running recording). Success responds `DELETED:<filename>`.
+- BLE command (write) characteristic size increased from 20 to 22 bytes to fit the longest possible command (`DEL:` prefix + 18-char filename).
+
 ### Web application
+
+#### Added
+
+- Per-file **Delete** button in the file manager, gated on connected firmware reporting version ≥ 4.2 (via the `V` command) so it does not appear against legacy 2.1 devices that lack `DEL:` support.
 
 #### Fixed
 
@@ -46,3 +59,9 @@ Version is defined in `Wergonic_v1/version.h` (`FIRMWARE_VERSION`), printed in t
 - `upload.html` session-storage writes now handle `QuotaExceededError` with a visible error instead of silently opening an empty dashboard.
 - Metadata values containing `=` are no longer truncated in `app.js`.
 - `session-comparison-landscape.html` default demo filenames corrected (`rightarm-C04-1.csv` / `trunk-C04-1.csv`).
+- Trunk live angle on the main page read from the arm angle BLE characteristic; it now reads from the correct characteristic for a back-mounted device.
+- The **New Recording Session** button sent `E` (a debug-print toggle in 4.x firmware, not a session command); it now sends `C` (calibrate/start session).
+- Removed a dead binary `.bin` file-download code path that no longer matches how the firmware streams session files.
+- Feedback (vibration) is now correctly re-enabled after a `K` (stop) command, instead of staying disabled until the device was manually re-armed.
+- Added `NaN` guards for sessions containing only a single data point (previously produced `NaN` in duration/statistics).
+- Fixed a `RangeError` thrown when processing very long recordings.
