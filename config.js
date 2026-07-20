@@ -19,6 +19,7 @@ const APP_CONFIG = {
         'trunk-C08-1.csv'
     ]
 };
+window.APP_CONFIG = APP_CONFIG;
 
 // Update nav version labels without creating extra DOM churn.
 function updateVersionElements() {
