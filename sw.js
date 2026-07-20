@@ -62,9 +62,11 @@ self.addEventListener('fetch', (event) => {
         fetch(event.request)
             .then((response) => {
                 const copy = response.clone();
-                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+                event.waitUntil(
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))
+                );
                 return response;
             })
-            .catch(() => caches.match(event.request === '/' ? new Request(new URL('/index.html', url).href) : event.request))
+            .catch(() => caches.match(url.pathname === '/' ? new Request(new URL('/index.html', url).href) : event.request))
     );
 });
