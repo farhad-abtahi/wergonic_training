@@ -5,6 +5,17 @@ All notable changes to the Wergonic Vibrator firmware. Format loosely follows
 `firmware/version.h` and is reported in the boot banner and by the `V` command
 (the webapp uses it for feature detection).
 
+## [4.4] — 2026-07-21
+
+### Fixed
+- Session filenames now obey the DOS 8.3 limit imposed by Arduino SD 1.3.0:
+  named sessions use `AB_001.CSV` / `AB_001_M.TXT` (the complete subject is
+  still stored inside metadata), and unnamed sessions use
+  `S001.CSV` / `S001_M.TXT`.
+- The `D` file-list command, file count, filename lookup, and `M:` metadata
+  suffix parsing are case-insensitive. This handles the upper-case names
+  returned by `File::name()` and keeps all directory filters consistent.
+
 ## [4.3] — 2026-07-20
 
 ### Added

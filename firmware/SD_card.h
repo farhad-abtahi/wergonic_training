@@ -5,7 +5,9 @@
 #include "device.h"
 
 #define CS_PIN 4
-#define MAX_FILENAME_LEN 18  // Max 18 chars (including extension) to fit in 22-byte BLE limit with R:/M:/DEL: prefix
+// Buffer capacity retained for the BLE command protocol. Generated files are
+// stricter DOS 8.3 names because Arduino SD 1.3.0 does not support long names.
+#define MAX_FILENAME_LEN 18
 
 extern char session_filename[MAX_FILENAME_LEN];
 extern char metadata_filename[MAX_FILENAME_LEN];

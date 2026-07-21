@@ -1,11 +1,80 @@
 #include "SD_card.h"
 #include "ble_service.h"
+#include <ctype.h>
 #include <string.h>
 
-char session_filename[MAX_FILENAME_LEN] = "session.csv";
-char metadata_filename[MAX_FILENAME_LEN] = "session_meta.txt";
+// Arduino SD 1.3.0 accepts DOS 8.3 names only. Keep the in-memory names in
+// the same upper-case form returned by File::name(), so comparisons for the
+// active file also work when a command uses a name obtained from D.
+char session_filename[MAX_FILENAME_LEN] = "S000.CSV";
+char metadata_filename[MAX_FILENAME_LEN] = "S000_M.TXT";
 
 static bool sd_available = false;
+
+static bool has_suffix_ignore_case(const char* name, const char* suffix)
+{
+    if (name == nullptr || suffix == nullptr) return false;
+
+    size_t name_len = strlen(name);
+    size_t suffix_len = strlen(suffix);
+    if (suffix_len > name_len) return false;
+
+    const char* tail = name + name_len - suffix_len;
+    for (size_t i = 0; i < suffix_len; i++)
+    {
+        unsigned char left = static_cast<unsigned char>(tail[i]);
+        unsigned char right = static_cast<unsigned char>(suffix[i]);
+        if (tolower(left) != tolower(right)) return false;
+    }
+    return true;
+}
+
+// File::name() in Arduino SD 1.3.0 returns upper-case 8.3 directory names.
+// Accept both data and text files regardless of the spelling used on the
+// card, and use this one predicate everywhere directory entries are filtered.
+static bool is_session_file(const char* name)
+{
+    return has_suffix_ignore_case(name, ".csv") ||
+           has_suffix_ignore_case(name, ".txt");
+}
+
+static bool select_available_session_names(const char* subject_prefix)
+{
+    char csv_name[MAX_FILENAME_LEN];
+    char meta_name[MAX_FILENAME_LEN];
+    bool has_subject = subject_prefix != nullptr && subject_prefix[0] != '\0';
+
+    for (int session_num = 1; session_num <= 999; session_num++)
+    {
+        if (has_subject)
+        {
+            // Two subject characters leave room for the metadata suffix:
+            // AB_001_M.TXT has an 8-character basename and a 3-char extension.
+            snprintf(csv_name, sizeof(csv_name), "%s_%03d.CSV",
+                     subject_prefix, session_num);
+            snprintf(meta_name, sizeof(meta_name), "%s_%03d_M.TXT",
+                     subject_prefix, session_num);
+        }
+        else
+        {
+            snprintf(csv_name, sizeof(csv_name), "S%03d.CSV", session_num);
+            snprintf(meta_name, sizeof(meta_name), "S%03d_M.TXT", session_num);
+        }
+
+        // A leftover metadata file must also reserve the number; otherwise a
+        // new session could silently append metadata to an old session.
+        if (!SD.exists(csv_name) && !SD.exists(meta_name))
+        {
+            strncpy(session_filename, csv_name, MAX_FILENAME_LEN - 1);
+            session_filename[MAX_FILENAME_LEN - 1] = '\0';
+            strncpy(metadata_filename, meta_name, MAX_FILENAME_LEN - 1);
+            metadata_filename[MAX_FILENAME_LEN - 1] = '\0';
+            return true;
+        }
+    }
+
+    return false;
+}
 
 bool sd_is_available(void)
 {
@@ -55,22 +124,12 @@ bool sd_init(void)
     Serial.println(F("SD initialization done."));
     sd_available = true;
 
-    // Find a free filename (max 18 chars for BLE compatibility)
-    int index = 0;
-    do
+    // Select a valid 8.3 placeholder. A fresh name is selected again when
+    // calibration starts the actual recording session.
+    if (!select_available_session_names(nullptr))
     {
-        if (index == 0)
-        {
-            snprintf(session_filename, MAX_FILENAME_LEN, "session.csv");
-            snprintf(metadata_filename, MAX_FILENAME_LEN, "session_m.txt");  // Shortened to fit 18 char limit
-        }
-        else
-        {
-            snprintf(session_filename, MAX_FILENAME_LEN, "s%d.csv", index);
-            snprintf(metadata_filename, MAX_FILENAME_LEN, "s%d_m.txt", index);  // Shortened
-        }
-        index++;
-    } while (SD.exists(session_filename) && index < 1000);
+        Serial.println(F("WARNING:No free SD session number (001-999)"));
+    }
 
     Serial.print(F("Session file: "));
     Serial.println(session_filename);
@@ -84,46 +143,33 @@ bool sd_create_session_files(const char* base_name)
 {
     if (!sd_available) return false;
 
-    // Find next available session number
-    int session_num = 1;
-    char test_name[MAX_FILENAME_LEN];
-
+    // Preserve the full subject in metadata, but use at most two safe
+    // alphanumeric characters in the DOS 8.3 filenames.
+    char subject_prefix[3] = "";
     if (base_name != nullptr && strlen(base_name) > 0)
     {
-        // User-provided base name - limit to 7 chars so the LONGER of the
-        // two generated names fits MAX_FILENAME_LEN (18 bytes incl. null):
-        // metadata "name_001_m.txt" = 7+1+3+6 = 17 chars
-        char short_name[8];
-        strncpy(short_name, base_name, 7);
-        short_name[7] = '\0';
-
-        do
+        size_t prefix_len = 0;
+        for (size_t i = 0; base_name[i] != '\0' && prefix_len < 2; i++)
         {
-            snprintf(test_name, MAX_FILENAME_LEN, "%s_%03d.csv", short_name, session_num);
-            session_num++;
-        } while (SD.exists(test_name) && session_num < 1000);
-
-        strncpy(session_filename, test_name, MAX_FILENAME_LEN);
-        // Meta file: name_001_m.txt (max 18 chars)
-        snprintf(metadata_filename, MAX_FILENAME_LEN, "%s_%03d_m.txt",
-                 short_name, session_num - 1);
+            unsigned char c = static_cast<unsigned char>(base_name[i]);
+            if (isalnum(c))
+            {
+                subject_prefix[prefix_len++] = static_cast<char>(toupper(c));
+            }
+        }
+        subject_prefix[prefix_len] = '\0';
     }
-    else
-    {
-        // Auto-generate name: s001.csv / s001_m.txt
-        do
-        {
-            snprintf(test_name, MAX_FILENAME_LEN, "s%03d.csv", session_num);
-            session_num++;
-        } while (SD.exists(test_name) && session_num < 1000);
 
-        strncpy(session_filename, test_name, MAX_FILENAME_LEN);
-        snprintf(metadata_filename, MAX_FILENAME_LEN, "s%03d_m.txt",
-                 session_num - 1);
+    if (!select_available_session_names(subject_prefix))
+    {
+        Serial.println(F("ERROR:No free SD session number (001-999)"));
+        return false;
     }
 
     Serial.print(F("Created session: "));
     Serial.println(session_filename);
+    Serial.print(F("Session metadata: "));
+    Serial.println(metadata_filename);
 
     return true;
 }
@@ -309,10 +355,7 @@ void sd_list_files()
         if (!entry.isDirectory())
         {
             const char* name = entry.name();
-            // Only list .csv and _meta.txt files
-            if (strstr(name, ".csv") != nullptr ||
-                strstr(name, "_meta.txt") != nullptr ||
-                strstr(name, ".txt") != nullptr)
+            if (is_session_file(name))
             {
                 snprintf(line_buffer, sizeof(line_buffer), "FILE:%s,%lu",
                          name, (unsigned long)entry.size());
@@ -362,8 +405,7 @@ int sd_get_file_count()
         if (!entry.isDirectory())
         {
             const char* name = entry.name();
-            if (strstr(name, ".csv") != nullptr ||
-                strstr(name, "_meta.txt") != nullptr)
+            if (is_session_file(name))
             {
                 count++;
             }
@@ -400,8 +442,7 @@ bool sd_get_filename_by_index(int index, char* filename, size_t max_len)
         if (!entry.isDirectory())
         {
             const char* name = entry.name();
-            if (strstr(name, ".csv") != nullptr ||
-                strstr(name, "_meta.txt") != nullptr)
+            if (is_session_file(name))
             {
                 if (current == index)
                 {

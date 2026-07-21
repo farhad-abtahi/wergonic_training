@@ -1192,7 +1192,7 @@ void parseCommand(const String readString, werg_unit* werg_device)
     else if (readString.startsWith(READ_META_PREFIX))
     {
         // Read metadata file for a session
-        // M:session - will read session_m.txt or s1_m.txt etc. (shortened for 18-char limit)
+        // M:S001 or M:S001.CSV will read S001_M.TXT.
         String basename = readString.substring(2);
         basename.trim();
 
@@ -1201,36 +1201,40 @@ void parseCommand(const String readString, werg_unit* werg_device)
             // Try to construct metadata filename
             char meta_filename[MAX_FILENAME_LEN];
 
-            // Check if it's already a full filename with old or new naming
-            if (strstr(basename.c_str(), "_m.txt") != nullptr ||
-                strstr(basename.c_str(), "_meta.txt") != nullptr)
+            String lower_basename = basename;
+            lower_basename.toLowerCase();
+
+            // Check if it's already a full filename with old or new naming.
+            // File::name() returns upper-case 8.3 names, so parse suffixes
+            // without depending on the case received from D or Serial.
+            if (lower_basename.endsWith("_m.txt") ||
+                lower_basename.endsWith("_meta.txt"))
             {
                 // strncpy does not terminate when the source fills the
                 // buffer - an 18-char argument would leave meta_filename
-                // unterminated and the strstr/println below reading OOB
+                // unterminated and the later SD lookup/println reading OOB.
                 strncpy(meta_filename, basename.c_str(), MAX_FILENAME_LEN - 1);
                 meta_filename[MAX_FILENAME_LEN - 1] = '\0';
             }
-            else if (strstr(basename.c_str(), ".csv") != nullptr)
+            else if (lower_basename.endsWith(".csv"))
             {
-                // Convert session.csv to session_m.txt (new naming) or try session_meta.txt (old naming)
-                String meta = basename;
-                meta.replace(".csv", "_m.txt");
+                // Remove the extension by position so upper-case .CSV works.
+                String stem = basename.substring(0, basename.length() - 4);
+                String meta = stem + "_M.TXT";
                 strncpy(meta_filename, meta.c_str(), MAX_FILENAME_LEN - 1);
                 meta_filename[MAX_FILENAME_LEN - 1] = '\0';
 
                 // If not found, try old naming convention
                 if (!sd_file_exists(meta_filename)) {
-                    meta = basename;
-                    meta.replace(".csv", "_meta.txt");
+                    meta = stem + "_META.TXT";
                     strncpy(meta_filename, meta.c_str(), MAX_FILENAME_LEN - 1);
                     meta_filename[MAX_FILENAME_LEN - 1] = '\0';
                 }
             }
             else
             {
-                // Assume it's a base name, add _m.txt (new naming)
-                snprintf(meta_filename, MAX_FILENAME_LEN, "%s_m.txt", basename.c_str());
+                // Assume it is an 8.3 session basename and add _M.TXT.
+                snprintf(meta_filename, MAX_FILENAME_LEN, "%s_M.TXT", basename.c_str());
             }
 
             Serial.print(F("Reading metadata: "));
