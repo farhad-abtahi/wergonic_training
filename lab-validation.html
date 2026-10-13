@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab Validation - Wergonic</title>
+<link rel="stylesheet" href="styles.css">
+<script src="config.js"></script>
+<style>
+.lab{max-width:1120px;margin:16px auto;padding:0 16px;font-size:15px}.lab h1{font-size:26px;margin:0 0 4px}.lab p{line-height:1.4;margin:6px 0}.lab-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.lab-card,.lab-controls{border:1px solid #7890aa55;border-radius:10px;padding:14px;background:var(--md-sys-color-surface-container)}.lab-card h2{font-size:18px;margin:0}.lab-card-header{display:flex;justify-content:space-between;align-items:center;gap:8px}.lab-value{font-size:38px;font-variant-numeric:tabular-nums;margin:8px 0 2px}.lab-status{color:#8495aa}.lab-status.connected{color:#26a269}.lab-device{overflow-wrap:anywhere;font-size:13px}.lab button{padding:8px 12px;border:1px solid #7890aa;border-radius:6px;font:inherit;cursor:pointer;background:transparent;color:inherit}.lab button:disabled,.lab select:disabled{opacity:.45;cursor:not-allowed}.lab #start{background:#1a5fb4;color:white;border-color:#1a5fb4}.lab #stop{background:#b32632;color:white;border-color:#b32632}.lab-actions,.lab-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.lab-actions{margin:10px 0}.lab-meta{gap:18px;font-variant-numeric:tabular-nums}.lab input,.lab select{padding:7px;border:1px solid #7890aa;border-radius:6px;background:var(--md-sys-color-surface);color:inherit;font:inherit;max-width:100%;min-width:0}.lab label{display:block;margin-bottom:4px;font-size:13px}.lab small{display:block;margin:5px 0;color:#8495aa;font-size:12px;line-height:1.4}.lab #message{min-height:22px;font-size:14px}.lab-vibration{border-top:1px solid #7890aa44;margin-top:10px;padding-top:10px}.lab-vibration-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.lab-vibration-grid select{width:100%}.lab-vibration-test{display:flex;gap:6px;margin-top:8px}.lab-vibration-test select{flex:1}.lab details{margin-top:6px;font-size:12px;color:#8495aa}.lab summary{cursor:pointer}.lab-trial{display:flex;align-items:center;gap:10px}.lab-trial label{margin:0}.lab-trial input{width:220px}@media(max-width:700px){.lab-grid{grid-template-columns:1fr}.lab{margin-top:12px}}
+</style>
+<script src="lab-validation.js?v=20261013-6" defer></script>
+</head>
+<body>
+<main class="lab">
+<h1>Lab Validation</h1>
+<p>Optical motion capture validation · Left arm, right arm and trunk</p>
+<small>SD is the primary recording; Bluetooth CSV is a backup. Calibrate in the reference pose. Start Recording preserves calibration.</small>
+<div class="lab-grid" id="devices"></div>
+<section class="lab-controls" aria-label="Recording controls">
+<div class="lab-trial"><label for="trial">Trial name</label><input id="trial" value="validation" maxlength="80" autocomplete="off"></div>
+<div class="lab-actions"><button id="calibrate" disabled>Calibrate All Sensors</button><button id="start" disabled>Start Recording</button><button id="stop" disabled>Stop &amp; Save</button><button id="save" disabled>Download Bluetooth CSV</button></div>
+<small id="calibration-help" role="status" aria-live="polite"></small>
+<details><summary>Recording and vibration notes</summary><p>Calibration closes setup SD sessions. Feedback On uses the firmware’s angle thresholds: double pulse for yellow and steady vibration for red. Off silences feedback. Test patterns are available while stopped and auto-stop within 1.3 seconds; firmware 4.8 is required for motor tests and driver status.</p><p>SD logs at nominal 10 Hz. Bluetooth and optical motion capture are not hardware synchronized.</p></details>
+<div class="lab-meta"><span id="state">Ready</span><span>Elapsed: <strong id="elapsed">00:00:00</strong></span><span>Samples: <strong id="samples">0</strong></span><span>Bluetooth: <strong id="connected">0 / 3</strong></span></div>
+<p id="message" role="status" aria-live="polite"></p>
+</section>
+</main>
+</body>
+</html>
