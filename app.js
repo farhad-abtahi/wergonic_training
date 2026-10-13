@@ -857,6 +857,10 @@ function parseAckResponse(message, deviceType) {
             const filename = reason;
             logToConsole(`[${deviceLabel}] ERROR: DELETE - ${filename}`, 'error');
             showNotification(`[${deviceLabel}] Delete failed: ${filename}`);
+            const deviceState = devices[deviceType];
+            if (deviceState && deviceState.pendingMetaDelete) {
+                delete deviceState.pendingMetaDelete[filename];
+            }
             return true;
         }
 
@@ -1266,6 +1270,23 @@ function deleteFile(filename, deviceType) {
         return;
     }
 
+    // A leftover metadata file reserves its session number forever (see
+    // select_available_session_names in SD_card.cpp), silently pushing new
+    // recordings to higher numbers and, once enough orphans pile up, past
+    // whatever the BLE file listing can carry in one go. Queue the companion
+    // _m.txt/_meta.txt for deletion once this CSV's delete is confirmed.
+    if (filename.toLowerCase().endsWith('.csv')) {
+        const baseName = filename.replace(/\.csv$/i, '').toLowerCase();
+        const companion = (deviceState.files || []).find(f => {
+            const lower = f.name.toLowerCase();
+            return lower === baseName + '_m.txt' || lower === baseName + '_meta.txt';
+        });
+        if (companion) {
+            deviceState.pendingMetaDelete = deviceState.pendingMetaDelete || {};
+            deviceState.pendingMetaDelete[filename] = companion.name;
+        }
+    }
+
     logToConsole(`[${deviceType.toUpperCase()}] Deleting ${filename}...`, 'info');
     sendCommand(deviceType, `DEL:${filename}`);
 }
@@ -1338,6 +1359,15 @@ function onFileDataReceived(event, deviceType) {
         }
         logToConsole(`[${deviceType.toUpperCase()}] Deleted: ${filename}`, 'success');
         showNotification(`[${deviceType.toUpperCase()}] Deleted ${filename}`);
+
+        const pendingMeta = deviceState.pendingMetaDelete;
+        const metaName = pendingMeta && pendingMeta[filename];
+        if (metaName) {
+            delete pendingMeta[filename];
+            logToConsole(`[${deviceType.toUpperCase()}] Deleting companion metadata ${metaName}...`, 'info');
+            sendCommand(deviceType, `DEL:${metaName}`);
+        }
+
         renderFileList(deviceType);
         return;
     }

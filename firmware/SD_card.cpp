@@ -84,7 +84,9 @@ bool sd_is_available(void)
 void sd_set_unavailable(void)
 {
     sd_available = false;
-    Serial.println(F("SD disabled - continuing without logging."));
+    Serial.print(F("SD error code=")); Serial.print(SD.errorCode());
+    Serial.print(F(", data=")); Serial.println(SD.errorData());
+    Serial.println(F("SD disabled - preserving buffered data; no false save acknowledgment."));
 }
 
 bool sd_init(void)
@@ -102,7 +104,7 @@ bool sd_init(void)
     int retries = 0;
     while (retries < 5)
     {
-        if (SD.begin(CS_PIN))
+        if (SD.begin(SD_SPI_CLOCK, CS_PIN))
         {
             break;  // Success
         }
@@ -246,7 +248,14 @@ bool sd_write_metadata(werg_unit* device)
     f.print(F("gyro_favoring="));
     f.println(m->gyro_favoring, 2);
 
+    f.flush();
+    bool ok = !f.getWriteError();
     f.close();
+    if (!ok)
+    {
+        sd_set_unavailable();
+        return false;
+    }
     Serial.println(F("Metadata saved"));
     return true;
 }
@@ -265,6 +274,31 @@ String format_elapsed_time(uint32_t elapsed_ms)
              (unsigned long)hours, (unsigned long)minutes,
              (unsigned long)seconds, (unsigned long)ms);
     return String(buf);
+}
+
+// Append a free-text note to the current session's metadata file, tagged
+// with the elapsed time. FILE_WRITE opens positioned at end-of-file, so
+// this never overwrites the [Session Metadata] block written earlier.
+bool sd_append_note(uint32_t elapsed_ms, const char* text)
+{
+    if (!sd_available || text == nullptr) return false;
+
+    File f = SD.open(metadata_filename, FILE_WRITE);
+    if (!f)
+    {
+        sd_set_unavailable();
+        return false;
+    }
+
+    f.print(F("note_"));
+    f.print(format_elapsed_time(elapsed_ms));
+    f.print(F("="));
+    f.println(text);
+    f.flush();
+    bool ok = !f.getWriteError();
+    f.close();
+    if (!ok) sd_set_unavailable();
+    return ok;
 }
 
 // Legacy function for backward compatibility

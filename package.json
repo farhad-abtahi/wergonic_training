@@ -4,7 +4,9 @@
   "private": true,
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "i18n:export": "node scripts/i18n-csv.js export",
+    "i18n:import": "node scripts/i18n-csv.js import"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

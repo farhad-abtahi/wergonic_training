@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a5fb4">
+    <title>Device & File Manager - Wergonic</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+    <script src="i18n.js"></script>
+    <script src="app-shell.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <style>
+        .dm-lang-btn {
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-on-surface);
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .dm-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .dm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .dm-card {
+            border: 2px solid var(--md-sys-color-outline-variant);
+            border-radius: 16px;
+            padding: 16px;
+            background: var(--md-sys-color-surface-container-low);
+        }
+        .dm-card.connected { border-color: #26a269; }
+
+        .dm-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .dm-card-header input.dm-label-input {
+            flex: 1;
+            font-weight: 700;
+            font-size: 1.05rem;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-on-surface);
+            min-width: 0;
+        }
+        .dm-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: #888;
+            flex-shrink: 0;
+        }
+        .dm-dot.ok   { background: #26a269; }
+        .dm-dot.warn { background: #e5a50a; }
+        .dm-dot.bad  { background: #e01b24; }
+        .dm-remove-btn {
+            background: none; border: none; color: var(--md-sys-color-error);
+            font-size: 1.2rem; cursor: pointer; padding: 4px 8px;
+        }
+
+        .dm-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+        .dm-row label { font-size: 0.8rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); }
+        .dm-row input[type=text] {
+            flex: 1; min-width: 90px;
+            padding: 8px 10px; border-radius: 8px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface);
+        }
+        .dm-row select {
+            padding: 8px 10px; border-radius: 8px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface);
+        }
+
+        .dm-config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 12px;
+            background: var(--md-sys-color-surface-container);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+        .dm-config-grid > div { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        .dm-config-grid label { font-weight: 600; }
+
+        .dm-files { margin-top: 8px; }
+        .dm-files-list { max-height: 180px; overflow-y: auto; font-size: 0.85rem; }
+        .dm-file-row {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 4px; border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        .dm-file-row .dm-file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dm-file-row .dm-file-size { color: var(--md-sys-color-on-surface-variant); font-size: 0.78rem; }
+        .dm-file-row button { padding: 4px 8px; font-size: 0.78rem; min-height: unset; }
+
+        .dm-status-line { font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant); min-height: 1.3em; margin-top: 6px; }
+
+        .dm-usage-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .dm-usage-table th, .dm-usage-table td {
+            text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        .dm-usage-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+        .dm-usage-chip {
+            background: var(--md-sys-color-surface-container); border-radius: 10px;
+            padding: 8px 14px; font-size: 0.9rem; font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-shell-nav"></div>
+
+    <div class="container">
+        <header>
+            <div class="page-heading">
+                <h1 data-i18n="mgr.title">Device & File Manager</h1>
+                <p class="page-subtitle" data-i18n="mgr.subtitle">Manage multiple devices, browse SD files, and track daily usage.</p>
+            </div>
+            <button type="button" class="dm-lang-btn i18n-toggle">中文</button>
+        </header>
+
+        <div class="dm-toolbar">
+            <button type="button" class="btn btn-primary" id="addDeviceBtn" data-i18n="mgr.addDevice">+ Add Device</button>
+        </div>
+
+        <div class="dm-grid" id="deviceGrid"></div>
+
+        <!-- Usage tracking -->
+        <div class="panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+                <div>
+                    <h3 style="margin:0" data-i18n="mgr.usage">Daily Usage Tracking</h3>
+                    <p style="margin:2px 0 0;font-size:.85rem;color:var(--md-sys-color-on-surface-variant)" data-i18n="mgr.usageSubtitle">Stored locally in this browser (per-device metadata log).</p>
+                </div>
+                <div style="display:flex;gap:8px">
+                    <button type="button" class="btn btn-small btn-secondary" id="exportUsageBtn" data-i18n="mgr.exportUsage">Export CSV</button>
+                    <button type="button" class="btn btn-small btn-danger" id="clearUsageBtn" data-i18n="mgr.clearUsage">Clear Log</button>
+                </div>
+            </div>
+            <div class="dm-usage-summary" id="usageSummary"></div>
+            <div style="overflow-x:auto">
+                <table class="dm-usage-table" id="usageTable">
+                    <thead>
+                        <tr>
+                            <th data-i18n="common.date">Date</th>
+                            <th data-i18n="mgr.subjectName">Subject name</th>
+                            <th data-i18n="common.device">Device</th>
+                            <th data-i18n="common.duration">Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usageTableBody"></tbody>
+                </table>
+            </div>
+            <p class="dm-status-line" id="usageEmptyMsg" data-i18n="mgr.noUsage">No usage recorded yet.</p>
+        </div>
+    </div>
+
+<script>
+// ═══════════════════════════════════════════════
+// BLE UUIDs (same as live-record.html / app.js)
+// ═══════════════════════════════════════════════
+const WERGONIC_SERVICE_UUID       = '34802252-7185-4d5d-b431-630e7050e8f0';
+const COMMAND_CHARACTERISTIC_UUID = '34802252-7185-4d5d-b431-630e7050e8f0';
+const FILE_TRANSFER_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+const USAGE_LOG_KEY = 'wergonic_usage_log';
+
+const THRESHOLD_OPTIONS = [
+    { cmd: 'I', label: '\u221215\u00b0' },
+    { cmd: 'H', label: '\u221210\u00b0' },
+    { cmd: 'G', label: '\u22125\u00b0' },
+    { cmd: 'O', label: '0\u00b0' },
+    { cmd: 'J', label: '+5\u00b0' },
+    { cmd: 'P', label: '+10\u00b0' },
+    { cmd: 'L', label: '+15\u00b0' }
+];
+const INTENSITY_OPTIONS = [
+    { cmd: 'W', key: 'weak' },
+    { cmd: 'M', key: 'medium' },
+    { cmd: 'S', key: 'strong' }
+];
+
+let slotSeq = 0;
+const slots = [];
+
+const $ = id => document.getElementById(id);
+
+// ═══════════════════════════════════════════════
+// Slot (device) model
+// ═══════════════════════════════════════════════
+function createSlot() {
+    slotSeq += 1;
+    const slot = {
+        id: slotSeq,
+        label: `Device ${slotSeq}`,
+        type: 'arm',
+        device: null, server: null, service: null, cmdChar: null, ftChar: null, ftListener: null,
+        connected: false, calibrated: false, sdAvailable: null,
+        manualDisconnect: false, reconnectTimer: null,
+        subjectName: '',
+        sessionStartedAt: null,
+        files: [], fileBuffer: '', isReceivingFile: false, currentFilename: null,
+        card: null
+    };
+    slots.push(slot);
+    renderSlot(slot);
+    return slot;
+}
+
+function removeSlot(slot) {
+    if (slot.reconnectTimer) clearTimeout(slot.reconnectTimer);
+    if (slot.device && slot.device.gatt.connected) {
+        slot.manualDisconnect = true;
+        slot.device.gatt.disconnect();
+    }
+    slot.card.remove();
+    const idx = slots.indexOf(slot);
+    if (idx >= 0) slots.splice(idx, 1);
+}
+
+function q(slot, sel) { return slot.card.querySelector(sel); }
+
+function renderSlot(slot) {
+    const card = document.createElement('div');
+    card.className = 'dm-card';
+    card.innerHTML = `
+        <div class="dm-card-header">
+            <span class="dm-dot" data-el="dot"></span>
+            <input type="text" class="dm-label-input" data-el="labelInput" value="${slot.label}">
+            <button type="button" class="dm-remove-btn" data-el="removeBtn" data-i18n-title="mgr.removeDevice" title="${wergonicT('mgr.removeDevice')}">✕</button>
+        </div>
+        <div class="dm-row">
+            <button type="button" class="btn btn-small btn-primary" data-el="connectBtn" data-i18n="common.connect">Connect</button>
+            <select data-el="typeSelect">
+                <option value="arm">${wergonicT('common.arm')}</option>
+                <option value="trunk">${wergonicT('common.trunk')}</option>
+            </select>
+            <button type="button" class="btn btn-small btn-warning" data-el="calibrateBtn" disabled data-i18n="common.calibrate">Calibrate</button>
+            <button type="button" class="btn btn-small btn-danger" data-el="stopBtn" disabled data-i18n="field.stop">Stop</button>
+        </div>
+        <div class="dm-row">
+            <input type="text" data-el="subjectInput" placeholder="${wergonicT('mgr.subjectName')}" maxlength="16">
+            <button type="button" class="btn btn-small btn-secondary" data-el="setNameBtn" data-i18n="mgr.setSubject">Set</button>
+            <button type="button" class="btn btn-small btn-secondary" data-el="syncTimeBtn" data-i18n="mgr.syncTime">Sync Time</button>
+        </div>
+        <div class="dm-config-grid" data-el="configGrid">
+            <div><label>${wergonicT('mgr.thresholdMargin')}</label>
+                <select data-el="thresholdSelect">
+                    ${THRESHOLD_OPTIONS.map(o => `<option value="${o.cmd}"${o.cmd === 'O' ? ' selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+            </div>
+            <div><label>${wergonicT('mgr.intensity')}</label>
+                <select data-el="intensitySelect">
+                    ${INTENSITY_OPTIONS.map(o => `<option value="${o.cmd}"${o.cmd === 'M' ? ' selected' : ''}>${wergonicT('common.' + o.key)}</option>`).join('')}
+                </select>
+            </div>
+            <div><label data-i18n="mgr.filter">Complementary filter</label>
+                <input type="checkbox" data-el="filterToggle" checked>
+            </div>
+            <div><label data-i18n="mgr.feedback">Vibration feedback</label>
+                <input type="checkbox" data-el="feedbackToggle" checked>
+            </div>
+            <div><label data-i18n="mgr.debug">Debug output</label>
+                <input type="checkbox" data-el="debugToggle">
+            </div>
+            <div><label data-i18n="mgr.calibRestore">Restore calibration on boot</label>
+                <input type="checkbox" data-el="calibRestoreToggle">
+            </div>
+        </div>
+        <div class="dm-files">
+            <div class="dm-row" style="margin-bottom:6px">
+                <strong data-i18n="mgr.files" style="font-size:.85rem">SD Card Files</strong>
+                <span class="dm-dot" data-el="sdDot" style="margin-left:auto"></span>
+                <button type="button" class="btn btn-small btn-secondary" data-el="refreshFilesBtn" data-i18n="mgr.refreshFiles">\u21bb Refresh List</button>
+            </div>
+            <div class="dm-files-list" data-el="filesList"></div>
+        </div>
+        <p class="dm-status-line" data-el="statusLine">\u2014</p>
+    `;
+    slot.card = card;
+    $('deviceGrid').appendChild(card);
+
+    q(slot, '[data-el="labelInput"]').addEventListener('change', (e) => { slot.label = e.target.value.trim() || `Device ${slot.id}`; });
+    q(slot, '[data-el="removeBtn"]').addEventListener('click', () => removeSlot(slot));
+    q(slot, '[data-el="connectBtn"]').addEventListener('click', () => slot.connected ? disconnectSlot(slot) : connectSlot(slot));
+    q(slot, '[data-el="typeSelect"]').addEventListener('change', (e) => { slot.type = e.target.value; });
+    q(slot, '[data-el="calibrateBtn"]').addEventListener('click', () => calibrateSlot(slot));
+    q(slot, '[data-el="stopBtn"]').addEventListener('click', () => stopSlot(slot));
+    q(slot, '[data-el="subjectInput"]').addEventListener('input', (e) => { slot.subjectName = e.target.value.trim(); });
+    q(slot, '[data-el="setNameBtn"]').addEventListener('click', () => {
+        if (slot.subjectName) sendCmd(slot, 'N:' + slot.subjectName);
+        else setSlotStatus(slot, wergonicT('field.needName'));
+    });
+    q(slot, '[data-el="syncTimeBtn"]').addEventListener('click', () => sendCmd(slot, timeSyncCommand()));
+    q(slot, '[data-el="thresholdSelect"]').addEventListener('change', (e) => sendCmd(slot, e.target.value));
+    q(slot, '[data-el="intensitySelect"]').addEventListener('change', (e) => sendCmd(slot, e.target.value));
+    q(slot, '[data-el="filterToggle"]').addEventListener('change', (e) => sendCmd(slot, e.target.checked ? 'X' : 'Z'));
+    q(slot, '[data-el="feedbackToggle"]').addEventListener('change', (e) => sendCmd(slot, e.target.checked ? 'F' : 'N'));
+    q(slot, '[data-el="debugToggle"]').addEventListener('change', (e) => sendCmd(slot, e.target.checked ? 'E' : 'Q'));
+    q(slot, '[data-el="calibRestoreToggle"]').addEventListener('change', (e) => sendCmd(slot, e.target.checked ? 'U' : 'Y'));
+    q(slot, '[data-el="refreshFilesBtn"]').addEventListener('click', () => refreshFiles(slot));
+
+    wergonicApplyI18n(card);
+    updateSlotUI(slot);
+}
+
+function setSlotStatus(slot, msg) { q(slot, '[data-el="statusLine"]').textContent = msg; }
+
+// ═══════════════════════════════════════════════
+// Connect / disconnect
+// ═══════════════════════════════════════════════
+async function connectSlot(slot) {
+    if (!navigator.bluetooth) { alert(wergonicT('common.webBleUnsupported')); return; }
+    slot.manualDisconnect = false;
+    if (slot.reconnectTimer) { clearTimeout(slot.reconnectTimer); slot.reconnectTimer = null; }
+    try {
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [{ services: [WERGONIC_SERVICE_UUID] }],
+            optionalServices: [WERGONIC_SERVICE_UUID]
+        });
+        slot.device = device;
+        device.addEventListener('gattserverdisconnected', () => onSlotDisconnected(slot));
+        await connectGatt(slot);
+        await sendCmd(slot, timeSyncCommand());
+        setSlotStatus(slot, wergonicT('field.timeSynced'));
+    } catch (e) {
+        setSlotStatus(slot, e.message);
+    }
+}
+
+async function connectGatt(slot) {
+    slot.server  = await slot.device.gatt.connect();
+    slot.service = await slot.server.getPrimaryService(WERGONIC_SERVICE_UUID);
+    slot.cmdChar = await slot.service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID);
+    slot.ftChar  = await slot.service.getCharacteristic(FILE_TRANSFER_CHARACTERISTIC_UUID);
+    await slot.ftChar.startNotifications();
+    if (slot.ftListener) slot.ftChar.removeEventListener('characteristicvaluechanged', slot.ftListener);
+    slot.ftListener = (e) => onSlotMessage(slot, e);
+    slot.ftChar.addEventListener('characteristicvaluechanged', slot.ftListener);
+    slot.connected = true;
+    updateSlotUI(slot);
+    sendCmd(slot, '?');
+}
+
+function onSlotDisconnected(slot) {
+    slot.connected = false;
+    slot.cmdChar = null;
+    slot.ftChar = null;
+    updateSlotUI(slot);
+    if (slot.manualDisconnect) { slot.calibrated = false; updateSlotUI(slot); return; }
+    setSlotStatus(slot, wergonicT('common.reconnecting'));
+    slot.reconnectTimer = setTimeout(() => reconnectSlot(slot, 1), 3000);
+}
+
+async function reconnectSlot(slot, attempt) {
+    if (slot.manualDisconnect || !slot.device) return;
+    if (attempt > 10) { slot.calibrated = false; updateSlotUI(slot); return; }
+    setSlotStatus(slot, `${wergonicT('common.reconnecting')} (${attempt}/10)`);
+    try {
+        await connectGatt(slot);
+    } catch (e) {
+        slot.reconnectTimer = setTimeout(() => reconnectSlot(slot, attempt + 1), 3000);
+    }
+}
+
+function disconnectSlot(slot) {
+    slot.manualDisconnect = true;
+    if (slot.reconnectTimer) { clearTimeout(slot.reconnectTimer); slot.reconnectTimer = null; }
+    if (slot.device && slot.device.gatt.connected) slot.device.gatt.disconnect();
+    slot.connected = false;
+    slot.calibrated = false;
+    updateSlotUI(slot);
+}
+
+async function sendCmd(slot, cmd) {
+    if (!slot.cmdChar) { setSlotStatus(slot, wergonicT('common.notConnected')); return; }
+    try {
+        await slot.cmdChar.writeValue(new TextEncoder().encode(cmd));
+    } catch (e) {
+        setSlotStatus(slot, `"${cmd}" \u2717 ${e.message}`);
+    }
+}
+
+function timeSyncCommand() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return 'T:' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) +
+           pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+}
+
+// ═══════════════════════════════════════════════
+// Calibrate / Stop (usage tracking)
+// ═══════════════════════════════════════════════
+async function calibrateSlot(slot) {
+    const typeCmd = slot.type === 'arm' ? 'A' : 'B';
+    await sendCmd(slot, typeCmd);
+    await new Promise(r => setTimeout(r, 150));
+    await sendCmd(slot, 'C');
+    slot.calibrated = true;
+    slot.sessionStartedAt = Date.now();
+    updateSlotUI(slot);
+    setSlotStatus(slot, wergonicT('common.calibrated'));
+}
+
+async function stopSlot(slot) {
+    await sendCmd(slot, 'K');
+    if (slot.sessionStartedAt) {
+        logUsage(slot, Date.now() - slot.sessionStartedAt);
+        slot.sessionStartedAt = null;
+    }
+    slot.calibrated = false;
+    updateSlotUI(slot);
+    setSlotStatus(slot, wergonicT('field.stopped'));
+}
+
+// ═══════════════════════════════════════════════
+// BLE notifications: ACK/ERROR + file protocol
+// ═══════════════════════════════════════════════
+function onSlotMessage(slot, event) {
+    const text = new TextDecoder().decode(event.target.value);
+
+    if (text.includes('FILES:BEGIN')) { slot.files = []; return; }
+    if (text.includes('FILES:END')) { renderFileList(slot); return; }
+    if (text.includes('FILE:') && !text.includes('FILES:')) {
+        const m = text.match(/FILE:([^,]+),(\d+)/);
+        if (m && !slot.files.some(f => f.name === m[1].trim())) {
+            slot.files.push({ name: m[1].trim(), size: parseInt(m[2]) });
+        }
+        return;
+    }
+    if (text.startsWith('DELETED:')) {
+        const filename = text.substring('DELETED:'.length).trim();
+        slot.files = slot.files.filter(f => f.name !== filename);
+        renderFileList(slot);
+        setSlotStatus(slot, `${wergonicT('common.delete')}: ${filename}`);
+        return;
+    }
+    if (text.includes('STREAM:BEGIN')) { slot.fileBuffer = ''; slot.isReceivingFile = true; return; }
+    const endMarkers = ['<<EOF>>', 'STREAM:END'];
+    const endMarker = endMarkers.find(m => text === m || text.startsWith(m));
+    if (endMarker) {
+        const idx = text.indexOf(endMarker);
+        if (idx > 0 && slot.isReceivingFile) slot.fileBuffer += text.substring(0, idx);
+        if (slot.isReceivingFile) finishDownload(slot);
+        return;
+    }
+    if (slot.isReceivingFile) { slot.fileBuffer += text; return; }
+
+    if (text.startsWith('ACK:?:')) {
+        const m = text.match(/SD=(\d)/);
+        if (m) { slot.sdAvailable = m[1] === '1'; updateSlotUI(slot); }
+        return;
+    }
+    if (text.startsWith('ACK:')) { setSlotStatus(slot, text.substring(4)); return; }
+    if (text.startsWith('ERROR:')) { setSlotStatus(slot, text); return; }
+}
+
+function refreshFiles(slot) {
+    if (!slot.connected) { setSlotStatus(slot, wergonicT('common.notConnected')); return; }
+    slot.files = [];
+    renderFileList(slot);
+    sendCmd(slot, 'D');
+}
+
+function downloadFile(slot, filename) {
+    slot.currentFilename = filename;
+    slot.fileBuffer = '';
+    sendCmd(slot, 'R:' + filename);
+}
+
+function finishDownload(slot) {
+    slot.isReceivingFile = false;
+    const blob = new Blob([slot.fileBuffer], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = slot.currentFilename || 'wergonic-file.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setSlotStatus(slot, `${wergonicT('mgr.download')}: ${slot.currentFilename}`);
+}
+
+function deleteFile(slot, filename) {
+    if (!confirm(wergonicT('mgr.confirmDelete'))) return;
+    sendCmd(slot, 'DEL:' + filename);
+}
+
+function renderFileList(slot) {
+    const list = q(slot, '[data-el="filesList"]');
+    if (slot.files.length === 0) {
+        list.innerHTML = `<p class="dm-status-line" data-i18n="mgr.noFiles">${wergonicT('mgr.noFiles')}</p>`;
+        return;
+    }
+    list.innerHTML = slot.files.map(f => `
+        <div class="dm-file-row">
+            <span class="dm-file-name">${f.name}</span>
+            <span class="dm-file-size">${(f.size / 1024).toFixed(1)} KB</span>
+            <button type="button" class="btn btn-secondary" data-action="dl">${wergonicT('mgr.download')}</button>
+            <button type="button" class="btn btn-danger" data-action="del">${wergonicT('common.delete')}</button>
+        </div>
+    `).join('');
+    const rows = list.querySelectorAll('.dm-file-row');
+    rows.forEach((row, i) => {
+        row.querySelector('[data-action="dl"]').addEventListener('click', () => downloadFile(slot, slot.files[i].name));
+        row.querySelector('[data-action="del"]').addEventListener('click', () => deleteFile(slot, slot.files[i].name));
+    });
+}
+
+// ═══════════════════════════════════════════════
+// UI sync
+// ═══════════════════════════════════════════════
+function updateSlotUI(slot) {
+    const dot = q(slot, '[data-el="dot"]');
+    const connectBtn = q(slot, '[data-el="connectBtn"]');
+    const calibrateBtn = q(slot, '[data-el="calibrateBtn"]');
+    const stopBtn = q(slot, '[data-el="stopBtn"]');
+    const sdDot = q(slot, '[data-el="sdDot"]');
+
+    slot.card.classList.toggle('connected', slot.connected);
+    dot.className = 'dm-dot' + (slot.connected ? ' ok' : '');
+    connectBtn.textContent = slot.connected ? wergonicT('common.disconnect') : wergonicT('common.connect');
+    connectBtn.removeAttribute('data-i18n');
+    calibrateBtn.disabled = !slot.connected;
+    calibrateBtn.textContent = slot.calibrated ? wergonicT('common.calibrated') : wergonicT('common.calibrate');
+    calibrateBtn.removeAttribute('data-i18n');
+    stopBtn.disabled = !slot.calibrated;
+
+    if (slot.sdAvailable === null) sdDot.className = 'dm-dot';
+    else sdDot.className = 'dm-dot ' + (slot.sdAvailable ? 'ok' : 'bad');
+}
+
+// ═══════════════════════════════════════════════
+// Usage log (localStorage-persisted)
+// ═══════════════════════════════════════════════
+function loadUsageLog() {
+    try { return JSON.parse(localStorage.getItem(USAGE_LOG_KEY)) || []; } catch (e) { return []; }
+}
+function saveUsageLog(log) {
+    try { localStorage.setItem(USAGE_LOG_KEY, JSON.stringify(log)); } catch (e) {}
+}
+function logUsage(slot, durationMs) {
+    const log = loadUsageLog();
+    const started = new Date(slot.sessionStartedAt);
+    log.push({
+        date: started.toISOString().slice(0, 10),
+        subject: slot.subjectName || '\u2014',
+        device: slot.label,
+        durationMs
+    });
+    saveUsageLog(log);
+    renderUsageTable();
+}
+
+function formatDuration(ms) {
+    const totalSec = Math.round(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function renderUsageTable() {
+    const log = loadUsageLog().sort((a, b) => b.date.localeCompare(a.date));
+    const body = $('usageTableBody');
+    const emptyMsg = $('usageEmptyMsg');
+    body.innerHTML = log.map(r => `
+        <tr><td>${r.date}</td><td>${r.subject}</td><td>${r.device}</td><td>${formatDuration(r.durationMs)}</td></tr>
+    `).join('');
+    emptyMsg.style.display = log.length === 0 ? 'block' : 'none';
+
+    const today = new Date().toISOString().slice(0, 10);
+    const perSubjectToday = {};
+    log.filter(r => r.date === today).forEach(r => {
+        perSubjectToday[r.subject] = (perSubjectToday[r.subject] || 0) + r.durationMs;
+    });
+    const summary = $('usageSummary');
+    const entries = Object.entries(perSubjectToday);
+    summary.innerHTML = entries.length === 0 ? '' : entries.map(([subject, ms]) =>
+        `<span class="dm-usage-chip">${wergonicT('mgr.totalToday')} \u2013 ${subject}: ${formatDuration(ms)}</span>`
+    ).join('');
+}
+
+function exportUsageCsv() {
+    const log = loadUsageLog();
+    const rows = [['date', 'subject', 'device', 'duration_ms'], ...log.map(r => [r.date, r.subject, r.device, r.durationMs])];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wergonic_usage_log.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+$('addDeviceBtn').addEventListener('click', createSlot);
+$('clearUsageBtn').addEventListener('click', () => {
+    if (confirm(wergonicT('mgr.confirmClearUsage'))) { saveUsageLog([]); renderUsageTable(); }
+});
+$('exportUsageBtn').addEventListener('click', exportUsageCsv);
+
+document.addEventListener('wergonic-lang-changed', () => {
+    slots.forEach(slot => { wergonicApplyI18n(slot.card); updateSlotUI(slot); renderFileList(slot); });
+    renderUsageTable();
+});
+
+renderUsageTable();
+createSlot();
+createSlot();
+</script>
+</body>
+</html>

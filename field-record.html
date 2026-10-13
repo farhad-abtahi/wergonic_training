@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a5fb4">
+    <title>Field Recording - Wergonic</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+    <script src="i18n.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script>
+        // Apply the persisted theme before first paint (same IIFE as app-shell.js),
+        // without pulling in app-shell's nav/tab-bar chrome — this page is a
+        // single-screen kiosk view and every pixel of height matters.
+        (function () {
+            var stored = null;
+            try { stored = localStorage.getItem('wergonic-theme'); } catch (e) {}
+            var isLight = stored
+                ? stored === 'light'
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+            if (isLight) document.documentElement.classList.add('light');
+        })();
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            });
+        }
+    </script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .fr-app {
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 2vh, 16px);
+            padding: max(10px, env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom));
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* ── Header / status ── */
+        .fr-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .fr-app-title {
+            font-size: clamp(1.1rem, 4.5vw, 1.4rem);
+            font-weight: 700;
+            color: var(--md-sys-color-primary);
+        }
+        .fr-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .fr-lang-btn {
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-on-surface);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .fr-status-bar {
+            display: flex;
+            gap: 8px;
+        }
+        .fr-status-chip {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: var(--md-sys-color-surface-container);
+            border-radius: 12px;
+            padding: 8px 6px;
+            font-size: clamp(0.75rem, 3vw, 0.9rem);
+            font-weight: 600;
+        }
+        .fr-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: #888;
+            flex-shrink: 0;
+        }
+        .fr-dot.ok   { background: #26a269; }
+        .fr-dot.warn { background: #e5a50a; }
+        .fr-dot.bad  { background: #e01b24; }
+
+        /* ── Name input ── */
+        .fr-name-input {
+            width: 100%;
+            font-size: clamp(1.1rem, 4.5vw, 1.35rem);
+            font-weight: 600;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 2px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container-low);
+            color: var(--md-sys-color-on-surface);
+        }
+        .fr-name-input:focus { border-color: var(--md-sys-color-primary); outline: none; }
+
+        /* ── Device rows ── */
+        .fr-device-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--md-sys-color-surface-container);
+            border-radius: 14px;
+            padding: 10px 12px;
+        }
+        .fr-device-label {
+            font-weight: 800;
+            font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+            min-width: 58px;
+        }
+        .fr-device-state {
+            flex: 1;
+            font-size: clamp(0.8rem, 3vw, 0.95rem);
+            color: var(--md-sys-color-on-surface-variant);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .fr-btn {
+            border: none;
+            border-radius: 999px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            touch-action: manipulation;
+        }
+        .fr-btn:disabled { opacity: .4; cursor: not-allowed; }
+        .fr-btn-pair {
+            padding: 10px 18px;
+            font-size: clamp(0.85rem, 3.2vw, 1rem);
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            min-height: 44px;
+        }
+        .fr-btn-pair.is-connected {
+            background: var(--md-sys-color-success-container, #d4f4dd);
+            color: var(--md-sys-color-success, #1e8e3e);
+        }
+
+        /* ── Calibrate ── */
+        .fr-calibrate-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            min-height: 56px;
+            background: var(--md-sys-color-warning-container);
+            color: var(--md-sys-color-warning);
+        }
+        .fr-calibrate-btn.is-done {
+            background: var(--md-sys-color-success-container, #d4f4dd);
+            color: var(--md-sys-color-success, #1e8e3e);
+        }
+
+        /* ── Elapsed ── */
+        .fr-elapsed {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(2.4rem, 13vw, 3.6rem);
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            min-height: 64px;
+            color: var(--md-sys-color-on-surface);
+        }
+        .fr-elapsed.recording { color: #e01b24; }
+        .fr-elapsed.paused    { color: #e5a50a; }
+
+        /* ── Main controls ── */
+        .fr-main-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .fr-main-controls .fr-btn {
+            flex: 1;
+            min-height: 64px;
+            font-size: clamp(1rem, 4.2vw, 1.25rem);
+        }
+        .fr-btn-start { background: var(--md-sys-color-success-container, #d4f4dd); color: var(--md-sys-color-success, #1e8e3e); }
+        .fr-btn-pause { background: var(--md-sys-color-warning-container); color: var(--md-sys-color-warning); }
+        .fr-btn-stop  { background: var(--md-sys-color-error-container); color: var(--md-sys-color-error); }
+
+        /* ── Note row ── */
+        .fr-note-row {
+            display: flex;
+            gap: 8px;
+        }
+        .fr-note-row input {
+            flex: 1;
+            font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 2px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container-low);
+            color: var(--md-sys-color-on-surface);
+            min-width: 0;
+        }
+        .fr-note-row .fr-btn {
+            padding: 0 20px;
+            min-height: 48px;
+            font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-secondary);
+        }
+
+        /* ── Status line ── */
+        .fr-status-line {
+            text-align: center;
+            font-size: clamp(0.8rem, 3vw, 0.95rem);
+            color: var(--md-sys-color-on-surface-variant);
+            min-height: 1.4em;
+        }
+
+        .fr-home-link {
+            font-size: 0.85rem;
+            color: var(--md-sys-color-on-surface-variant);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="fr-app">
+        <div class="fr-header">
+            <a class="fr-home-link" href="index.html" data-i18n="common.home">⌂ Home</a>
+            <span class="fr-app-title" data-i18n="field.title">Recording</span>
+            <button type="button" class="fr-lang-btn i18n-toggle">中文</button>
+        </div>
+
+        <div class="fr-status-bar">
+            <div class="fr-status-chip">
+                <span class="fr-dot" id="bleDot"></span>
+                <span data-i18n="common.bluetooth">Bluetooth</span>&nbsp;<span id="bleCountText">0/2</span>
+            </div>
+            <div class="fr-status-chip">
+                <span class="fr-dot" id="sdDot"></span>
+                <span data-i18n="common.sdCard">SD Card</span>&nbsp;<span id="sdStatusText" data-i18n="common.unknown">Unknown</span>
+            </div>
+        </div>
+
+        <input type="text" id="subjectNameInput" class="fr-name-input" data-i18n-placeholder="field.namePlaceholder" placeholder="Subject name" maxlength="16" autocomplete="off">
+
+        <div class="fr-device-row" data-device="arm">
+            <span class="fr-device-label" data-i18n="common.arm">ARM</span>
+            <span class="fr-dot" id="armDot"></span>
+            <span class="fr-device-state" id="armState" data-i18n="common.notConnected">Not connected</span>
+            <button type="button" class="fr-btn fr-btn-pair" id="pairArmBtn" data-i18n="field.pair">Pair</button>
+        </div>
+        <div class="fr-device-row" data-device="trunk">
+            <span class="fr-device-label" data-i18n="common.trunk">TRUNK</span>
+            <span class="fr-dot" id="trunkDot"></span>
+            <span class="fr-device-state" id="trunkState" data-i18n="common.notConnected">Not connected</span>
+            <button type="button" class="fr-btn fr-btn-pair" id="pairTrunkBtn" data-i18n="field.pair">Pair</button>
+        </div>
+
+        <button type="button" class="fr-btn fr-calibrate-btn" id="calibrateBtn" disabled data-i18n="common.calibrate">Calibrate</button>
+
+        <div class="fr-elapsed" id="elapsedDisplay">00:00:00</div>
+
+        <div class="fr-main-controls">
+            <button type="button" class="fr-btn fr-btn-start" id="startBtn" disabled data-i18n="field.start">▶ Start</button>
+            <button type="button" class="fr-btn fr-btn-pause" id="pauseBtn" disabled data-i18n="field.pause">⏸ Pause</button>
+            <button type="button" class="fr-btn fr-btn-stop" id="stopBtn" disabled data-i18n="field.stop">⏹ Stop</button>
+        </div>
+
+        <div class="fr-note-row">
+            <input type="text" id="noteInput" data-i18n-placeholder="field.notePlaceholder" placeholder="Add a text note…" maxlength="195">
+            <button type="button" class="fr-btn" id="noteSendBtn" data-i18n="field.noteSend">Send</button>
+        </div>
+
+        <p class="fr-status-line" id="statusLine" data-i18n="field.ready">Ready</p>
+    </div>
+
+<script>
+// ═══════════════════════════════════════════════
+// BLE UUIDs (same as live-record.html / app.js)
+// ═══════════════════════════════════════════════
+const WERGONIC_SERVICE_UUID       = '34802252-7185-4d5d-b431-630e7050e8f0';
+const COMMAND_CHARACTERISTIC_UUID = '34802252-7185-4d5d-b431-630e7050e8f0';
+const FILE_TRANSFER_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+const TYPE_CMD  = { arm: 'A', trunk: 'B' };
+const RECONNECT_DELAY_MS = 3000;
+const MAX_RECONNECT_ATTEMPTS = 10;
+// Firmware's BLE command characteristic is a 200-byte buffer (see
+// ble_service.cpp); "NOTE:" itself is 5 ASCII bytes, leaving 195 bytes for
+// the note text. That's a UTF-8 *byte* count, not a character count — one
+// Chinese character is 3 bytes, so the effective character limit is much
+// lower for CJK text than for plain ASCII.
+const NOTE_MAX_BYTES = 195;
+
+const $ = id => document.getElementById(id);
+
+const dev = {
+    arm:   { device: null, server: null, service: null, cmdChar: null, ftChar: null, ftListener: null,
+             connected: false, calibrated: false, sdAvailable: null, manualDisconnect: false, reconnectTimer: null },
+    trunk: { device: null, server: null, service: null, cmdChar: null, ftChar: null, ftListener: null,
+             connected: false, calibrated: false, sdAvailable: null, manualDisconnect: false, reconnectTimer: null }
+};
+
+const session = {
+    state: 'idle', // idle | recording | paused | stopped
+    startWallTime: null, pauseOffset: 0, pauseStart: null, elapsedTimer: null
+};
+
+let subjectName = '';
+
+function setStatus(msg) {
+    $('statusLine').textContent = msg;
+    $('statusLine').removeAttribute('data-i18n');
+}
+
+// ═══════════════════════════════════════════════
+// Device connect / disconnect
+// ═══════════════════════════════════════════════
+async function pairDevice(kind) {
+    if (!navigator.bluetooth) {
+        alert(wergonicT('common.webBleUnsupported'));
+        return;
+    }
+    const d = dev[kind];
+    d.manualDisconnect = false;
+    if (d.reconnectTimer) { clearTimeout(d.reconnectTimer); d.reconnectTimer = null; }
+    try {
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [{ services: [WERGONIC_SERVICE_UUID] }],
+            optionalServices: [WERGONIC_SERVICE_UUID]
+        });
+        d.device = device;
+        device.addEventListener('gattserverdisconnected', () => onDisconnected(kind));
+
+        await connectGatt(kind);
+        await sendCmd(kind, timeSyncCommand());
+        setStatus(wergonicT('field.timeSynced'));
+        if (subjectName) await sendCmd(kind, 'N:' + subjectName);
+    } catch (e) {
+        setStatus(`${kind.toUpperCase()}: ${e.message}`);
+    }
+}
+
+async function connectGatt(kind) {
+    const d = dev[kind];
+    d.server  = await d.device.gatt.connect();
+    d.service = await d.server.getPrimaryService(WERGONIC_SERVICE_UUID);
+    d.cmdChar = await d.service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID);
+    d.ftChar  = await d.service.getCharacteristic(FILE_TRANSFER_CHARACTERISTIC_UUID);
+    await d.ftChar.startNotifications();
+    if (d.ftListener) d.ftChar.removeEventListener('characteristicvaluechanged', d.ftListener);
+    d.ftListener = (e) => onDeviceMessage(kind, e);
+    d.ftChar.addEventListener('characteristicvaluechanged', d.ftListener);
+    d.connected = true;
+    updateDeviceRow(kind);
+    updateBleChip();
+    requestStatus(kind);
+}
+
+function onDisconnected(kind) {
+    const d = dev[kind];
+    d.connected = false;
+    d.cmdChar = null;
+    d.ftChar = null;
+    updateDeviceRow(kind);
+    updateBleChip();
+
+    if (d.manualDisconnect) {
+        d.calibrated = false;
+        updateCalibrateUI();
+        return;
+    }
+    $(`${kind}State`).textContent = wergonicT('common.reconnecting');
+    d.reconnectTimer = setTimeout(() => reconnectDevice(kind, 1), RECONNECT_DELAY_MS);
+}
+
+async function reconnectDevice(kind, attempt) {
+    const d = dev[kind];
+    if (d.manualDisconnect || !d.device) return;
+    if (attempt > MAX_RECONNECT_ATTEMPTS) {
+        d.calibrated = false;
+        updateDeviceRow(kind);
+        updateCalibrateUI();
+        return;
+    }
+    $(`${kind}State`).textContent = `${wergonicT('common.reconnecting')} (${attempt}/${MAX_RECONNECT_ATTEMPTS})`;
+    try {
+        await connectGatt(kind);
+        if (d.calibrated) {
+            // Firmware keeps calibration/session state across BLE drops.
+            setStatus(`${kind.toUpperCase()} ${wergonicT('common.connected')}`);
+        }
+    } catch (e) {
+        d.reconnectTimer = setTimeout(() => reconnectDevice(kind, attempt + 1), RECONNECT_DELAY_MS);
+    }
+}
+
+async function sendCmd(kind, cmd) {
+    const d = dev[kind];
+    if (!d.cmdChar) return;
+    try {
+        await d.cmdChar.writeValue(new TextEncoder().encode(cmd));
+    } catch (e) {
+        setStatus(`${kind.toUpperCase()} "${cmd}" \u2717 ${e.message}`);
+    }
+}
+
+function requestStatus(kind) { sendCmd(kind, '?'); }
+
+function timeSyncCommand() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return 'T:' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) +
+           pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+}
+
+// ═══════════════════════════════════════════════
+// Incoming BLE notifications (ACK:/ERROR:)
+// ═══════════════════════════════════════════════
+function onDeviceMessage(kind, event) {
+    const text = new TextDecoder().decode(event.target.value);
+    const d = dev[kind];
+
+    if (text.startsWith('ACK:?:')) {
+        const m = text.match(/SD=(\d)/);
+        if (m) { d.sdAvailable = m[1] === '1'; updateSdChip(); }
+        return;
+    }
+    if (text.startsWith('ACK:C:')) {
+        d.calibrated = true;
+        updateCalibrateUI();
+        return;
+    }
+    if (text.startsWith('ACK:NOTE:')) { setStatus(`${kind.toUpperCase()}: ${wergonicT('field.noteSent')}`); return; }
+    if (text.startsWith('ERROR:NOTE:')) { setStatus(`${kind.toUpperCase()}: ${wergonicT('field.noteFailed')}`); return; }
+    if (text.startsWith('ERROR:')) { setStatus(`${kind.toUpperCase()}: ${text}`); return; }
+}
+
+// ═══════════════════════════════════════════════
+// UI updates
+// ═══════════════════════════════════════════════
+function updateDeviceRow(kind) {
+    const d = dev[kind];
+    const dot = $(`${kind}Dot`);
+    const state = $(`${kind}State`);
+    const btn = $(`pair${kind.charAt(0).toUpperCase()}${kind.slice(1)}Btn`);
+    if (d.connected) {
+        dot.className = 'fr-dot ok';
+        state.textContent = d.device ? (d.device.name || d.device.id) : wergonicT('common.connected');
+        btn.textContent = wergonicT('common.disconnect');
+        btn.classList.add('is-connected');
+    } else {
+        dot.className = 'fr-dot';
+        state.setAttribute('data-i18n', 'common.notConnected');
+        state.textContent = wergonicT('common.notConnected');
+        btn.textContent = wergonicT('field.pair');
+        btn.classList.remove('is-connected');
+    }
+    updateCalibrateUI();
+}
+
+function updateBleChip() {
+    const count = (dev.arm.connected ? 1 : 0) + (dev.trunk.connected ? 1 : 0);
+    $('bleCountText').textContent = `${count}/2`;
+    $('bleDot').className = 'fr-dot ' + (count === 2 ? 'ok' : count === 1 ? 'warn' : '');
+}
+
+function updateSdChip() {
+    const vals = [dev.arm.connected ? dev.arm.sdAvailable : null, dev.trunk.connected ? dev.trunk.sdAvailable : null]
+        .filter(v => v !== null);
+    const text = $('sdStatusText');
+    const dot = $('sdDot');
+    if (vals.length === 0) {
+        text.setAttribute('data-i18n', 'common.unknown');
+        text.textContent = wergonicT('common.unknown');
+        dot.className = 'fr-dot';
+    } else if (vals.every(v => v === true)) {
+        text.removeAttribute('data-i18n');
+        text.textContent = wergonicT('common.available');
+        dot.className = 'fr-dot ok';
+    } else {
+        text.removeAttribute('data-i18n');
+        text.textContent = wergonicT('common.unavailable');
+        dot.className = 'fr-dot bad';
+    }
+}
+
+function updateCalibrateUI() {
+    const anyConnected = dev.arm.connected || dev.trunk.connected;
+    const anyCalibrated = dev.arm.calibrated || dev.trunk.calibrated;
+    const calBtn = $('calibrateBtn');
+    calBtn.disabled = !anyConnected || session.state === 'recording' || session.state === 'paused';
+    calBtn.classList.toggle('is-done', anyCalibrated);
+    calBtn.textContent = anyCalibrated ? wergonicT('common.calibrated') : wergonicT('common.calibrate');
+    calBtn.removeAttribute('data-i18n');
+    $('startBtn').disabled = !anyCalibrated || session.state !== 'idle';
+}
+
+// ═══════════════════════════════════════════════
+// Calibrate / Start / Pause / Stop
+// ═══════════════════════════════════════════════
+async function calibrateAll() {
+    if (!subjectName) { setStatus(wergonicT('field.needName')); return; }
+    setStatus(wergonicT('field.calibrating'));
+    for (const kind of ['arm', 'trunk']) {
+        if (!dev[kind].connected) continue;
+        // Resend the name here (not just on pair/blur) so devices connected before
+        // the name was typed - or reconnected since - still get it before recording.
+        await sendCmd(kind, 'N:' + subjectName);
+        await sendCmd(kind, TYPE_CMD[kind]);
+        await new Promise(r => setTimeout(r, 150));
+        await sendCmd(kind, 'C');
+    }
+    setStatus(wergonicT('field.ready'));
+}
+
+function startElapsedTimer() {
+    if (session.elapsedTimer) clearInterval(session.elapsedTimer);
+    session.elapsedTimer = setInterval(() => {
+        const el = $('elapsedDisplay');
+        el.textContent = formatHHMMSS(getElapsedMs());
+    }, 500);
+}
+
+function getElapsedMs() {
+    if (!session.startWallTime) return 0;
+    const now = Date.now();
+    const raw = now - session.startWallTime - session.pauseOffset;
+    if (session.state === 'paused' && session.pauseStart) return raw - (now - session.pauseStart);
+    return raw;
+}
+
+function formatHHMMSS(ms) {
+    const totalSec = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+async function startRecording() {
+    if (!dev.arm.connected && !dev.trunk.connected) { setStatus(wergonicT('field.needDevice')); return; }
+    $('startBtn').disabled = true;
+    // Re-sync device clocks right before recording starts, since pairing (and the
+    // time sync it triggers) may have happened long before the operator hits Start.
+    for (const kind of ['arm', 'trunk']) {
+        if (dev[kind].connected) await sendCmd(kind, timeSyncCommand());
+    }
+    session.state = 'recording';
+    session.startWallTime = Date.now();
+    session.pauseOffset = 0;
+    session.pauseStart = null;
+    startElapsedTimer();
+    $('elapsedDisplay').className = 'fr-elapsed recording';
+    $('startBtn').disabled = true;
+    $('pauseBtn').disabled = false;
+    $('stopBtn').disabled = false;
+    $('pauseBtn').textContent = wergonicT('field.pause');
+    updateCalibrateUI();
+    setStatus(wergonicT('field.recording'));
+}
+
+async function togglePause() {
+    if (session.state === 'recording') {
+        // Pause: finalize the current SD segment (no firmware pause primitive exists).
+        for (const kind of ['arm', 'trunk']) if (dev[kind].connected) await sendCmd(kind, 'K');
+        session.state = 'paused';
+        session.pauseStart = Date.now();
+        clearInterval(session.elapsedTimer);
+        $('elapsedDisplay').className = 'fr-elapsed paused';
+        $('pauseBtn').textContent = wergonicT('field.resume');
+        setStatus(wergonicT('field.paused'));
+    } else if (session.state === 'paused') {
+        // Resume: recalibrate to start a new SD segment under the same subject name.
+        for (const kind of ['arm', 'trunk']) {
+            if (!dev[kind].connected) continue;
+            await sendCmd(kind, 'N:' + subjectName);
+            await sendCmd(kind, TYPE_CMD[kind]);
+            await new Promise(r => setTimeout(r, 150));
+            await sendCmd(kind, 'C');
+        }
+        session.pauseOffset += Date.now() - session.pauseStart;
+        session.pauseStart = null;
+        session.state = 'recording';
+        startElapsedTimer();
+        $('elapsedDisplay').className = 'fr-elapsed recording';
+        $('pauseBtn').textContent = wergonicT('field.pause');
+        setStatus(wergonicT('field.recording'));
+    }
+}
+
+async function stopRecording() {
+    for (const kind of ['arm', 'trunk']) if (dev[kind].connected) await sendCmd(kind, 'K');
+    clearInterval(session.elapsedTimer);
+    session.state = 'idle';
+    session.startWallTime = null;
+    session.pauseOffset = 0;
+    dev.arm.calibrated = false;
+    dev.trunk.calibrated = false;
+    $('elapsedDisplay').className = 'fr-elapsed';
+    $('elapsedDisplay').textContent = '00:00:00';
+    $('startBtn').disabled = true;
+    $('pauseBtn').disabled = true;
+    $('stopBtn').disabled = true;
+    $('pauseBtn').textContent = wergonicT('field.pause');
+    updateCalibrateUI();
+    setStatus(wergonicT('field.stopped'));
+}
+
+// Trims `text` from the end, one character at a time, until its UTF-8
+// byte length fits within `maxBytes` (never splits a multi-byte character).
+function truncateToByteLength(text, maxBytes) {
+    while (new TextEncoder().encode(text).length > maxBytes) {
+        text = text.slice(0, -1);
+    }
+    return text;
+}
+
+async function sendNote() {
+    const text = truncateToByteLength($('noteInput').value.trim(), NOTE_MAX_BYTES);
+    if (!text) { setStatus(wergonicT('field.noteEmpty')); return; }
+    let sent = false;
+    for (const kind of ['arm', 'trunk']) {
+        if (dev[kind].connected) { await sendCmd(kind, 'NOTE:' + text); sent = true; }
+    }
+    if (sent) { $('noteInput').value = ''; setStatus(wergonicT('field.noteSent')); }
+    else { setStatus(wergonicT('field.needDevice')); }
+}
+
+// ═══════════════════════════════════════════════
+// Wiring
+// ═══════════════════════════════════════════════
+$('subjectNameInput').addEventListener('input', (e) => { subjectName = e.target.value.trim(); });
+$('subjectNameInput').addEventListener('change', () => {
+    if (!subjectName) return;
+    for (const kind of ['arm', 'trunk']) if (dev[kind].connected) sendCmd(kind, 'N:' + subjectName);
+});
+
+$('pairArmBtn').addEventListener('click', () => dev.arm.connected ? disconnectDevice('arm') : pairDevice('arm'));
+$('pairTrunkBtn').addEventListener('click', () => dev.trunk.connected ? disconnectDevice('trunk') : pairDevice('trunk'));
+
+function disconnectDevice(kind) {
+    const d = dev[kind];
+    d.manualDisconnect = true;
+    if (d.reconnectTimer) { clearTimeout(d.reconnectTimer); d.reconnectTimer = null; }
+    if (d.device && d.device.gatt.connected) d.device.gatt.disconnect();
+    d.connected = false;
+    d.calibrated = false;
+    updateDeviceRow(kind);
+    updateBleChip();
+}
+
+$('calibrateBtn').addEventListener('click', calibrateAll);
+$('startBtn').addEventListener('click', startRecording);
+$('pauseBtn').addEventListener('click', togglePause);
+$('stopBtn').addEventListener('click', stopRecording);
+$('noteSendBtn').addEventListener('click', sendNote);
+$('noteInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendNote(); });
+$('noteInput').addEventListener('input', (e) => {
+    const truncated = truncateToByteLength(e.target.value, NOTE_MAX_BYTES);
+    if (truncated !== e.target.value) e.target.value = truncated;
+});
+
+document.addEventListener('wergonic-lang-changed', () => { updateDeviceRow('arm'); updateDeviceRow('trunk'); updateSdChip(); });
+
+updateBleChip();
+updateSdChip();
+</script>
+</body>
+</html>

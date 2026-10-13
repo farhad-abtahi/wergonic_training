@@ -76,7 +76,7 @@ struct werg_unit
   int devID = 0; // default value for serial number if one has not been set.
   int threshold_margin = 0; // default value for threshold margin.
   unsigned long session_begin = 0; // millis() at session start (unsigned long: a float loses ms precision after ~4.6 h of uptime).
-  bool session_active = false; // SD logging runs while true (set by C, cleared by K). Independent of the vibration feedback flag.
+  bool session_active = false; // SD logging runs while true (set by C/START, cleared by K or SD failure). Independent of the vibration feedback flag.
   session_metadata session_meta;    // Session metadata
   bool datetime_set = false;        // True if datetime was set via BLE
   bool debug = false;               // Verbose 25 Hz serial prints (E/Q commands). Off by default: continuous printing costs ~1-2 KB/s of serial bandwidth and can stall on USB-CDC.

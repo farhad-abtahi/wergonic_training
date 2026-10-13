@@ -46,5 +46,8 @@ void vibrator_update(void);
 
 // Check if vibrator is currently in a pattern
 bool vibrator_is_busy(void);
+bool vibrator_driver_ready(void);
+bool vibrator_test_active(void);
+bool vibrator_test(vibrator* motor, bool doublePulse);
 
 #endif

@@ -1,10 +1,11 @@
 #ifndef SD_CARD_H_
 #define SD_CARD_H_
 
-#include "SD.h"
+#include "src/StableSD/SD.h"
 #include "device.h"
 
-#define CS_PIN 4
+#define CS_PIN D3
+#define SD_SPI_CLOCK 1000000UL // Conservative 1 MHz; ample bandwidth for 10 Hz CSV
 // Buffer capacity retained for the BLE command protocol. Generated files are
 // stricter DOS 8.3 names because Arduino SD 1.3.0 does not support long names.
 #define MAX_FILENAME_LEN 18
@@ -30,6 +31,11 @@ bool sd_write_metadata(werg_unit* device);
 
 // Format elapsed milliseconds as HH:MM:SS.mmm string
 String format_elapsed_time(uint32_t elapsed_ms);
+
+// Append a timestamped free-text note to the current session's metadata
+// file (used by the NOTE: BLE/serial command). Returns false if SD is
+// unavailable or the file can't be opened.
+bool sd_append_note(uint32_t elapsed_ms, const char* text);
 
 // File listing and transfer functions
 // List all session files on SD card (prints to Serial and optionally to BLE)

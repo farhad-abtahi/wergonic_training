@@ -5,6 +5,83 @@ All notable changes to the Wergonic Vibrator firmware. Format loosely follows
 `firmware/version.h` and is reported in the boot banner and by the `V` command
 (the webapp uses it for feature detection).
 
+## [4.8] — 2026-10-13
+
+- Add VIBTEST:PULSE / VIBTEST:STEADY for explicit stopped-session motor
+  diagnosis. Auto-stop within 1.3 seconds, independent of posture thresholds.
+  Reject motor tests during SD recording and START during a motor test.
+- Detect DRV2605 initialization failure; expose DRV, INT and VT=1 status.
+- Lab page adds per-device feedback, strength and timed pattern tests, and
+  preserves each chosen feedback mode when starting a trial. Compact layout.
+
+## [4.7] — 2026-10-13
+
+- Bundle Arduino SD 1.3.0 inside the sketch so IDE/CLI use the same driver.
+  Patched File::flush checks sync failures and retries sync three times;
+  never replay ambiguous partial row writes. Short writes always set errors.
+- Replace per-row O_SYNC with buffered rows and checked sync per batch
+  (normally about one second), plus checked header/metadata/final sync.
+- Preserve pending and active RAM buffers when synchronization fails. Never
+  acknowledge a failed save or silently resume a possibly incomplete trial.
+- Use conservative 1 MHz SPI for SD; report card error code/data and firmware
+  version in diagnostics. Page distinguishes unavailable SD from old firmware.
+- Add tests for transient/persistent sync errors and RAM retention after
+  failed final and background sync. Physical reliability remains unverified.
+
+## [4.6.2] — 2026-10-13
+
+- Restore vibrator state updates before/after each synchronous SD row write.
+- Return to the IMU/BLE loop after each SD row instead of five synchronous
+  rows, reducing stalls on slow cards; SD latency remains hardware-dependent.
+- Finish old SD data before C/A/B changes calibration or body position; reject
+  reconfiguration on save failure, retaining original calibration/type.
+- Clear old measurement averaging samples after explicit calibration.
+- Reject SD save acknowledgment before any SD session was initialized.
+- Review correction: the linked snprintf is newlib, including floating-point
+  conversion code. The mbed minimal-printf configuration alone did not prove
+  that floating-point formatting caused the observed SD failure. Integer CSV
+  formatting remains for portability; actual SD write/sync errors remain fatal.
+
+## [4.6.1] — 2026-10-13
+
+- Removed floating-point snprintf from CSV row formatting: the XIAO mbed
+  core disables minimal printf floating-point support. Format rounded angle
+  hundredths with integer conversions instead; keep two decimal places.
+- Distinguish CSV formatting/invalid sensor errors from real SD write/sync
+  errors. Keep synchronized writes and stop on actual storage failure.
+
+## [4.6] — 2026-10-12
+
+- Added `START` to open a new SD session without changing calibration,
+  body position, fusion state or thresholds. Requires an already calibrated
+  device and a healthy SD card. An active session must be stopped first.
+- Start acknowledges the CSV filename only after creating and synchronously
+  writing the header and metadata. Status adds `START=1`, `REC` and `DROP`.
+- Corrected the 100 ms SD schedule against the 40 ms measurement loop
+  (previously reset timing yielded about 8.3 Hz instead of nominal 10 Hz).
+- SD buffers normally drain every second; recording remains independent of
+  BLE connectivity. Complete rows use a single `O_SYNC` write so underlying
+  data/FAT sync failures propagate through the SD library's write result.
+- `K` writes both pending and partial buffers and closes the file. Success
+  replies `ACK:K:<filename>`; unavailable SD, write errors or buffer overrun
+  reply `ERROR:K:<reason>` rather than falsely claiming a saved session.
+- Added host tests for SD session control and failure paths.
+
+## [4.5] — 2026-09-02
+
+### Added
+- `NOTE:free text` command (Serial and BLE) appends a timestamped line
+  (`note_HH:MM:SS.mmm=text`) to the active session's metadata file, so
+  clinicians/users can attach text annotations to a recording without
+  touching the CSV data stream. Requires an SD card; responds
+  `ACK:NOTE:Saved` / `ERROR:NOTE:<reason>`.
+- `?` status query now also reports SD card availability (`SD=1`/`SD=0`) in
+  its compact BLE reply, alongside the existing `Serial` "SD card:" line.
+
+### Changed
+- The BLE command characteristic's buffer grew from 22 to 200 bytes to fit
+  the new `NOTE:` free-text command; existing commands are unaffected.
+
 ## [4.4] — 2026-07-21
 
 ### Fixed

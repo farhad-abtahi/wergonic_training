@@ -13,6 +13,8 @@ const SHELL_FILES = [
     'upload.html',
     'posture-viewer.html',
     'live-record.html',
+    'lab-validation.html',
+    'lab-validation.js',
     'clinician-dashboard.html',
     'compare-report.html',
     'session-comparison-landscape.html',

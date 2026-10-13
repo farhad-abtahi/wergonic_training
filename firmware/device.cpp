@@ -7,6 +7,7 @@
 #include "SD_card.h"
 #include "ble_service.h"
 #include <string.h>
+#include <math.h>
 // #include "rtc.h"
 // Support for calculating the angle from the IMU data.
 
@@ -28,7 +29,7 @@ static void calcAnglesBackSide(werg_unit* werg_device, float* angleBack,
 // Double-buffer system for non-blocking SD writes
 #define SD_LOG_FREQ 100   // ms between SD samples (10Hz logging)
 #define BUF_SIZE 50       // 5 sec at 10Hz per buffer
-#define WRITE_CHUNK 5     // rows written per loop iteration (~15ms worst case)
+#define WRITE_CHUNK 1     // Return to IMU/BLE/vibration after each synchronous row
 
 struct SessionSample
 {
@@ -41,11 +42,16 @@ static SessionSample buffers[2][BUF_SIZE];
 static int buf_fill = 0;           // fill index in active buffer
 static int active_buf = 0;         // 0 or 1: which buffer measure() writes to
 static bool write_pending = false;  // true = inactive buffer needs draining
+static int drain_count = 0;
+static unsigned long previousBufferDrain = 0;
 static int write_pos = 0;          // next row to write in drain buffer
 static File session_file;          // kept open across writes
 static bool file_open = false;
 static bool header_written = false;
 static bool metadata_written = false;
+static bool session_initialized = false;
+static uint32_t session_dropped_samples = 0;
+static const char* session_write_error = "SD row write failed";
 
 
 SimpleFusion fuser;
@@ -139,6 +145,8 @@ static void printDeviceStatus(werg_unit* werg_device)
     Serial.println(werg_device->threshold_margin);
     Serial.print(F("Debug output: "));
     Serial.println(werg_device->debug ? F("ON") : F("OFF"));
+    Serial.print(F("SD card: "));
+    Serial.println(sd_is_available() ? F("Available") : F("Not available"));
     if (werg_device->datetime_set)
     {
         Serial.print(F("DateTime set: Yes ("));
@@ -165,13 +173,17 @@ static void printDeviceStatus(werg_unit* werg_device)
                           (werg_device->devType == BACK_DEV ? "BACK" : "NONE");
     char buf[128];
     snprintf(buf, sizeof(buf),
-             "ACK:?:ID=%d,T=%s,C=%d,FIL=%d,FB=%d,M=%d",
+             "ACK:?:ID=%d,T=%s,C=%d,FIL=%d,FB=%d,M=%d,SD=%d,REC=%d,START=1,DROP=%lu,SE=%u,VER=4.8,INT=%u,DRV=%u,VT=1",
              werg_device->devID,
              typeStr,
              werg_device->calibrated ? 1 : 0,
              fuser.isEnabled() ? 1 : 0,
              werg_device->feedback ? 1 : 0,
-             werg_device->threshold_margin);
+             werg_device->threshold_margin,
+             sd_is_available() ? 1 : 0,
+             werg_device->session_active ? 1 : 0,
+             (unsigned long)session_dropped_samples, SD.errorCode(),
+             werg_device->myVib->vibIntensity / 10, vibrator_driver_ready() ? 1 : 0);
     ble_send_string(buf);
 }
 
@@ -349,7 +361,11 @@ void measure(werg_unit* werg_device, float* angles, bool* angle_available)
             if (werg_device->session_active &&
                 currentMillisFilter - previousMillisSDLog >= SD_LOG_FREQ)
             {
-                previousMillisSDLog = currentMillisFilter;
+                // Keep the 100 ms schedule: resetting to the 40 ms measure
+                // tick would log every 120 ms (~8.3 Hz), not nominal 10 Hz.
+                previousMillisSDLog += SD_LOG_FREQ;
+                if (currentMillisFilter - previousMillisSDLog >= SD_LOG_FREQ)
+                    previousMillisSDLog = currentMillisFilter; // no duplicate catch-up samples
                 unsigned long elapsed_ms = currentMillisFilter - werg_device->session_begin;
                 if (buf_fill < BUF_SIZE)
                 {
@@ -361,6 +377,8 @@ void measure(werg_unit* werg_device, float* angles, bool* angle_available)
                 else if (!write_pending)
                 {
                     // Buffer full, previous drain done — swap buffers
+                    drain_count = buf_fill;
+                    previousBufferDrain = millis();
                     active_buf ^= 1;
                     buf_fill = 0;
                     write_pending = true;
@@ -371,13 +389,19 @@ void measure(werg_unit* werg_device, float* angles, bool* angle_available)
                     buffers[active_buf][buf_fill].elapsed_ms = elapsed_ms;
                     buf_fill++;
                 }
-                // else: both buffers full — drop sample (timing prevents this)
+                else
+                {
+                    // Never silently claim a complete validation recording.
+                    session_dropped_samples++;
+                    werg_device->session_active = false;
+                    ble_send_error("SD", "Buffer overrun; recording stopped");
+                }
             }
         }
     }
 }
 // Helper: write N samples from a buffer to the open session file
-static void write_samples_to_file(SessionSample* samples, int count,
+static bool write_samples_to_file(SessionSample* samples, int count,
                                   werg_unit* werg_device)
 {
     float yellow_threshold, red_threshold;
@@ -394,26 +418,41 @@ static void write_samples_to_file(SessionSample* samples, int count,
 
     for (int i = 0; i < count; i++)
     {
-        // Keep vibration running between SD writes — each row may trigger
-        // a physical sector write (~2-250ms) when the SD buffer fills
+        vibrator_update(); // Keep warning pulse timing alive between SD stalls.
+        SessionSample* sample = &samples[i];
+        const char* zone = sample->angle >= red_threshold ? "red" :
+                           sample->angle >= yellow_threshold ? "yellow" : "green";
+        char row[96];
+        String timestamp = format_elapsed_time(sample->elapsed_ms);
+        // Integer formatting avoids depending on printf float support.
+        // Format hundredths with integer conversions; never use %f here.
+        if (!isfinite(sample->angle) || fabsf(sample->angle) > 360.0f)
+        {
+            session_write_error = "Invalid sensor angle";
+            return false;
+        }
+        long hundredths = lroundf(sample->angle * 100.0f);
+        unsigned long magnitude = hundredths < 0 ? -hundredths : hundredths;
+        int length = snprintf(row, sizeof(row), "%lu,%s,%s%lu.%02lu,%d,%s\r\n",
+                              (unsigned long)sample->elapsed_ms, timestamp.c_str(),
+                              hundredths < 0 ? "-" : "", magnitude / 100, magnitude % 100,
+                              (int)sample->feedback, zone);
+        if (length <= 0 || length >= (int)sizeof(row))
+        {
+            session_write_error = "CSV formatting failed";
+            return false;
+        }
+        // Writes are buffered; the bundled checked flush reports sync failures.
+        if (session_file.write((const uint8_t*)row, length) != (size_t)length ||
+            session_file.getWriteError())
+        {
+            vibrator_update();
+            session_write_error = "SD row write failed";
+            return false;
+        }
         vibrator_update();
-
-        SessionSample* s = &samples[i];
-        session_file.print(s->elapsed_ms);
-        session_file.print(F(","));
-        session_file.print(format_elapsed_time(s->elapsed_ms));
-        session_file.print(F(","));
-        session_file.print(s->angle, 2);
-        session_file.print(F(","));
-        session_file.print((int)s->feedback);
-        session_file.print(F(","));
-        if (s->angle >= red_threshold)
-            session_file.println(F("red"));
-        else if (s->angle >= yellow_threshold)
-            session_file.println(F("yellow"));
-        else
-            session_file.println(F("green"));
     }
+    return true;
 }
 
 // Ensure session file is open and header is written
@@ -443,10 +482,15 @@ static bool ensure_file_ready(werg_unit* werg_device)
 
     if (!metadata_written)
     {
-        sd_write_metadata(werg_device);
+        if (!sd_write_metadata(werg_device)) return false;
         metadata_written = true;
     }
 
+    if (session_file.getWriteError())
+    {
+        sd_set_unavailable();
+        return false;
+    }
     return true;
 }
 
@@ -465,30 +509,42 @@ void session_close_file()
     metadata_written = false;
 }
 
-// Non-blocking chunked write: writes WRITE_CHUNK rows per call from drain buffer
+// Chunked write: one synchronous row per call, then return to the main loop
 void session_write_chunk(werg_unit* werg_device)
 {
-    if (!write_pending || !sd_is_available()) return;
+    if (!write_pending) return;
+    if (!sd_is_available())
+    {
+        werg_device->session_active = false;
+        return;
+    }
 
     if (!ensure_file_ready(werg_device))
     {
-        write_pending = false;
+        werg_device->session_active = false;
+        ble_send_error("SD", "Cannot prepare SD file");
         return;
     }
 
     int drain = active_buf ^ 1; // the OTHER buffer
     int end = write_pos + WRITE_CHUNK;
-    if (end > BUF_SIZE) end = BUF_SIZE;
+    if (end > drain_count) end = drain_count;
 
-    write_samples_to_file(&buffers[drain][write_pos], end - write_pos,
-                          werg_device);
+    if (!write_samples_to_file(&buffers[drain][write_pos], end - write_pos,
+                               werg_device))
+    {
+        sd_set_unavailable();
+        werg_device->session_active = false;
+        session_close_file();
+        ble_send_error("SD", session_write_error);
+        return;
+    }
     write_pos = end;
 
-    if (write_pos >= BUF_SIZE)
+    if (write_pos >= drain_count)
     {
-        write_pending = false;
 
-        // Flush once per drained buffer (~6 s of data). Without it the FAT
+        // Flush once per drained buffer (normally ~1 s of data). Without it the FAT
         // directory entry is only updated on close(), so a power loss
         // mid-shift would leave a 0-byte file. Costs one controlled stall
         // per drain; vibrator_update() keeps the motor pattern alive.
@@ -504,8 +560,13 @@ void session_write_chunk(werg_unit* werg_device)
             header_written = false;
             metadata_written = false;
             sd_set_unavailable();
+            werg_device->session_active = false;
+            char error[48];
+            snprintf(error, sizeof(error), "Sync failed (code=%u,data=%u)", SD.errorCode(), SD.errorData());
+            ble_send_error("SD", error);
             return;
         }
+        write_pending = false; // Release this buffer only after checked sync.
         Serial.println(F("Buffer drained to SD"));
     }
 }
@@ -513,7 +574,7 @@ void session_write_chunk(werg_unit* werg_device)
 // Stop session: flush remaining active buffer, close file (used by K command)
 bool store_session(werg_unit* werg_device)
 {
-    if (!sd_is_available()) return false;
+    if (!sd_is_available() || !session_initialized) return false;
 
     // First finish any pending drain
     while (write_pending)
@@ -527,11 +588,28 @@ bool store_session(werg_unit* werg_device)
     {
         if (!ensure_file_ready(werg_device)) return false;
 
-        write_samples_to_file(&buffers[active_buf][0], buf_fill, werg_device);
-        buf_fill = 0;
+        if (!write_samples_to_file(&buffers[active_buf][0], buf_fill, werg_device))
+        {
+            sd_set_unavailable();
+            session_close_file();
+            return false;
+        }
     }
 
+    // Check the final partial buffer and flush, not just full buffer drains.
+    if (file_open)
+    {
+        session_file.flush();
+        if (session_file.getWriteError())
+        {
+            sd_set_unavailable();
+            session_close_file();
+            return false;
+        }
+    }
+    buf_fill = 0; // Keep RAM samples on failed final sync.
     session_close_file();
+    if (session_dropped_samples) return false;
     Serial.println(F("Session data saved to SD"));
     return true;
 }
@@ -539,7 +617,8 @@ bool store_session(werg_unit* werg_device)
 // Check if session buffer needs draining (called from main loop)
 bool session_save_needed()
 {
-    return write_pending;
+    return sd_is_available() && (write_pending ||
+        (buf_fill > 0 && millis() - previousBufferDrain >= 1000));
 }
 
 // True if the current session has an open file or unsaved samples
@@ -555,14 +634,73 @@ static void session_reset_buffers()
     active_buf = 0;
     write_pending = false;
     write_pos = 0;
+    drain_count = 0;
+    previousBufferDrain = millis();
+}
+
+// Save old rows with their original type/thresholds BEFORE reconfiguration.
+static bool session_finish_before_reconfigure(werg_unit* device)
+{
+    device->session_active = false;
+    if (!session_has_pending_data()) return true;
+    return store_session(device);
+}
+
+// Start SD recording without touching calibration, device type or fusion state.
+static bool session_start_sd(werg_unit* device)
+{
+    device->session_active = false;
+    if (!sd_is_available()) return false;
+    if (session_has_pending_data() && !store_session(device)) return false;
+    session_close_file();
+    session_initialized = false;
+    if (!sd_create_session_files(device->session_meta.subject_name)) return false;
+    session_reset_buffers();
+    session_dropped_samples = 0;
+    device->session_begin = millis();
+    previousMillisSDLog = device->session_begin;
+    session_metadata* m = &device->session_meta;
+    m->session_start_ms = device->session_begin;
+    m->threshold_margin = device->threshold_margin;
+    m->filter_enabled = fuser.isEnabled();
+    m->gyro_favoring = fuser.getConfig().pitchFavoring;
+    bool arm = device->devType == ARM_DEV;
+    m->threshold_yellow = (arm ? YELLOW_LIMIT_ARM : YELLOW_LIMIT_NECK) + device->threshold_margin;
+    m->threshold_red = (arm ? RED_LIMIT_ARM : RED_LIMIT_NECK) + device->threshold_margin;
+    // Create, write metadata/header and checked-flush before acknowledging readiness.
+    if (!ensure_file_ready(device))
+    {
+        session_close_file();
+        return false;
+    }
+    session_file.flush();
+    if (session_file.getWriteError())
+    {
+        sd_set_unavailable();
+        session_close_file();
+        return false;
+    }
+    session_initialized = true;
+    device->session_active = true;
+    return true;
 }
 
 // Handle session save at a safe point in main loop
-// Non-blocking: writes only WRITE_CHUNK rows per call (~30ms)
+// Bounded row count per call; actual SD latency is card-dependent
 void session_handle_save(werg_unit* werg_device)
 {
-    if (!write_pending) return;
-    session_write_chunk(werg_device);
+    if (!write_pending && buf_fill > 0 && sd_is_available())
+    {
+        // Persist partial buffers every second, retaining spare capacity for
+        // slow cards. The active buffer remains independent of this drain.
+        drain_count = buf_fill;
+        active_buf ^= 1;
+        buf_fill = 0;
+        write_pos = 0;
+        write_pending = true;
+        previousBufferDrain = millis();
+    }
+    if (write_pending) session_write_chunk(werg_device);
 }
 
 // Sample sensor.
@@ -733,6 +871,8 @@ static void calcAnglesBackSide(werg_unit* werg_device, float* angleBack,
 // warning if neccessary.
 void checkAngle(float* angles, werg_unit* werg_device, bool* feedback)
 {
+    // Explicit test is independent of posture; always bounded by its timer.
+    if (vibrator_test_active()) return;
     unsigned long currentMillis = millis();
     bool dbg = werg_device->debug; // gate 25 Hz prints (E/Q commands)
     if (dbg) Serial.print(F("Check angle limits: "));
@@ -920,46 +1060,34 @@ void parseCommand(const String readString, werg_unit* werg_device)
     }
     else if (readString == CALIB)
     {
-        werg_device->calibrated = false;
         if (isTypeSet(werg_device))
         {
+            if (!session_finish_before_reconfigure(werg_device))
+            {
+                ble_send_error("C", "Previous SD session save failed");
+                return;
+            }
+            werg_device->calibrated = false;
             calibDevice(werg_device);
             werg_device->calibrated = true;
+            // Discard pre-calibration averaging samples, not the fusion state.
+            sum_of_angles = sum_of_angles_2 = 0;
+            num_of_samples = 0;
+            previousMillis = previousMillisFilter = millis();
 
-            // Start a fresh session: finalize any previous one and create
-            // new files, so a second C never appends into the old CSV
-            // (which used to write a duplicate header mid-file and restart
-            // elapsed_ms within the same file).
             if (sd_is_available())
             {
-                if (session_has_pending_data())
+                if (!session_start_sd(werg_device))
                 {
-                    store_session(werg_device);
+                    ble_send_error("C", "Calibrated but SD start failed");
+                    return;
                 }
-                sd_create_session_files(werg_device->session_meta.subject_name);
-            }
-            session_reset_buffers();
-            werg_device->session_begin = millis();
-            werg_device->session_active = true;
-
-            // Store session metadata at calibration time
-            session_metadata* m = &werg_device->session_meta;
-            m->session_start_ms = millis();
-            m->threshold_margin = werg_device->threshold_margin;
-            m->filter_enabled = fuser.isEnabled();
-            FilterConfig cfg = fuser.getConfig();
-            m->gyro_favoring = cfg.pitchFavoring;
-
-            // Store active thresholds based on device type
-            if (werg_device->devType == ARM_DEV)
-            {
-                m->threshold_yellow = YELLOW_LIMIT_ARM + werg_device->threshold_margin;
-                m->threshold_red = RED_LIMIT_ARM + werg_device->threshold_margin;
             }
             else
             {
-                m->threshold_yellow = YELLOW_LIMIT_NECK + werg_device->threshold_margin;
-                m->threshold_red = RED_LIMIT_NECK + werg_device->threshold_margin;
+                // Keep legacy calibration/measurement use without an SD card.
+                werg_device->session_active = false;
+                werg_device->session_begin = millis();
             }
 
             Serial.print(F("Session begin: "));
@@ -974,6 +1102,11 @@ void parseCommand(const String readString, werg_unit* werg_device)
     }
     else if (readString == ARM)
     {
+        if (!session_finish_before_reconfigure(werg_device))
+        {
+            ble_send_error("A", "Previous SD session save failed");
+            return;
+        }
         werg_device->devType = ARM_DEV;
         savePreferencesType(ARM_DEV);
         werg_device->calibrated = false;
@@ -982,11 +1115,25 @@ void parseCommand(const String readString, werg_unit* werg_device)
     }
     else if (readString == BACK)
     {
+        if (!session_finish_before_reconfigure(werg_device))
+        {
+            ble_send_error("B", "Previous SD session save failed");
+            return;
+        }
         werg_device->devType = BACK_DEV;
         savePreferencesType(BACK_DEV);
         werg_device->calibrated = false;
         Serial.println("Device placed on back. Calibrate device");
         ble_send_ack("B", "TRUNK");
+    }
+    else if (readString == "VIBTEST:PULSE" || readString == "VIBTEST:STEADY")
+    {
+        if (werg_device->session_active)
+            ble_send_error("VIBTEST", "Stop SD recording before motor test");
+        else if (!vibrator_test(werg_device->myVib, readString == "VIBTEST:PULSE"))
+            ble_send_error("VIBTEST", "Vibration driver not detected");
+        else
+            ble_send_ack("VIBTEST", "Running; auto stop within 1.3 seconds");
     }
     else if (readString == FEEDBACK_ON)
     {
@@ -1004,6 +1151,19 @@ void parseCommand(const String readString, werg_unit* werg_device)
         Serial.println("Disable feedback.");
         ble_send_ack("N", "OFF");
     }
+    else if (readString == START_RECORDING)
+    {
+        if (!werg_device->calibrated || !isTypeSet(werg_device))
+            ble_send_error("START", "Calibrate and set body position first");
+        else if (werg_device->session_active)
+            ble_send_error("START", "Already recording; stop first");
+        else if (vibrator_test_active())
+            ble_send_error("START", "Motor test still running");
+        else if (!session_start_sd(werg_device))
+            ble_send_error("START", "SD start failed");
+        else
+            ble_send_ack("START", session_filename);
+    }
     else if (readString == STOP)
     {
         werg_device->feedback = false;
@@ -1011,11 +1171,11 @@ void parseCommand(const String readString, werg_unit* werg_device)
         noVib();
         if (sd_is_available() && store_session(werg_device))
         {
-            ble_send_ack("K", "Session saved");
+            ble_send_ack("K", session_filename);
         }
         else
         {
-            ble_send_ack("K", "Stopped");
+            ble_send_error("K", "Stopped; SD save failed or samples lost");
         }
     }
 
@@ -1130,6 +1290,40 @@ void parseCommand(const String readString, werg_unit* werg_device)
         else
         {
             ble_send_error("N", "Empty name");
+        }
+    }
+
+    // Text note command: NOTE:free text - appended to the session metadata
+    // file with an elapsed-time tag, so users can annotate a recording
+    // (e.g. "patient reported discomfort") without touching the CSV data.
+    else if (readString.startsWith(NOTE_PREFIX))
+    {
+        String text = readString.substring(strlen(NOTE_PREFIX));
+        text.trim();
+        if (text.length() == 0)
+        {
+            ble_send_error("NOTE", "Empty text");
+        }
+        else if (!sd_is_available())
+        {
+            ble_send_error("NOTE", "SD not available");
+        }
+        else
+        {
+            uint32_t elapsed = werg_device->session_active
+                ? (uint32_t)(millis() - werg_device->session_begin) : 0;
+            if (sd_append_note(elapsed, text.c_str()))
+            {
+                Serial.print(F("Note saved @"));
+                Serial.print(elapsed);
+                Serial.print(F("ms: "));
+                Serial.println(text);
+                ble_send_ack("NOTE", "Saved");
+            }
+            else
+            {
+                ble_send_error("NOTE", "Write failed");
+            }
         }
     }
 

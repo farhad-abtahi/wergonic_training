@@ -62,6 +62,9 @@ var APP_SHELL_NAV_ITEMS = [
     { label: 'Landscape Report', href: 'session-comparison-landscape.html', group: 'more' },
     { label: 'Posture Viewer', href: 'posture-viewer.html', group: 'more' },
     { label: 'Live Record', href: 'live-record.html', group: 'primary' },
+    { label: 'Lab Validation', href: 'lab-validation.html', group: 'more' },
+    { label: 'Field Recording', href: 'field-record.html', group: 'more' },
+    { label: 'Device Manager', href: 'device-manager.html', group: 'more' },
     { label: 'Clinician Dashboard', href: 'clinician-dashboard.html', group: 'more' },
     { label: 'Rehab Game', href: 'rehab-game.html', group: 'more' }
 ];

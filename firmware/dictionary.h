@@ -14,6 +14,7 @@
 #define BACK (String('B'))
 #define FEEDBACK_ON (String('F'))
 #define FEEDBACK_OFF (String('N'))
+#define START_RECORDING (String("START")) // New SD session; preserve calibration
 #define STOP (String('K'))
 // Threshold values
 #define PLUS_5 (String('J'))
@@ -39,6 +40,7 @@
 // Multi-character command prefixes
 #define SET_TIME_PREFIX "T:"      // Format: T:YYYYMMDDHHmmss (14 digits after prefix)
 #define SET_SESSION_PREFIX "N:"   // Format: N:subject_name (max 16 chars)
+#define NOTE_PREFIX "NOTE:"       // Format: NOTE:free text - appended to the session metadata file
 
 // Status query
 #define GET_STATUS (String('?'))  // Request device status

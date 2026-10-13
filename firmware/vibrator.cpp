@@ -12,6 +12,9 @@ static void drvInit();
 static VibPhase vib_phase = VIB_IDLE;
 static unsigned long vib_timer = 0;
 static vibrator* current_vib = nullptr;
+static bool driver_ready = false;
+static bool test_active = false;
+static unsigned long test_begin = 0;
 
 void vib(vibrator* myVib, uint8_t intensity)
 {
@@ -34,6 +37,7 @@ void noVib()
     motorOff();
     vib_phase = VIB_IDLE;
     current_vib = nullptr;
+    test_active = false;
 }
 
 void checkVib(vibrator myVib)
@@ -80,8 +84,25 @@ void warning(vibrator* myVib)
 }
 
 // Update function - call this in the main loop for non-blocking operation
+bool vibrator_driver_ready() { return driver_ready; }
+bool vibrator_test_active() { return test_active; }
+bool vibrator_test(vibrator* motor, bool doublePulse)
+{
+    if (!driver_ready) return false;
+    noVib();
+    if (doublePulse) warning(motor); else alert(motor);
+    test_begin = millis();
+    test_active = true;
+    return true;
+}
+
 void vibrator_update()
 {
+    if (test_active && millis() - test_begin >= 1300)
+    {
+        noVib();
+        return;
+    }
     if (vib_phase == VIB_IDLE || current_vib == nullptr)
     {
         return;
@@ -150,7 +171,8 @@ void vibInit()
 // Initialize the driver. Currently MODE 5.
 static void drvInit()
 {
-    drv.begin();
+    driver_ready = drv.begin();
+    if (!driver_ready) { Serial.println(F("ERROR: Vibration driver not detected")); return; }
     drv.selectLibrary(1);
     drv.setMode(DRV2605_MODE_REALTIME);
 }
