@@ -93,6 +93,10 @@ function setup(options = {}) {
     t=setup({failCalibration:'trunk'});await t.run('labCalibrate()');
     assert.equal(t.element('start').disabled,false);
     assert.match(t.element('message').textContent,/Calibration not confirmed/);
+    t=setup();await t.run("labCalibrate(labDevices.find(d=>d.key==='right_arm'))");
+    assert.deepEqual(t.sent.map(s=>s.key),['right_arm','right_arm','right_arm','right_arm','right_arm']);
+    assert.deepEqual(t.sent.map(s=>s.command),['?','A','C','K','?']);
+    assert.match(t.element('message').textContent,/Right Arm calibrated/);
     t=setup({oldFirmware:true});await t.run('labCalibrate()');
     assert.ok(!t.sent.some(s=>['A','B','C'].includes(s.command)));
     t=setup({activeSession:true});

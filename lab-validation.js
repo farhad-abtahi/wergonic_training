@@ -21,9 +21,9 @@ function labUpdate() {
     labEl('calibration-help').textContent = labRecording ? 'Stop recording before calibrating.'
         : labTransition ? 'Please wait for the current operation to finish.'
         : labDevices.some(d => d.busy) ? 'Wait for sensor pairing to finish.'
-        : missing.length ? `Pair these sensors to enable calibration: ${missing.join(', ')}.`
+        : missing.length ? `Pair ${missing.join(', ')} to enable all-sensor calibration. Connected sensors can be calibrated individually.`
         : labDevices.some(d => d.needsStop) ? 'Calibration will first stop and save existing SD sessions.'
-        : 'Hold the reference pose, then click Calibrate All Sensors.';
+        : 'Calibrate a connected sensor from its card, or pair all three to calibrate them together.';
     labEl('start').disabled = labRecording || labTransition || count !== 3 || labDevices.some(d => d.busy || d.needsStop || d.vibBusy);
     labEl('stop').disabled = labTransition || (!labRecording && !labDevices.some(d => d.needsStop));
     labEl('save').disabled = labRecording || labTransition || !labRows.length;
@@ -33,6 +33,7 @@ function labUpdate() {
     for (const d of labDevices) {
         labEl(`${d.key}-pair`).disabled = labRecording || labTransition || d.busy || d.vibBusy;
         labEl(`${d.key}-pair`).textContent = d.connected ? 'Disconnect' : 'Pair Sensor';
+        labEl(`${d.key}-calibrate`).disabled = labRecording || labTransition || !d.connected || d.busy || d.vibBusy;
         const status = labEl(`${d.key}-status`);
         status.textContent = d.busy ? 'Pairing…' : d.connected ? 'Connected' : 'Disconnected';
         for (const control of ['feedback','strength']) labEl(`${d.key}-${control}`).disabled = !d.connected || labTransition || d.busy || d.vibBusy;
@@ -188,12 +189,14 @@ async function labVibration(d, action, value) {
         if (action === 'feedback') labEl(`${d.key}-feedback`).value = d.feedbackMode;
     } finally { d.vibBusy = false; labUpdate(); }
 }
-async function labCalibrate() {
-    if (labRecording || labTransition || labDevices.some(d => !d.connected || d.busy || d.vibBusy)) return;
+async function labCalibrate(target = null) {
+    const devices = target ? [target] : labDevices;
+    if (labRecording || labTransition || devices.some(d => !d.connected || d.busy || d.vibBusy)) return;
     labTransition = true; labUpdate();
-    labMessage('Hold all three sensors still in the reference pose. Calibrating…');
+    const subject = target ? target.label : 'all three sensors';
+    labMessage(`Hold ${target ? 'this sensor' : 'all three sensors'} still in the reference pose. Calibrating ${subject}…`);
     try {
-        const checks = await Promise.allSettled(labDevices.map(async d => {
+        const checks = await Promise.allSettled(devices.map(async d => {
             const fields = labApplyStatus(d, await labCommand(d, '?'));
             if (fields.START !== '1') throw new Error(`${d.label}: SD recording capability missing; update firmware.`);
             if (fields.SD !== '1') throw new Error(`${d.label}: SD unavailable (card error ${fields.SE || 'unknown'}, firmware ${fields.VER || 'unknown'}). Preserve files, check card and power, then restart the sensor.`);
@@ -202,20 +205,20 @@ async function labCalibrate() {
         if (checkFailure) throw checkFailure.reason;
         // A restored or setup SD session should not make calibration unreachable.
         // Save it before A/B can change the type or calibration state.
-        if (labDevices.some(d => d.needsStop)) {
-            labMessage('Stopping and saving existing SD sessions before calibration…');
-            const previousStop = await labStopDevices();
-            if (labDevices.some(d => d.needsStop)) throw new Error(previousStop);
+        if (devices.some(d => d.needsStop)) {
+            labMessage(`Stopping and saving existing SD session${target ? '' : 's'} before calibration…`);
+            const previousStop = await labStopDevices(devices);
+            if (devices.some(d => d.needsStop)) throw new Error(previousStop);
         }
-        labMessage('Hold all three sensors still in the reference pose. Calibrating…');
-        const calibrations = await Promise.allSettled(labDevices.map(async d => {
+        labMessage(`Hold ${target ? 'this sensor' : 'all three sensors'} still in the reference pose. Calibrating ${subject}…`);
+        const calibrations = await Promise.allSettled(devices.map(async d => {
             d.ready = false;
             await labCommand(d, d.key === 'trunk' ? 'B' : 'A');
             d.needsStop = true; // C also starts an SD setup session, even if its ACK is lost.
             await labCommand(d, 'C');
         }));
-        const stopResult = await labStopDevices();
-        const statuses = await Promise.allSettled(labDevices.map(async (d, index) => {
+        const stopResult = await labStopDevices(devices);
+        const statuses = await Promise.allSettled(devices.map(async (d, index) => {
             const fields = labApplyStatus(d, await labCommand(d, '?'));
             if (calibrations[index].status === 'rejected') {
                 d.ready = false;
@@ -227,7 +230,7 @@ async function labCalibrate() {
         }));
         const failures = statuses.filter(result => result.status === 'rejected');
         if (failures.length) labMessage(`Calibration not confirmed: ${failures.map(result => result.reason.message).join('; ')}. ${stopResult}`);
-        else labMessage('All three sensors calibrated. Setup SD sessions saved and closed. Ready to start recording with these calibration values.');
+        else labMessage(`${target ? `${target.label} calibrated` : 'All three sensors calibrated'}. Setup SD sessions saved and closed. Ready to start recording with these calibration values.`);
     } catch (error) {
         labMessage(`Calibration failed: ${error.message}`);
     } finally { labTransition = false; labUpdate(); }
@@ -274,8 +277,8 @@ async function labStartRecording() {
         labMessage(`Start failed: ${error.message}. ${stops}`);
     } finally { labTransition = false; labUpdate(); }
 }
-async function labStopDevices() {
-    const results = await Promise.allSettled(labDevices.filter(d => d.needsStop).map(async d => {
+async function labStopDevices(devices = labDevices) {
+    const results = await Promise.allSettled(devices.filter(d => d.needsStop).map(async d => {
         const response = await labCommand(d, 'K');
         d.needsStop = false;
         labEl(`${d.key}-sd`).textContent = `SD saved: ${response.slice(6)}`;
@@ -308,9 +311,10 @@ async function labStop() {
         labMessage(`${result} Bluetooth backup: ${labRows.length} samples.`);
     } finally { labTransition = false; labUpdate(); }
 }
-labEl('devices').innerHTML = labDevices.map(d => `<section class="lab-card" aria-label="${d.label}"><div class="lab-card-header"><h2>${d.label}</h2><div id="${d.key}-status" class="lab-status">Disconnected</div></div><div id="${d.key}-device" class="lab-device">No sensor paired</div><div class="lab-card-header"><div id="${d.key}-value" class="lab-value">—</div><button id="${d.key}-pair">Pair Sensor</button></div><small id="${d.key}-last">No live reading</small><small id="${d.key}-sd">SD status unavailable</small><div class="lab-vibration"><div class="lab-vibration-grid"><div><label for="${d.key}-feedback">Feedback mode</label><select id="${d.key}-feedback"><option value="F">Automatic / On</option><option value="N">Off</option></select></div><div><label for="${d.key}-strength">Strength</label><select id="${d.key}-strength"><option value="W">Weak</option><option value="M" selected>Medium</option><option value="S">Strong</option></select></div></div><label for="${d.key}-pattern" style="margin-top:8px">Test pattern (while stopped)</label><div class="lab-vibration-test"><select id="${d.key}-pattern"><option value="PULSE">Double pulse</option><option value="STEADY">Steady · 1.3 s</option></select><button id="${d.key}-test">Test Vibration</button></div><small id="${d.key}-vib-status">Pair sensor to check feedback.</small></div></section>`).join('');
+labEl('devices').innerHTML = labDevices.map(d => `<section class="lab-card" aria-label="${d.label}"><div class="lab-card-header"><h2>${d.label}</h2><div id="${d.key}-status" class="lab-status">Disconnected</div></div><div id="${d.key}-device" class="lab-device">No sensor paired</div><div class="lab-card-header"><div id="${d.key}-value" class="lab-value">—</div><div class="lab-card-actions"><button id="${d.key}-calibrate" disabled>Calibrate</button><button id="${d.key}-pair">Pair Sensor</button></div></div><small id="${d.key}-last">No live reading</small><small id="${d.key}-sd">SD status unavailable</small><div class="lab-vibration"><div class="lab-vibration-grid"><div><label for="${d.key}-feedback">Feedback mode</label><select id="${d.key}-feedback"><option value="F">Automatic / On</option><option value="N">Off</option></select></div><div><label for="${d.key}-strength">Strength</label><select id="${d.key}-strength"><option value="W">Weak</option><option value="M" selected>Medium</option><option value="S">Strong</option></select></div></div><label for="${d.key}-pattern" style="margin-top:8px">Test pattern (while stopped)</label><div class="lab-vibration-test"><select id="${d.key}-pattern"><option value="PULSE">Double pulse</option><option value="STEADY">Steady · 1.3 s</option></select><button id="${d.key}-test">Test Vibration</button></div><small id="${d.key}-vib-status">Pair sensor to check feedback.</small></div></section>`).join('');
 for (const d of labDevices) {
     labEl(`${d.key}-pair`).addEventListener('click', () => labPair(d));
+    labEl(`${d.key}-calibrate`).addEventListener('click', () => labCalibrate(d));
     labEl(`${d.key}-feedback`).addEventListener('change', event => labVibration(d, 'feedback', event.target.value));
     labEl(`${d.key}-strength`).addEventListener('change', event => labVibration(d, 'strength', event.target.value));
     labEl(`${d.key}-test`).addEventListener('click', () => labVibration(d, 'test', labEl(`${d.key}-pattern`).value));
