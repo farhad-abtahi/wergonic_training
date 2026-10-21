@@ -11,6 +11,8 @@ const labDevices = [
     {key: 'trunk', label: 'Trunk', uuid: LAB_TRUNK, feedbackMode: 'F'}
 ];
 let labRecording = false, labStart = 0, labWall = 0, labRows = [], labTrial = '', labStorageFailed = false, labTransition = false;
+// Lab protocol: complementary filter ON (X) for trunk, OFF (Z) for arms.
+const labFilter = d => d.key === 'trunk' ? 'X' : 'Z';
 const labEl = id => document.getElementById(id);
 const labMessage = text => { labEl('message').textContent = text; };
 function labUpdate() {
@@ -80,6 +82,7 @@ async function labPair(d) {
         d.disconnectHandler = () => labDisconnect(d);
         selected.addEventListener('gattserverdisconnected', d.disconnectHandler);
         labEl(`${d.key}-device`).textContent = selected.name || selected.id;
+        await labCommand(d, labFilter(d));
         const status = await labCommand(d, '?');
         labApplyStatus(d, status);
         labMessage(d.ready ? `${d.label} connected. SD ready; current calibration retained.` : `${d.label}: SD recording unavailable. Requires firmware 4.6, healthy SD and existing calibration.`);
@@ -214,6 +217,7 @@ async function labCalibrate(target = null) {
         const calibrations = await Promise.allSettled(devices.map(async d => {
             d.ready = false;
             await labCommand(d, d.key === 'trunk' ? 'B' : 'A');
+            await labCommand(d, labFilter(d));
             d.needsStop = true; // C also starts an SD setup session, even if its ACK is lost.
             await labCommand(d, 'C');
         }));
@@ -252,6 +256,7 @@ async function labStartRecording() {
             const name = `${labTrial.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,12)}_${d.key === 'left_arm' ? 'LA' : d.key === 'right_arm' ? 'RA' : 'TR'}`;
             await labCommand(d, `N:${name}`);
             await labCommand(d, `T:${utc}`);
+            await labCommand(d, labFilter(d));
         }));
         const prepareFailure = preparation.find(result => result.status === 'rejected');
         if (prepareFailure) throw prepareFailure.reason;
@@ -319,7 +324,8 @@ for (const d of labDevices) {
     labEl(`${d.key}-strength`).addEventListener('change', event => labVibration(d, 'strength', event.target.value));
     labEl(`${d.key}-test`).addEventListener('click', () => labVibration(d, 'test', labEl(`${d.key}-pattern`).value));
 }
-labEl('calibrate').addEventListener('click', labCalibrate);
+// Wrap so the click event is not passed as the single-sensor target.
+labEl('calibrate').addEventListener('click', () => labCalibrate());
 labEl('start').addEventListener('click', labStartRecording);
 labEl('stop').addEventListener('click', labStop);
 labEl('save').addEventListener('click', labSave);
