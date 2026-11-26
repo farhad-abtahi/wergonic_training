@@ -11,8 +11,8 @@ const labDevices = [
     {key: 'trunk', label: 'Trunk', uuid: LAB_TRUNK, feedbackMode: 'F'}
 ];
 let labRecording = false, labStart = 0, labWall = 0, labRows = [], labTrial = '', labStorageFailed = false, labTransition = false;
-// Lab protocol: complementary filter ON (X) for trunk, OFF (Z) for arms.
-const labFilter = d => d.key === 'trunk' ? 'X' : 'Z';
+// Lab protocol: complementary filter ON (X) for every sensor.
+const labFilter = () => 'X';
 const labEl = id => document.getElementById(id);
 const labMessage = text => { labEl('message').textContent = text; };
 function labUpdate() {
@@ -38,6 +38,13 @@ function labUpdate() {
         labEl(`${d.key}-calibrate`).disabled = labRecording || labTransition || !d.connected || d.busy || d.vibBusy;
         const status = labEl(`${d.key}-status`);
         status.textContent = d.busy ? 'Pairing…' : d.connected ? 'Connected' : 'Disconnected';
+        // Shown only for a disconnected sensor whose SD stop was never confirmed:
+        // without it a dead sensor would block Start and pairing until a reload.
+        const release = labEl(`${d.key}-release`);
+        release.hidden = d.connected || !d.needsStop;
+        release.disabled = labRecording || labTransition || d.busy;
+        if (release.hidden || release.disabled) d.releaseArmed = false;
+        release.textContent = d.releaseArmed ? 'Click again to release' : 'Release dead sensor';
         for (const control of ['feedback','strength']) labEl(`${d.key}-${control}`).disabled = !d.connected || labTransition || d.busy || d.vibBusy;
         for (const control of ['pattern','test']) labEl(`${d.key}-${control}`).disabled = !d.connected || labRecording || labTransition || d.busy || d.vibBusy || d.needsStop || !d.testSupported;
         status.className = `lab-status${d.connected ? ' connected' : ''}`;
@@ -67,7 +74,20 @@ async function labPair(d) {
     let selected;
     try {
         selected = await navigator.bluetooth.requestDevice({filters:[{services:[LAB_SERVICE]}]});
-        if (labDevices.some(other => other !== d && other.device && other.device.id === selected.id)) throw new Error('This sensor is already assigned to another body position. Choose a different sensor.');
+        // A slot remembers its last sensor after a disconnect. Only a sensor
+        // that is still connected elsewhere, or still holds an unsaved SD
+        // session there, blocks the choice; otherwise sensors can be swapped
+        // between slots without reloading the page.
+        const holder = labDevices.find(other => other !== d && other.device?.id === selected.id);
+        if (holder?.connected) throw new Error(`This sensor is already paired as ${holder.label}. Disconnect it there first.`);
+        if (holder?.needsStop) throw new Error(`This sensor still has an unsaved SD session as ${holder.label}. Pair it there and press Stop & Save first, or use Release dead sensor there.`);
+        if (d.needsStop && d.device && d.device.id !== selected.id) throw new Error(`The previous ${d.label} sensor (${d.device.name || d.device.id}) still has an unsaved SD session. Pair that sensor again and press Stop & Save, or, if it cannot be reconnected, use Release dead sensor first.`);
+        if (holder) {
+            if (holder.disconnectHandler) holder.device.removeEventListener('gattserverdisconnected', holder.disconnectHandler);
+            holder.device = null; holder.disconnectHandler = null;
+            labEl(`${holder.key}-device`).textContent = 'No sensor paired';
+        }
+        if (d.device && d.device !== selected && d.disconnectHandler) d.device.removeEventListener('gattserverdisconnected', d.disconnectHandler);
         const server = await selected.gatt.connect();
         const service = await server.getPrimaryService(LAB_SERVICE);
         const characteristic = await service.getCharacteristic(d.uuid);
@@ -88,10 +108,34 @@ async function labPair(d) {
         labMessage(d.ready ? `${d.label} connected. SD ready; current calibration retained.` : `${d.label}: SD recording unavailable. Requires firmware 4.6, healthy SD and existing calibration.`);
         labPoll(d);
     } catch (error) {
-        if (selected && !labDevices.some(other => other !== d && other.device?.id === selected.id)) selected.gatt.disconnect();
+        if (selected && !labDevices.some(other => other !== d && other.connected && other.device?.id === selected.id)) selected.gatt.disconnect();
         d.connected = false; d.ready = false;
         labMessage(`Could not pair ${d.label}: ${error.message}`);
     } finally { d.busy = false; labUpdate(); }
+}
+// A sensor that cannot be reconnected (flat battery, broken, out of reach)
+// still counts as "SD stop unconfirmed". Releasing it gives up that
+// confirmation: its SD file stays on its card (a powered-off sensor has
+// already stopped writing; one that is still running keeps writing until it
+// is switched off or stopped), and the slot is free for another sensor.
+function labRelease(d) {
+    if (d.connected || !d.needsStop || labRecording || labTransition || d.busy) return;
+    if (!d.releaseArmed) {
+        d.releaseArmed = true;
+        labMessage(`${d.label}: release only if this sensor cannot be reconnected. Its SD file stays on its card and is collected from the card later. Click again to confirm.`);
+        clearTimeout(d.releaseTimer);
+        d.releaseTimer = setTimeout(() => { d.releaseArmed = false; labUpdate(); }, 8000);
+        labUpdate();
+        return;
+    }
+    clearTimeout(d.releaseTimer);
+    const name = d.device ? (d.device.name || d.device.id) : 'previous sensor';
+    if (d.device && d.disconnectHandler) d.device.removeEventListener('gattserverdisconnected', d.disconnectHandler);
+    d.releaseArmed = false; d.needsStop = false; d.device = null; d.disconnectHandler = null;
+    labEl(`${d.key}-device`).textContent = 'No sensor paired';
+    labEl(`${d.key}-sd`).textContent = `Released ${name}: SD stop not confirmed — collect its file from the card.`;
+    labMessage(`${d.label}: ${name} released. Pair a replacement sensor; it needs calibrating before the next trial.`);
+    labUpdate();
 }
 async function labPoll(d) {
     if (!d.connected) return;
@@ -316,9 +360,10 @@ async function labStop() {
         labMessage(`${result} Bluetooth backup: ${labRows.length} samples.`);
     } finally { labTransition = false; labUpdate(); }
 }
-labEl('devices').innerHTML = labDevices.map(d => `<section class="lab-card" aria-label="${d.label}"><div class="lab-card-header"><h2>${d.label}</h2><div id="${d.key}-status" class="lab-status">Disconnected</div></div><div id="${d.key}-device" class="lab-device">No sensor paired</div><div class="lab-card-header"><div id="${d.key}-value" class="lab-value">—</div><div class="lab-card-actions"><button id="${d.key}-calibrate" disabled>Calibrate</button><button id="${d.key}-pair">Pair Sensor</button></div></div><small id="${d.key}-last">No live reading</small><small id="${d.key}-sd">SD status unavailable</small><div class="lab-vibration"><div class="lab-vibration-grid"><div><label for="${d.key}-feedback">Feedback mode</label><select id="${d.key}-feedback"><option value="F">Automatic / On</option><option value="N">Off</option></select></div><div><label for="${d.key}-strength">Strength</label><select id="${d.key}-strength"><option value="W">Weak</option><option value="M" selected>Medium</option><option value="S">Strong</option></select></div></div><label for="${d.key}-pattern" style="margin-top:8px">Test pattern (while stopped)</label><div class="lab-vibration-test"><select id="${d.key}-pattern"><option value="PULSE">Double pulse</option><option value="STEADY">Steady · 1.3 s</option></select><button id="${d.key}-test">Test Vibration</button></div><small id="${d.key}-vib-status">Pair sensor to check feedback.</small></div></section>`).join('');
+labEl('devices').innerHTML = labDevices.map(d => `<section class="lab-card" aria-label="${d.label}"><div class="lab-card-header"><h2>${d.label}</h2><div id="${d.key}-status" class="lab-status">Disconnected</div></div><div id="${d.key}-device" class="lab-device">No sensor paired</div><div class="lab-card-header"><div id="${d.key}-value" class="lab-value">—</div><div class="lab-card-actions"><button id="${d.key}-calibrate" disabled>Calibrate</button><button id="${d.key}-pair">Pair Sensor</button></div></div><small id="${d.key}-last">No live reading</small><small id="${d.key}-sd">SD status unavailable</small><button id="${d.key}-release" hidden>Release dead sensor</button><div class="lab-vibration"><div class="lab-vibration-grid"><div><label for="${d.key}-feedback">Feedback mode</label><select id="${d.key}-feedback"><option value="F">Automatic / On</option><option value="N">Off</option></select></div><div><label for="${d.key}-strength">Strength</label><select id="${d.key}-strength"><option value="W">Weak</option><option value="M" selected>Medium</option><option value="S">Strong</option></select></div></div><label for="${d.key}-pattern" style="margin-top:8px">Test pattern (while stopped)</label><div class="lab-vibration-test"><select id="${d.key}-pattern"><option value="PULSE">Double pulse</option><option value="STEADY">Steady · 1.3 s</option></select><button id="${d.key}-test">Test Vibration</button></div><small id="${d.key}-vib-status">Pair sensor to check feedback.</small></div></section>`).join('');
 for (const d of labDevices) {
     labEl(`${d.key}-pair`).addEventListener('click', () => labPair(d));
+    labEl(`${d.key}-release`).addEventListener('click', () => labRelease(d));
     labEl(`${d.key}-calibrate`).addEventListener('click', () => labCalibrate(d));
     labEl(`${d.key}-feedback`).addEventListener('change', event => labVibration(d, 'feedback', event.target.value));
     labEl(`${d.key}-strength`).addEventListener('change', event => labVibration(d, 'strength', event.target.value));

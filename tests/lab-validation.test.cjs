@@ -46,11 +46,11 @@ function setup(options = {}) {
     assert.equal(t.sent.filter(s=>s.command==='F').length,3);
     assert.ok(t.sent.findIndex(s=>s.command==='F') > t.sent.map(s=>s.command).lastIndexOf('START'));
     assert.ok(!t.sent.some(s=>['C','A','B'].includes(s.command)));
-    // Filter is enforced per body position before every START: trunk on, arms off.
-    assert.deepEqual(t.sent.filter(s=>['X','Z'].includes(s.command)).map(s=>`${s.key}:${s.command}`).sort(),['left_arm:Z','right_arm:Z','trunk:X']);
+    // Filter is switched on for every sensor before every START.
+    assert.deepEqual(t.sent.filter(s=>['X','Z'].includes(s.command)).map(s=>`${s.key}:${s.command}`).sort(),['left_arm:X','right_arm:X','trunk:X']);
     for (const key of ['left_arm','right_arm','trunk']) {
         const mine = t.sent.filter(s=>s.key===key).map(s=>s.command);
-        assert.ok(mine.indexOf(key==='trunk'?'X':'Z') < mine.indexOf('START'));
+        assert.ok(mine.indexOf('X') < mine.indexOf('START'));
     }
     await t.run('Promise.all(labDevices.map(labPoll))');
     assert.equal(t.run('labRows.length'),3);
@@ -101,7 +101,7 @@ function setup(options = {}) {
     assert.match(t.element('message').textContent,/Calibration not confirmed/);
     t=setup();await t.run("labCalibrate(labDevices.find(d=>d.key==='right_arm'))");
     assert.deepEqual(t.sent.map(s=>s.key),['right_arm','right_arm','right_arm','right_arm','right_arm','right_arm']);
-    assert.deepEqual(t.sent.map(s=>s.command),['?','A','Z','C','K','?']);
+    assert.deepEqual(t.sent.map(s=>s.command),['?','A','X','C','K','?']);
     assert.match(t.element('message').textContent,/Right Arm calibrated/);
     // The Calibrate All button must calibrate all three, not treat the click event as a target.
     t=setup();await t.element('calibrate').listeners.click({type:'click'});
